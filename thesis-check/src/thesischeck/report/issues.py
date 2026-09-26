@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import html
 import math
+import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from lxml import etree
@@ -32,7 +35,53 @@ from ..rules import Issue, Verdict
 from ..semantics.blocks import Block, CheckContext, Role, Scope
 
 SCHEMA_VERSION = 1
+# 规则集版本的**回退值**：有 git 且能取到时优先用 `git describe --tags --dirty`（见下）
 RULESET_VERSION = "batch-1+2/204"
+
+
+@lru_cache(maxsize=1)
+def ruleset_version() -> str:
+    """规则集版本：优先 `git describe --tags --dirty`（tag + 距 tag 的提交数 + 脏标记）。
+
+    取不到（未安装 git / 不在仓库 / 没有 tag）就回退到常量。结果缓存，一次进程只起一次
+    `git`，`lru_cache` 线程安全，web 线程池不会重复起进程。
+    """
+    try:
+        described = subprocess.run(
+            ["git", "describe", "--tags", "--dirty"],
+            cwd=Path(__file__).resolve().parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        described = ""
+    return described or RULESET_VERSION
+
+
+# 「解析器未认识元素」里**良性可忽略**的一小份显式名单（`FR-10.4`）：纯标记、兼容容器、
+# 内容控件元数据——它们不承载正文内容，也不改变结构判定。清单之外的一律算"值得关注"，
+# 直接进报告头计数；完整清单由 `--unknown-elements` 打印。名单刻意保持短小、逐条可审。
+BENIGN_ELEMENTS: frozenset[str] = frozenset(
+    {
+        "proofErr",
+        "bookmarkStart",
+        "bookmarkEnd",
+        "lastRenderedPageBreak",
+        "commentRangeStart",
+        "commentRangeEnd",
+        "commentReference",
+        "drawing",
+        "pict",
+        "hyperlink",
+        "sdtPr",
+        "sdtEndPr",
+        "docPartObj",
+        "docPartGallery",
+        "docPartUnique",
+    }
+)
 
 _SCOPE_NAMES: dict[Scope, str] = {
     Scope.COVER: "封面",
@@ -219,10 +268,19 @@ class Report:
     uncovered: tuple[str, ...]
     auto_numbering: int
     annotation: tuple[Downgrade, ...] = ()
+    unknown_elements: tuple[str, ...] = ()
 
     def problem_count(self) -> int:
         """需要学生处理的问题数（三态 + 未识别结构）。"""
         return len(self.fail) + len(self.undetermined) + len(self.not_run) + len(self.unrecognised)
+
+    def unknown_benign(self) -> tuple[str, ...]:
+        """未认识元素里落在良性名单内的部分。"""
+        return tuple(name for name in self.unknown_elements if name in BENIGN_ELEMENTS)
+
+    def unknown_notable(self) -> tuple[str, ...]:
+        """未认识元素里值得关注的部分（良性名单之外）。"""
+        return tuple(name for name in self.unknown_elements if name not in BENIGN_ELEMENTS)
 
     def all_entries(self) -> tuple[Entry, ...]:
         return self.fail + self.undetermined + self.not_run + self.unrecognised
@@ -248,6 +306,11 @@ class Report:
                 "unrecognised": len(self.unrecognised),
                 "by_scope": self.by_scope(),
                 "auto_numbering_paragraphs": self.auto_numbering,
+            },
+            "unknown_elements": {
+                "total": len(self.unknown_elements),
+                "benign": len(self.unknown_benign()),
+                "notable": len(self.unknown_notable()),
             },
             "fail": [entry.to_dict() for entry in self.fail],
             "undetermined": [entry.to_dict() for entry in self.undetermined],
@@ -281,6 +344,11 @@ class Report:
             body.append("</section>")
         uncovered = "".join(f"<li>{html.escape(item)}</li>" for item in self.uncovered)
         summary = _summary_html(self.by_scope(), counts)
+        notable = self.unknown_notable()
+        unknown = (
+            f'<div class="meta">解析器未认识元素：{len(notable)} 种值得关注'
+            f"（另有 {len(self.unknown_benign())} 种良性标记）</div>"
+        )
         return _PAGE.format(
             parser=html.escape(self.parser_version),
             ruleset=html.escape(self.ruleset_version),
@@ -288,6 +356,7 @@ class Report:
             groups="\n".join(body),
             annotation=_annotation_html(self.annotation),
             uncovered=uncovered,
+            unknown=unknown,
             auto_numbering=self.auto_numbering,
             total=self.problem_count(),
         )
@@ -539,6 +608,7 @@ def build_report(
     ruleset_version: str,
     resolver: Resolver | None = None,
     annotation: Sequence[Downgrade] = (),
+    unknown_elements: tuple[str, ...] = (),
 ) -> Report:
     """把引擎产出的 `Issue` 规范化、分区、定位，组装成 `Report`。"""
     blocks = tuple(context)
@@ -602,6 +672,7 @@ def build_report(
         uncovered=UNCOVERED,
         auto_numbering=sum(1 for para in context.paragraphs if para.numbering is not None),
         annotation=tuple(annotation),
+        unknown_elements=unknown_elements,
     )
 
 
@@ -644,6 +715,7 @@ footer {{ margin-top:2rem; padding-top:.8rem; border-top:1px solid var(--line); 
 <header>
   <h1>毕业论文格式审核报告</h1>
   <div class="meta">解析器版本：{parser} · 规则集版本：{ruleset} · 共 {total} 条待处理</div>
+  {unknown}
 </header>
 <main>
 {summary}

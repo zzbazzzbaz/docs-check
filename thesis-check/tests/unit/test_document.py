@@ -366,3 +366,29 @@ def test_table_in_textbox_is_not_a_top_level_table(tmp_path: Path) -> None:
     )
     document = load(tmp_path, body)
     assert document.tables == ()
+
+
+# ── 未认识元素清单（FR-10.4）────────────────────────────────────
+
+
+def test_unknown_elements_are_recorded_without_raising(tmp_path: Path) -> None:
+    """宽容解析要记账：没专门处理的结构进清单，处理过的元素不误报。"""
+    body = (
+        '<w:p><w:bookmarkStart w:id="0"/><w:proofErr w:type="spellStart"/>'
+        "<w:ins><w:r><w:t>X</w:t></w:r></w:ins><w:r><w:t>Y</w:t></w:r></w:p>"
+    )
+    document = load(tmp_path, body)
+    assert document.paragraphs[0].text == "XY"  # 正文没有被丢
+    assert {"bookmarkStart", "proofErr", "ins"} <= set(document.unknown_elements)
+    assert not {"p", "r", "t", "body"} & set(document.unknown_elements)
+
+
+def test_known_property_subtrees_are_not_reported(tmp_path: Path) -> None:
+    """格式属性容器（`pPr` / `rPr` 里的细节）不算"未认识结构"，避免格式噪音当结构报警。"""
+    body = (
+        '<w:p><w:pPr><w:keepLines/><w:tabs><w:tab w:pos="1"/></w:tabs></w:pPr>'
+        '<w:r><w:rPr><w:lang w:val="zh-CN"/><w:szCs w:val="24"/></w:rPr>'
+        "<w:t>a</w:t></w:r></w:p>"
+    )
+    document = load(tmp_path, body)
+    assert document.unknown_elements == ()

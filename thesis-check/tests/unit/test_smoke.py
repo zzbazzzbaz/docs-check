@@ -4,9 +4,13 @@
 后面每加一层都在这个基础上长大。
 """
 
+import zipfile
+from pathlib import Path
+
 import pytest
 
 from thesischeck import __version__, cli, errors
+from thesischeck.parse import package as pkg
 
 
 def test_version() -> None:
@@ -41,3 +45,18 @@ def test_cli_reports_bad_document(capsys: pytest.CaptureFixture[str]) -> None:
     """坏输入如实返回 2，并给可读原因，不抛堆栈。"""
     assert cli.main(["某篇.docx"]) == 2
     assert "无法审核" in capsys.readouterr().err
+
+
+def test_cli_prints_unknown_elements(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """调试开关 `--unknown-elements` 打印完整未认识元素清单（FR-10.4）。"""
+    w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    document = (
+        f'<?xml version="1.0"?><w:document xmlns:w="{w}"><w:body><w:p><w:ins/></w:p></w:body></w:document>'
+    ).encode()
+    path = tmp_path / "u.docx"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr(pkg.PART_CONTENT_TYPES, b'<?xml version="1.0"?><Types/>')
+        archive.writestr(pkg.PART_DOCUMENT, document)
+
+    assert cli.main([str(path), "--unknown-elements"]) == 0
+    assert "ins" in capsys.readouterr().out

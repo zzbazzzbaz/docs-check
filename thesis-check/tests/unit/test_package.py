@@ -264,3 +264,16 @@ def test_broken_xml_gives_readable_error(tmp_path: Path) -> None:
         pytest.raises(ParseError, match="XML 无法解析"),
     ):
         doc.xml(pkg.PART_DOCUMENT)
+
+
+def test_too_many_elements_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """病态文档防线（`NFR-2.4`）：元素总数超上限即拒绝，替代在线程池里不可靠的墙钟超时。"""
+    monkeypatch.setattr(pkg, "MAX_ELEMENTS", 3)
+    document = (
+        f'<?xml version="1.0"?><w:document xmlns:w="{W_NS}"><w:body><w:p/><w:p/><w:p/></w:body></w:document>'
+    ).encode()
+    with (
+        pkg.Package.open(write(tmp_path, make_docx(document=document))) as doc,
+        pytest.raises(BadDocument, match="元素"),
+    ):
+        doc.xml(pkg.PART_DOCUMENT)

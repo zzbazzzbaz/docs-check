@@ -21,7 +21,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import contextvars
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import cast
 
@@ -52,11 +54,35 @@ _Layer = tuple[str, etree._Element | None]
 
 
 def w(tag: str) -> str:
+    note_element(tag)
     return f"{{{W_NS}}}{tag}"
 
 
 def a(tag: str) -> str:
     return f"{{{A_NS}}}{tag}"
+
+
+# 解析器"已认识"的元素局部名：`w()` / `m()` / `wp()` 每次构造限定名时登记（见
+# `interpret_elements`）。这样无需人工维护"全部 OOXML 元素"长名单，未登记的就是没专门处理的结构。
+_interpreted: contextvars.ContextVar[set[str] | None] = contextvars.ContextVar("interpreted", default=None)
+
+
+@contextmanager
+def interpret_elements() -> Iterator[set[str]]:
+    """在块内收集解析器实际查询过的元素局部名；退出后还原，按线程隔离，可用于 web 线程池。"""
+    seen: set[str] = set()
+    token = _interpreted.set(seen)
+    try:
+        yield seen
+    finally:
+        _interpreted.reset(token)
+
+
+def note_element(tag: str) -> None:
+    """登记一个刚被解析器查询过的元素局部名；未开启收集时空操作。"""
+    seen = _interpreted.get()
+    if seen is not None:
+        seen.add(tag)
 
 
 def _conditional_borders(style: etree._Element) -> bool:

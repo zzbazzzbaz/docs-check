@@ -9,6 +9,7 @@
 """
 
 from .issues import (
+    BENIGN_ELEMENTS,
     RULESET_VERSION,
     SCHEMA_VERSION,
     UNCOVERED,
@@ -17,9 +18,11 @@ from .issues import (
     Location,
     Report,
     build_report,
+    ruleset_version,
 )
 
 __all__ = [
+    "BENIGN_ELEMENTS",
     "RULESET_VERSION",
     "SCHEMA_VERSION",
     "UNCOVERED",
@@ -28,4 +31,5 @@ __all__ = [
     "Location",
     "Report",
     "build_report",
+    "ruleset_version",
 ]

@@ -244,6 +244,8 @@ class Document:
     `paragraphs` 是正文故事区的全部段落，含表格单元格内的段落，`id` 连续；
     `fields` 是正文故事区的**真实域**（页眉页脚里的域不算，在 `Section` 里）。
     `has_numbering_part` 表示包里有 `word/numbering.xml`（自动编号的兜底信号）。
+    `unknown_elements` 是 `document.xml` 里出现过、但解析器从未查询过的元素局部名（`FR-10.4`），
+    只陈述事实：宽容解析没有抛异常，但把"没专门处理的结构"记下来。
     """
 
     blocks: tuple[Para | Table, ...]
@@ -254,3 +256,4 @@ class Document:
     sections: tuple[Section, ...]
     has_numbering_part: bool
     xml: etree._Element
+    unknown_elements: tuple[str, ...] = ()

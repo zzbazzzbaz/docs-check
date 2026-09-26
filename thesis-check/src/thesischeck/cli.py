@@ -29,11 +29,23 @@ def main(argv: list[str] | None = None) -> int:
         metavar="SUITE",
         help="调试用：按 test2 快照形状输出解析结果（own / ownpages / ownborders / owntextbox / ownindex）",
     )
+    parser.add_argument(
+        "--unknown-elements",
+        action="store_true",
+        help="调试用：打印解析器未认识（document.xml 里出现但未专门处理）的元素清单后退出",
+    )
     parser.add_argument("--version", action="version", version=f"thesischeck {__version__}")
     args = parser.parse_args(argv)
 
     if args.docx is None:
         parser.print_help()
+        return 0
+
+    if args.unknown_elements:
+        with Package.open(args.docx) as pkg:
+            doc = parse_document(pkg)
+        for name in doc.unknown_elements:
+            print(name)
         return 0
 
     if args.compat_dump is not None:

@@ -20,10 +20,11 @@ from dataclasses import replace
 from lxml import etree
 
 from ..errors import BadDocument
-from .effective import Resolver, StyleTable, ThemeFonts, w
+from .effective import Resolver, StyleTable, ThemeFonts, interpret_elements, note_element, w
 from .model import Borders, Box, Cell, Document, Objects, Para, Run, Story, Table
 from .package import PART_DOCUMENT, PART_NUMBERING, PART_STYLES, PART_THEME, Package
 
+W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
 WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
 MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -39,10 +40,12 @@ _INSIDE = ("insideH", "insideV")
 
 
 def m(tag: str) -> str:
+    note_element(tag)
     return f"{{{M_NS}}}{tag}"
 
 
 def wp(tag: str) -> str:
+    note_element(tag)
     return f"{{{WP_NS}}}{tag}"
 
 
@@ -83,10 +86,9 @@ def iter_paragraphs(node: etree._Element, in_table: bool = False) -> list[tuple[
     for child in node:
         if not isinstance(child.tag, str):
             continue
-        tag = _tag(child)
-        if tag == "p":
+        if child.tag == w("p"):
             out.append((child, in_table, False))
-        elif tag == "tbl":
+        elif child.tag == w("tbl"):
             for tr in child.findall(w("tr")):
                 mark = len(out)
                 for tc in tr.findall(w("tc")):
@@ -94,7 +96,7 @@ def iter_paragraphs(node: etree._Element, in_table: bool = False) -> list[tuple[
                 if len(out) > mark:
                     el, _, _ = out[-1]
                     out[-1] = (el, True, True)
-        elif tag == "sdt":
+        elif child.tag == w("sdt"):
             content = child.find(w("sdtContent"))
             if content is not None:
                 out.extend(iter_paragraphs(content, in_table))
@@ -389,12 +391,11 @@ def _record_blocks(
     for child in node:
         if not isinstance(child.tag, str):
             continue
-        tag = _tag(child)
-        if tag == "p" and child in by_element:
+        if child.tag == w("p") and child in by_element:
             out.append(by_element[child])
-        elif tag == "tbl" and child in tables:
+        elif child.tag == w("tbl") and child in tables:
             out.append(tables[child])
-        elif tag == "sdt":
+        elif child.tag == w("sdt"):
             content = child.find(w("sdtContent"))
             if content is not None:
                 out.extend(_record_blocks(content, by_element, tables))
@@ -410,19 +411,53 @@ def resolver_for(pkg: Package) -> Resolver:
     return Resolver(StyleTable(pkg.xml(PART_STYLES)), ThemeFonts(pkg.xml(PART_THEME)))
 
 
-def parse_document(pkg: Package) -> Document:
-    """解析 `word/document.xml`：块序列 + 全部段落 + 顶层表格 + 文本框 + 域 + 分节。
+# 已知的格式属性容器：其内部（连同自身）都是"格式细节"而非"结构"，不计入未认识清单。
+# 这些容器里的结构性子元素（样式、编号、分节等）由专门代码解读，本就不该在这条信号里重复出现。
+_PROPERTY_CONTAINERS = frozenset(
+    {
+        "pPr",
+        "rPr",
+        "tblPr",
+        "tblPrEx",
+        "trPr",
+        "tcPr",
+        "sectPr",
+        "pPrChange",
+        "rPrChange",
+        "tblPrChange",
+        "trPrChange",
+        "tcPrChange",
+        "sectPrChange",
+    }
+)
 
-    域与分节分别在 `fields.parse_fields`、`section.parse_sections` 里；这里只负责编排，
-    并在构造 `Para` 之前先把起始域代码与分节号算好（`Para` 是 frozen 的）。
+
+def _unknown_elements(body: etree._Element, seen: set[str]) -> tuple[str, ...]:
+    """`document.xml` 正文里出现过、但解析器从未查询过的 `w:` 元素局部名（排序去重）。
+
+    只看主命名空间、只看结构位置：DrawingML / VML / `mc:Fallback` 等兼容写法由
+    `mc:Fallback` 去重后跳过，格式属性容器（`pPr` / `rPr` / `tcPr` …）里的细节不计。
+    清单只陈述事实，不判定。
     """
-    root = pkg.xml(PART_DOCUMENT)
-    if root is None:
-        raise BadDocument("缺少 word/document.xml")
-    body = root.find(w("body"))
-    if body is None:
-        raise BadDocument("word/document.xml 里没有 w:body，文件可能已损坏")
+    prefix = f"{{{W_NS}}}"
+    present: set[str] = set()
 
+    def walk(el: etree._Element) -> None:
+        for child in el:
+            if not isinstance(child.tag, str) or not child.tag.startswith(prefix):
+                continue
+            name = child.tag[len(prefix) :]
+            if name in _PROPERTY_CONTAINERS:
+                continue
+            present.add(name)
+            walk(child)
+
+    walk(body)
+    return tuple(sorted(present - seen))
+
+
+def _parse_body(pkg: Package, body: etree._Element) -> Document:
+    """解析 `w:body`（不含分节）：块序列 + 段落 + 表格 + 文本框 + 域。"""
     resolver = resolver_for(pkg)
 
     flat = iter_paragraphs(body)
@@ -461,7 +496,7 @@ def parse_document(pkg: Package) -> Document:
     tables = [_record_table(el, i, by_element, resolver) for i, el in enumerate(top, 1)]
     by_table = dict(zip(top, tables, strict=True))
 
-    document = Document(
+    return Document(
         blocks=_record_blocks(body, by_element, by_table),
         paragraphs=tuple(paras),
         tables=tuple(tables),
@@ -471,6 +506,24 @@ def parse_document(pkg: Package) -> Document:
         has_numbering_part=pkg.has(PART_NUMBERING),
         xml=body,
     )
+
+
+def parse_document(pkg: Package) -> Document:
+    """解析 `word/document.xml`：块序列 + 全部段落 + 顶层表格 + 文本框 + 域 + 分节。
+
+    解析全程收集"实际解读过的元素局部名"，据此得到 `Document.unknown_elements`（`FR-10.4`）。
+    域与分节分别在 `fields.parse_fields`、`section.parse_sections` 里；这里只负责编排，
+    并在构造 `Para` 之前先把起始域代码与分节号算好（`Para` 是 frozen 的）。
+    """
+    root = pkg.xml(PART_DOCUMENT)
+    if root is None:
+        raise BadDocument("缺少 word/document.xml")
+    body = root.find(w("body"))
+    if body is None:
+        raise BadDocument("word/document.xml 里没有 w:body，文件可能已损坏")
+
+    with interpret_elements() as seen:
+        document = replace(_parse_body(pkg, body), unknown_elements=_unknown_elements(body, seen))
 
     from .section import parse_sections  # 局部导入：分节要复用本模块的段落构造
 

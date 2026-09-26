@@ -14,7 +14,7 @@ from . import __version__
 from .index import build_index
 from .parse.document import parse_document, resolver_for
 from .parse.package import Package
-from .report import RULESET_VERSION, Report, build_report
+from .report import Report, build_report, ruleset_version
 from .report.annotate import plan_comments, write_marked
 from .rules import REGISTRY, run_rules
 from .semantics.blocks import tag_context
@@ -45,9 +45,10 @@ def review(docx: Path, outdir: Path) -> ReviewResult:
             index,
             issues,
             parser_version=__version__,
-            ruleset_version=RULESET_VERSION,
+            ruleset_version=ruleset_version(),
             resolver=resolver,
             annotation=plan.downgrades,
+            unknown_elements=document.unknown_elements,
         )
         marked = write_marked(pkg, document, plan)
 

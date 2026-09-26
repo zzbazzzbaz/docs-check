@@ -37,6 +37,9 @@ MAX_FILE_BYTES = 50 * 1024 * 1024
 MAX_ENTRIES = 5000
 MAX_ENTRY_BYTES = 80 * 1024 * 1024
 MAX_TOTAL_BYTES = 300 * 1024 * 1024
+# 单部件元素数上限：50 MB 体积上限拦不住"结构摊薄"的病态文档（例如 50 MB 全是空段落）。
+# lxml 在 50 MB 内解析只需数秒，这个上限只用于拒绝真正病态的形状，正常论文远低于此。
+MAX_ELEMENTS = 2_000_000
 MAX_COMPRESSION_RATIO = 200
 RATIO_CHECK_ABOVE = 1 << 20  # 小于 1MB 的条目不查压缩比，避免误伤小部件
 
@@ -196,11 +199,17 @@ class Package:
         return raw
 
     def xml(self, name: str) -> etree._Element | None:
-        """读并解析一个 XML 部件；不存在返回 None，坏 XML 报可读错误。"""
+        """读并解析一个 XML 部件；不存在返回 None，坏 XML 报可读错误。
+
+        解析后统计元素总数，超 `MAX_ELEMENTS` 即拒绝——真正病态的文档防线（`NFR-2.4`）。
+        """
         raw = self.read(name)
         if raw is None:
             return None
         try:
-            return etree.fromstring(raw, parser=_new_parser())
+            root = etree.fromstring(raw, parser=_new_parser())
         except etree.XMLSyntaxError as exc:
             raise ParseError(name, f"XML 无法解析：{exc}") from exc
+        if sum(1 for _ in root.iter()) > MAX_ELEMENTS:
+            raise BadDocument(f"文档结构过于庞大（{name} 元素数超出上限），无法审核")
+        return root

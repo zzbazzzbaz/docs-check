@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import time
 import zipfile
 from collections.abc import Iterator
@@ -28,7 +29,8 @@ _OLE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 32
 @pytest.fixture()
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(web, "JOBS_ROOT", tmp_path / "jobs")
-    with TestClient(web.app) as test_client:
+    # `raise_server_exceptions=False`：未预期异常走兜底 handler 返回 500，正好用来验证"不漏堆栈"
+    with TestClient(web.app, raise_server_exceptions=False) as test_client:
         yield test_client
 
 
@@ -127,3 +129,51 @@ def test_index_is_single_page_html(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "/api/review" in response.text
+
+
+class _FakeReport:
+    """只提供 `create_review` 用到的两个成员。"""
+
+    uncovered: tuple[str, ...] = ()
+
+    def to_json(self) -> dict[str, Any]:
+        return {"summary": {}}
+
+
+class _FakeResult:
+    def __init__(self, marked_docx: Path) -> None:
+        self.marked_docx = marked_docx
+        self.report = _FakeReport()
+
+
+def test_upload_is_stored_under_a_random_name(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """落盘用随机名，不采用上传的原始名（防可预测路径 / 覆盖）。"""
+    seen: list[str] = []
+
+    def fake_review(docx: Path, outdir: Path) -> _FakeResult:
+        seen.append(docx.name)
+        marked = outdir / "marked.docx"
+        marked.write_bytes(b"PK")
+        return _FakeResult(marked)
+
+    monkeypatch.setattr(web, "review", fake_review)
+    assert _upload(client, "thesis.docx", BASE).status_code == 200
+    assert len(seen) == 1
+    assert re.fullmatch(r"[0-9a-f]{32}\.docx", seen[0])
+    assert seen[0] != "thesis.docx"
+
+
+def test_unexpected_error_returns_500_without_stack(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """未预期异常 → 500 + 通用消息，堆栈与异常细节不外泄。"""
+
+    def boom(_: Path, __: Path) -> _FakeResult:
+        raise RuntimeError("secret internal detail")
+
+    monkeypatch.setattr(web, "review", boom)
+    response = _upload(client, "thesis.docx", BASE)
+    assert response.status_code == 500
+    assert "Traceback" not in response.text
+    assert "secret internal detail" not in response.text
+    assert response.json()["error"]

@@ -6,18 +6,21 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import pytest
 from tests.fixtures.base import BASE
 from tests.fixtures.synth import auto_numbering, ea, line_exact
 
 from thesischeck.index import build_index
 from thesischeck.parse.document import parse_document, resolver_for
 from thesischeck.parse.package import Package
-from thesischeck.report import Report, build_report
+from thesischeck.report import RULESET_VERSION, Report, build_report
+from thesischeck.report import issues as report_issues
 from thesischeck.rules import REGISTRY, Rule, run_rules
 from thesischeck.semantics.blocks import Block, CheckContext, Role, tag_context
 
@@ -209,3 +212,57 @@ def test_uncovered_items_are_declared() -> None:
         assert item in page
     assert "目录页码" in page
     assert "续表" in page
+
+
+# ── 解析器未认识元素（FR-10.4）──────────────────────────────────
+
+
+def test_unknown_elements_are_counted_and_split_benign() -> None:
+    report = Report(
+        parser_version="test",
+        ruleset_version="test",
+        fail=(),
+        undetermined=(),
+        not_run=(),
+        unrecognised=(),
+        uncovered=(),
+        auto_numbering=0,
+        unknown_elements=("bookmarkStart", "customXml", "gridCol"),
+    )
+    assert report.unknown_benign() == ("bookmarkStart",)
+    assert report.unknown_notable() == ("customXml", "gridCol")
+    assert report.to_json()["unknown_elements"] == {"total": 3, "benign": 1, "notable": 2}
+    assert "2 种值得关注" in report.to_html()
+
+
+# ── 规则集版本（NFR-6）──────────────────────────────────────────
+
+
+def test_ruleset_version_prefers_git_describe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """有 git 描述时用它，且结果缓存——一次进程只起一次 git（web 线程池不重复起进程）。"""
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **_: object) -> Any:
+        calls.append(cmd)
+        return type("Result", (), {"stdout": "v1.2.3-4-gabc-dirty\n"})()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    report_issues.ruleset_version.cache_clear()
+    try:
+        assert report_issues.ruleset_version() == "v1.2.3-4-gabc-dirty"
+        assert report_issues.ruleset_version() == "v1.2.3-4-gabc-dirty"
+    finally:
+        report_issues.ruleset_version.cache_clear()
+    assert len(calls) == 1
+
+
+def test_ruleset_version_falls_back_without_git(monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom(*_: object, **__: object) -> Any:
+        raise FileNotFoundError("git not found")
+
+    monkeypatch.setattr(subprocess, "run", boom)
+    report_issues.ruleset_version.cache_clear()
+    try:
+        assert report_issues.ruleset_version() == RULESET_VERSION
+    finally:
+        report_issues.ruleset_version.cache_clear()
