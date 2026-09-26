@@ -22,8 +22,17 @@ from .base import Comparison, Issue, Rule, ToleranceKey, Tolerances, Verdict, ma
 from .batch1 import REGISTRY as _BATCH1
 from .cover import REGISTRY as _COVER
 from .engine import run_rules
+from .text import REGISTRY as _TEXT
+from .toc import REGISTRY as _TOC
 
-REGISTRY: tuple[Rule[Any, Any], ...] = (*_BATCH1, *_COVER, *_ABSTRACT_C, *_ABSTRACT_E)
+REGISTRY: tuple[Rule[Any, Any], ...] = (
+    *_BATCH1,
+    *_COVER,
+    *_ABSTRACT_C,
+    *_ABSTRACT_E,
+    *_TOC,
+    *_TEXT,
+)
 
 __all__ = [
     "REGISTRY",

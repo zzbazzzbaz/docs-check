@@ -39,9 +39,15 @@ def key_text(s: str | None) -> str:
     return _WS.sub("", (s or "").replace(ZW, ""))
 
 
+def toc_style_level(style: str | None) -> int | None:
+    """样式名形如 `toc N` 时给出层级（1 起）；否则 `None`。层级只看样式名。"""
+    m = _TOC_STYLE.match((style or "").strip().lower())
+    return int(m.group(1)) if m else None
+
+
 def is_toc_entry_style(style: str | None) -> bool:
     """样式名形如 `toc 1` / `toc 2` / `toc 3`（目录条目）。层级只看样式名。"""
-    return _TOC_STYLE.match((style or "").strip().lower()) is not None
+    return toc_style_level(style) is not None
 
 
 def heading_style_level(style: str | None) -> int | None:

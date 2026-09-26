@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from dataclasses import dataclass
 from lxml import etree
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+M = "http://schemas.openxmlformats.org/officeDocument/2006/math"
 DOCUMENT = "word/document.xml"
 STYLES = "word/styles.xml"
 
@@ -26,6 +28,10 @@ _El = etree._Element
 
 def _w(tag: str) -> str:
     return f"{{{W}}}{tag}"
+
+
+def _m(tag: str) -> str:
+    return f"{{{M}}}{tag}"
 
 
 def _text(p: _El) -> str:
@@ -38,6 +44,21 @@ def _key(p: _El) -> str:
 
 def _is_module_title(want: str) -> Callable[[_El], bool]:
     return lambda p: _key(p).upper() == want.upper()
+
+
+def _style_val(p: _El) -> str:
+    ppr = p.find(_w("pPr"))
+    style = ppr.find(_w("pStyle")) if ppr is not None else None
+    return (style.get(_w("val")) or "") if style is not None else ""
+
+
+def _is_toc(p: _El) -> bool:
+    return _style_val(p) in ("TOC1", "TOC2", "TOC3")
+
+
+def _body_text(p: _El, prefix: str) -> bool:
+    """正文区以 `prefix` 开头的段落（排除目录里同名的条目）。"""
+    return _key(p).startswith(prefix) and not _is_toc(p)
 
 
 # 锚点名 -> 段落判据。名字面向规则文档里的"对象"列，不面向 XML。
@@ -60,11 +81,26 @@ TARGETS: dict[str, Callable[[_El], bool]] = {
     "中文摘要正文": lambda p: _key(p).startswith(("本设计", "测试表明")),
     "中文摘要正文末段": lambda p: _key(p).startswith("测试表明"),
     "英文摘要正文": lambda p: _key(p).startswith("Thisdesign"),
-    "图题": lambda p: _key(p).startswith("图"),
-    "表题": lambda p: _key(p).startswith("表"),
+    # 正文标题（排除目录条目）
+    "第一章标题": lambda p: _body_text(p, "第一章"),
+    "第二章标题": lambda p: _body_text(p, "第二章"),
+    "第三章标题": lambda p: _body_text(p, "第三章"),
+    "二级标题": lambda p: _key(p).endswith("研究背景"),
+    "三级标题": lambda p: _key(p).endswith("现状分析"),
+    "三级以下标题": lambda p: _key(p).startswith("（1）"),
+    "正文段落": lambda p: _key(p).startswith("这是第"),
+    # 目录条目：层级看样式名
+    "目录条目": _is_toc,
+    "目录一级条目": lambda p: _style_val(p) == "TOC1",
+    "目录二级条目": lambda p: _style_val(p) == "TOC2",
+    "目录三级条目": lambda p: _style_val(p) == "TOC3",
+    "图题": lambda p: re.match(r"^图\d+-\d+", _key(p)) is not None,
+    "表题": lambda p: re.match(r"^表\d+-\d+", _key(p)) is not None,
+    "图块": lambda p: p.find(f".//{_w('drawing')}") is not None,
+    "引用标注": lambda p: any(_run_text_value(r).startswith("[") for r in p.iter(_w("r"))),
     "文献条目": lambda p: _key(p).startswith("["),
     "附录子标题": lambda p: _key(p).startswith("附录") and _key(p) != "附录",
-    "公式段落": lambda p: p.find(f".//{_w('oMath')}") is not None or p.find(f".//{_w('object')}") is not None,
+    "公式段落": lambda p: p.find(f".//{_m('oMath')}") is not None or p.find(f".//{_w('object')}") is not None,
     "空段落": lambda p: _text(p).strip() == "" and p.find(f".//{_w('fldChar')}") is None,
 }
 
@@ -213,6 +249,34 @@ def _line_spacing(target: str, multiple: float) -> Change:
     return _edit(DOCUMENT, edit)
 
 
+def _line_exact(target: str, pt: float) -> Change:
+    """把行距写成**固定值**（`lineRule=exact`）：FR-3.5 应直接判不合格。"""
+
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            ppr = _ppr(p)
+            spacing = ppr.find(_w("spacing"))
+            if spacing is None:
+                spacing = etree.SubElement(ppr, _w("spacing"))
+            spacing.set(_w("line"), str(int(pt * 20)))
+            spacing.set(_w("lineRule"), "exact")
+
+    return _edit(DOCUMENT, edit)
+
+
+def _page_break(target: str, on: bool) -> Change:
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            ppr = _ppr(p)
+            existing = ppr.find(_w("pageBreakBefore"))
+            if existing is not None:
+                ppr.remove(existing)
+            if on:
+                ppr.insert(0, etree.Element(_w("pageBreakBefore")))
+
+    return _edit(DOCUMENT, edit)
+
+
 def _insert_blank_after(target: str) -> Change:
     def edit(root: _El) -> None:
         for p in _targets(root, target):
@@ -311,6 +375,20 @@ def _run_text(target: str, prefix: str, text: str) -> Change:
     return _edit(DOCUMENT, edit)
 
 
+def _run_va(target: str, prefix: str, value: str) -> Change:
+    """改目标段落里以 `prefix` 开头那个 run 的 `w:vertAlign`。"""
+
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            rpr = _rpr(run)
+            existing = rpr.find(_w("vertAlign"))
+            if existing is not None:
+                rpr.remove(existing)
+            etree.SubElement(rpr, _w("vertAlign")).set(_w("val"), value)
+
+    return _edit(DOCUMENT, edit)
+
+
 def _first_line(target: str, chars: float) -> Change:
     def edit(root: _El) -> None:
         for p in _targets(root, target):
@@ -355,6 +433,21 @@ def alignment(target: str, value: str) -> Deviation:
 
 def line_spacing(target: str, multiple: float) -> Deviation:
     return Deviation((_line_spacing(target, multiple),))
+
+
+def line_exact(target: str, pt: float) -> Deviation:
+    """把行距改成固定值 `pt`（`lineRule=exact`）。"""
+    return Deviation((_line_exact(target, pt),))
+
+
+def page_break(target: str, on: bool = True) -> Deviation:
+    """加 / 去目标段落的 `w:pageBreakBefore`。"""
+    return Deviation((_page_break(target, on),))
+
+
+def run_va(target: str, prefix: str, value: str) -> Deviation:
+    """改目标段落里以 `prefix` 开头那个 run 的上下标。"""
+    return Deviation((_run_va(target, prefix, value),))
 
 
 def insert_blank_after(target: str) -> Deviation:

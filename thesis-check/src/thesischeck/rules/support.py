@@ -6,20 +6,31 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 
-from ..parse.model import Para, Run
+from ..parse.model import LineRule, Para, Run
 from ..semantics.blocks import Block, Role
 from ..semantics.matchers import has_ascii_alnum, has_cjk
 
 BlockSel = Callable[[Sequence[Block]], tuple[Block, ...]]
 RunSel = Callable[[Sequence[Block]], tuple[Run, ...]]
 TextSel = Callable[[Sequence[Block]], tuple[str, ...]]
+_PairSel = Callable[[Sequence[Block]], tuple[tuple[Block, bool], ...]]
 _RunPred = Callable[[Run], bool]
 
 _COLONS = "：:"
 _OTHER_SEPARATORS = ",;，、"
 _PUNCT = frozenset("。；，、,;.：:！？!?…．")
+
+# 「不是倍率行距」（`lineRule=exact` / `atLeast`）：与任何倍率期望都不相等，
+# 从而被 APPROX 判为不通过，而不是被当成"取不到值"记无法判定（需求 FR-3.5）。
+NOT_MULTIPLE = float("nan")
+
+# 标题文本形状：编号 + 规定的半角空格数（识别宽松、判定严格，识别由选择器负责）
+H1_TEXT_SHAPE = re.compile(r"第[一二三四五六七八九十]+章 {2}\S.*")
+H2_TEXT_SHAPE = re.compile(r"\d+\.\d+ \S.*")
+H3_TEXT_SHAPE = re.compile(r"\d+\.\d+\.\d+ \S.*")
 
 
 # ── run 谓词（字体槽 / 空白口径的唯一出处）─────────────────────────
@@ -167,7 +178,31 @@ def para_align(block: Block) -> str | None:
 
 
 def para_line(block: Block) -> float | None:
+    """行距倍率；**非倍率行距**（`exact` / `atLeast`）返回 `NOT_MULTIPLE` 直接判不合格。
+
+    全库唯一的行距判定（`FR-3.5`）：读 `para.line_rule`，`auto` 才比 `line_multiple`。
+    """
+    if block.para.line_rule is not LineRule.AUTO:
+        return NOT_MULTIPLE
     return block.para.line_multiple
+
+
+def para_bold_verdict(block: Block) -> str:
+    """非空白字符是否加粗（字体 / 加粗类只判非空白字符）；缺省不算加粗。"""
+    return "加粗" if any(run.text.strip() and run.bold is True for run in block.para.runs) else "不加粗"
+
+
+def first_cjk_font(block: Block) -> tuple[str | None, float | None] | None:
+    """段落里第一个中文 run 的（中文字体, 字号）；无中文 run 则无法判定。"""
+    run = next((item for item in block.para.runs if is_cjk_run(item)), None)
+    if run is None:
+        return None
+    return (run.ea, run.size)
+
+
+def run_font(run: Run) -> tuple[str | None, float | None]:
+    """run 的（西文字体, 字号）；用于「Times New Roman，小四」这类合并的字体规则。"""
+    return (run.west, run.size)
 
 
 def para_first_line(block: Block) -> float | None:
@@ -219,3 +254,59 @@ def found(sel: BlockSel) -> Callable[[Sequence[Block]], tuple[tuple[Block, ...],
 
 def present(blocks: tuple[Block, ...]) -> bool:
     return bool(blocks)
+
+
+# ── 文本形状 / 编号后空格 ───────────────────────────────────────
+
+
+def shape_verdict(pattern: re.Pattern[str]) -> Callable[[Block], str]:
+    """整段可见文本必须匹配 `pattern`（`fullmatch`）；用于编号形态与空格的文本规则。"""
+
+    def verdict(block: Block) -> str:
+        return "合规" if pattern.fullmatch(block.para.text) else "编号或空格不符"
+
+    return verdict
+
+
+def gap_after(text: str, pattern: re.Pattern[str]) -> int | None:
+    """编号之后、标题首字符之前的**半角空格数**；编号后没有标题则无法判定。"""
+    match = pattern.match(text)
+    if match is None:
+        return None
+    rest = text[match.end() :]
+    tail = rest.lstrip(" ")
+    if not tail:
+        return None
+    return len(rest) - len(tail)
+
+
+def gap_of(pattern: re.Pattern[str]) -> Callable[[Block], int | None]:
+    def gap(block: Block) -> int | None:
+        return gap_after(block.para.text, pattern)
+
+    return gap
+
+
+# ── 块级相邻（题注位置等）───────────────────────────────────────
+
+
+def index_of(blocks: Sequence[Block], block: Block) -> int:
+    return next(i for i, item in enumerate(blocks) if item is block)
+
+
+def neighbour_flag(sel: BlockSel, *, before: bool, pred: Callable[[Block], bool]) -> _PairSel:
+    """（对象, 相邻块是否满足 `pred`）对；`before=True` 看前一个块，否则看后一个。"""
+
+    def pick(blocks: Sequence[Block]) -> tuple[tuple[Block, bool], ...]:
+        out: list[tuple[Block, bool]] = []
+        for block in sel(blocks):
+            index = index_of(blocks, block) + (-1 if before else 1)
+            neighbour = blocks[index] if 0 <= index < len(blocks) else None
+            out.append((block, neighbour is not None and pred(neighbour)))
+        return tuple(out)
+
+    return pick
+
+
+def flag(pair: tuple[Block, bool]) -> bool:
+    return pair[1]

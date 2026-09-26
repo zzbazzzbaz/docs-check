@@ -103,7 +103,7 @@ def _sect_break(sect_pr: str) -> str:
 
 
 def _module_title_line(text: str, *, bold: bool = False) -> str:
-    return para(run(text, ea="黑体", size=16, bold=bold), align="center")
+    return para(run(text, ea="黑体", size=16, bold=bold), align="center", line=1.5)
 
 
 def _body_line(text: str, *, indent: bool = True) -> str:
@@ -190,8 +190,9 @@ def _field_end() -> str:
 
 
 def _table_of_contents() -> str:
+    # 一级条目（第X章型）编号后空 2 格；二 / 三级条目空 1 格
     entries = [
-        ("第一章 绪论", "TOC1"),
+        ("第一章  绪论", "TOC1"),
         ("1.1 研究背景与意义", "TOC2"),
         ("1.1.1 国内研究现状", "TOC3"),
         ("参考文献", "TOC1"),
@@ -199,9 +200,18 @@ def _table_of_contents() -> str:
         ("附    录", "TOC1"),
     ]
     body = "".join(
-        para(run(text, ea="宋体", west="Times New Roman", size=12), style=style) for text, style in entries
+        para(run(text, ea="宋体", west="Times New Roman", size=12), style=style, line=1.5)
+        for text, style in entries
     )
     return _module_title_line("目    录") + _field_begin('TOC \\o "1-3" \\h \\z \\u') + body + _field_end()
+
+
+def _cell(inner: str) -> str:
+    return f"<w:tc><w:tcPr/>{para(inner)}</w:tc>"
+
+
+def _cell_text(text: str) -> str:
+    return _cell(run(text, ea="宋体", west="Times New Roman", size=12))
 
 
 def _three_line_table() -> str:
@@ -212,37 +222,47 @@ def _three_line_table() -> str:
         "</w:tblBorders>"
     )
     rows = [
-        ("表头一", "表头二"),
-        ("数据一", "数据二"),
+        [_cell_text("表头一"), _cell_text("表头二")],
+        # 「数据一」格带一个上标引用，覆盖表格里的引用标注（TXT-30/31）
+        [
+            _cell("数据一" + run("[2]", west="Times New Roman", size=12, va="superscript")),
+            _cell_text("数据二"),
+        ],
     ]
-    cells = "".join(
-        "<w:tr>"
-        + "".join(
-            f"<w:tc><w:tcPr/>{para(run(text, ea='宋体', west='Times New Roman', size=12))}</w:tc>"
-            for text in row
-        )
-        + "</w:tr>"
-        for row in rows
-    )
+    cells = "".join("<w:tr>" + "".join(row) + "</w:tr>" for row in rows)
     return f"<w:tbl><w:tblPr>{borders}</w:tblPr>{cells}</w:tbl>"
 
 
+_CN_CHAPTERS = "〇一二三四五"
+
+
 def _chapter(number: int, title: str, *, with_objects: bool) -> str:
-    head = para(run(f"第{number}章 {title}", ea="黑体", size=16), outline=0, align="center")
-    sub = para(run(f"{number}.1 研究背景", ea="黑体", size=14), outline=1)
-    subsub = para(run(f"{number}.1.1 现状分析", ea="黑体", size=13), outline=2)
-    sub3 = para(run("（1）关键技术", ea="黑体", size=12), outline=3)
+    head = para(
+        run(f"第{_CN_CHAPTERS[number]}章  {title}", ea="黑体", size=16),
+        outline=0,
+        align="center",
+        line=1.5,
+        page_break_before=number >= 2,  # 第一章另起一页归 GLB-22，本处只管第二~五章
+    )
+    sub = para(run(f"{number}.1 研究背景", ea="黑体", size=14), outline=1, line=1.5)
+    subsub = para(
+        run(f"{number}.1.1 现状分析", ea="黑体", size=12),
+        outline=2,
+        line=1.5,
+        first_line_chars=2,
+    )
+    sub3 = para(run("（1）关键技术", ea="宋体", size=12), outline=3, line=1.5, first_line_chars=2)
     body = _body_line(f"这是第{number}章的正文段落，用于承载正文属性的判定对象。")
-    parts = [head, sub, subsub, sub3, body]
+    parts = [head, para(), sub, subsub, sub3, body]
     if with_objects:
         parts += [
             para("<w:r><w:drawing><wp:inline/></w:drawing></w:r>", align="center"),
-            para(run("图1-1 系统总体结构", ea="宋体", size=10), align="center"),
-            para(run("表1-1 主要器件清单", ea="宋体", size=10), align="center"),
+            para(run("图1-1 系统总体结构", ea="宋体", size=10.5), align="center"),
+            para(run("表1-1 主要器件清单", ea="宋体", size=10.5), align="center"),
             _three_line_table(),
             para(
                 "<w:r><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></w:r>"
-                + run("(1-1)", ea="宋体", west="Times New Roman", size=12),
+                + run("(1-1)", ea="宋体", west="Times New Roman", size=10.5),
                 align="center",
             ),
             _body_line(
