@@ -79,7 +79,7 @@ class ToleranceKey(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Tolerances:
-    """§3.3 的默认容差（样张校准前的建议值）；测试可整体覆写。"""
+    """§3.3 的默认容差；测试可整体覆写。"""
 
     paper_pt: float = 2.83  # 1 mm
     margin_pt: float = 1.42  # 0.5 mm

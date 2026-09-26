@@ -32,7 +32,6 @@ from .base import (
     matches,
     trace_prop,
 )
-from .batch1 import REGISTRY as _BATCH1
 from .cover import REGISTRY as _COVER
 from .document_wide import REGISTRY as _GLOBAL
 from .engine import run_rules
@@ -41,7 +40,6 @@ from .text import REGISTRY as _TEXT
 from .toc import REGISTRY as _TOC
 
 REGISTRY: tuple[Rule[Any, Any], ...] = (
-    *_BATCH1,
     *_COVER,
     *_ABSTRACT_C,
     *_ABSTRACT_E,
