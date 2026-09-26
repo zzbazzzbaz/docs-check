@@ -7,13 +7,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from operator import attrgetter
 from typing import Any
 
 from ..semantics import select
 from ..semantics.blocks import Block, Scope
 from ..semantics.matchers import is_chapter, toc_style_level
-from .base import Comparison, Rule, ToleranceKey
+from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .support import (
     H1_TEXT_SHAPE,
     H2_TEXT_SHAPE,

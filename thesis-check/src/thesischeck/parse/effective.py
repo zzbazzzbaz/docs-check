@@ -11,8 +11,9 @@
 
 取值与回溯共用同一份实现：``Resolver.para`` / ``Resolver.run`` 接受可选 ``trace``，
 把每个属性的**胜出来源**追加进去，绝不另写一份"查来源"的代码。
-来源标签取值固定为 ``run`` / ``字符样式:<id>`` / ``样式:<样式名>`` / ``默认段落样式`` /
-``docDefaults`` / ``主题字体``；其中 ``run`` 指"对象自身直接设置"（run 的 rPr 或段落的 pPr）。
+来源标签取值固定为 ``直接设置``（run 的 rPr 或段落的 pPr，中性标签，报告按对象类型再说"在 run /
+段落上"）/ ``字符样式:<id>`` / ``样式:<样式名>`` / ``默认段落样式`` / ``docDefaults`` /
+``主题字体``。
 
 取不到值一律 ``None``——``None`` 是"无法判定"，不是"不符合"。
 本模块只做取值与归一，不做任何判定。
@@ -26,10 +27,13 @@ from typing import cast
 
 from lxml import etree
 
-from .model import LineRule, NumPr
+from .model import LineRule, NumPr, Run
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+
+# "对象自身直接设置"的中性来源标签：run 的 rPr 与段落的 pPr 共用（报告按对象类型再补"在 run / 段落上"）
+DIRECT = "直接设置"
 
 _LINE_RULES = frozenset({"auto", "exact", "atLeast"})
 _OFF_VALUES = frozenset({"0", "false", "off", "no"})
@@ -205,6 +209,16 @@ def source_of(trace: Sequence[Source], prop: str) -> str | None:
         if source.prop == prop:
             return source.label
     return None
+
+
+def run_source(resolver: Resolver, run: Run, para_style_id: str | None, prop: str) -> str | None:
+    """按需回溯：对某个 run 的某个属性重走一次级联，返回来源标签。
+
+    与取值共用同一个 ``Resolver.run``，只是多传一个 ``trace``——不另写"查来源"的实现。
+    """
+    trace: list[Source] = []
+    resolver.run(run.xml.find(w("rPr")), para_style_id, trace=trace)
+    return source_of(trace, prop)
 
 
 @dataclass(frozen=True, slots=True)
@@ -401,7 +415,7 @@ class Resolver:
         layers: list[_Layer] = [("docDefaults", self.styles.dd_rpr)]
         layers += [(self.styles.label(style), style.rpr) for style in chain]
         layers += [(f"字符样式:{style.id}", style.rpr) for style in char_chain]
-        layers.append(("run", rpr))
+        layers.append((DIRECT, rpr))
         return layers
 
     def raw_rpr(self, rpr: etree._Element | None, para_style_id: str | None = None) -> dict[str, _Entry]:
@@ -445,7 +459,7 @@ class Resolver:
         chain = self.styles.chain(self._para_style_id(ppr))
         layers: list[_Layer] = [("docDefaults", self.styles.dd_ppr)]
         layers += [(self.styles.label(style), style.ppr) for style in chain]
-        layers.append(("run", ppr))
+        layers.append((DIRECT, ppr))
         return layers
 
     def raw_ppr(self, ppr: etree._Element | None) -> dict[str, _Entry]:

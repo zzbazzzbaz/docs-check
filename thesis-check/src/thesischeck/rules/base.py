@@ -7,8 +7,8 @@
 
 设计要点：
 
-- **属性提取器是函数**（`operator.attrgetter` 或具名函数），不是字符串 + `getattr`；
-  对象类型由 `Rule[Obj, Val]` 泛型锁住。
+- **属性提取器是函数**（`attrgetter` 或具名函数），不是字符串 + `getattr`；
+  对象类型由 `Rule[Obj, Val]` 泛型锁住。`attrgetter` 由本模块提供，额外保留属性名供报告回溯。
 - **容差是配置**：`Tolerances` 的数值不在规则里出现，`APPROX` 只引用一个容差键，
   引擎把配置传进来（需求 `NFR-5.5` / §3.3）。
 - **取不到值是 `None`**，含义是"无法判定"，**不是**通过。
@@ -25,6 +25,30 @@ from typing import Any
 
 from ..errors import RuleError
 from ..semantics.blocks import CheckContext
+
+
+class AttrGetter:
+    """等价 `operator.attrgetter`，但**保留属性名**：报告按需回溯要知道判的是哪个属性。
+
+    规则里照旧写 `prop=attrgetter("ea")`，只是它来自本模块而非 `operator`。
+    """
+
+    __slots__ = ("name",)
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __call__(self, obj: object) -> object:
+        return getattr(obj, self.name)
+
+
+def attrgetter(name: str) -> AttrGetter:
+    return AttrGetter(name)
+
+
+def trace_prop(prop: object) -> str | None:
+    """属性提取器对应的**有效格式属性名**；非属性提取器（代码规则）返回 `None`。"""
+    return prop.name if isinstance(prop, AttrGetter) else None
 
 
 class Verdict(StrEnum):
@@ -90,7 +114,11 @@ class Rule[Obj, Val]:
 
 @dataclass(frozen=True, slots=True)
 class Issue:
-    """一条问题。`error` 非空表示该规则**未执行**（需求 §11 第 2 条），不是通过。"""
+    """一条问题。`error` 非空表示该规则**未执行**（需求 §11 第 2 条），不是通过。
+
+    `prop` 是这条规则判的**有效格式属性名**（如 `ea`），报告据此按需回溯来源；
+    非属性类规则（代码规则）为 `None`。
+    """
 
     rule: str
     verdict: Verdict
@@ -99,6 +127,7 @@ class Issue:
     expect: object | None = None
     src: str = ""
     error: RuleError | None = None
+    prop: str | None = None
 
 
 def _as_float(value: object) -> float:

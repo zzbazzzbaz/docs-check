@@ -7,14 +7,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from operator import attrgetter
 from typing import Any
 
 from ..parse.model import Run
 from ..semantics import select
 from ..semantics.blocks import Block, Scope
 from ..semantics.matchers import key_text
-from .base import Comparison, Rule, ToleranceKey
+from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .support import (
     cjk_of,
     content_of,

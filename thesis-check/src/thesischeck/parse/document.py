@@ -401,6 +401,15 @@ def _record_blocks(
     return tuple(out)
 
 
+def resolver_for(pkg: Package) -> Resolver:
+    """构建有效格式解析器。
+
+    报告按需回溯要用同一个 `Resolver`；这里与 `parse_document` 共用同一构造，保证取值与
+    来源是同一份实现（技术设计 §4.2）。
+    """
+    return Resolver(StyleTable(pkg.xml(PART_STYLES)), ThemeFonts(pkg.xml(PART_THEME)))
+
+
 def parse_document(pkg: Package) -> Document:
     """解析 `word/document.xml`：块序列 + 全部段落 + 顶层表格 + 文本框 + 域 + 分节。
 
@@ -414,7 +423,7 @@ def parse_document(pkg: Package) -> Document:
     if body is None:
         raise BadDocument("word/document.xml 里没有 w:body，文件可能已损坏")
 
-    resolver = Resolver(StyleTable(pkg.xml(PART_STYLES)), ThemeFonts(pkg.xml(PART_THEME)))
+    resolver = resolver_for(pkg)
 
     flat = iter_paragraphs(body)
 

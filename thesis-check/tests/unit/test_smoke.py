@@ -37,7 +37,7 @@ def test_cli_without_args_prints_help(capsys: pytest.CaptureFixture[str]) -> Non
     assert "thesis-check" in capsys.readouterr().out
 
 
-def test_cli_reports_unimplemented(capsys: pytest.CaptureFixture[str]) -> None:
-    """M1 之前如实返回未实现，不假装能跑。"""
+def test_cli_reports_bad_document(capsys: pytest.CaptureFixture[str]) -> None:
+    """坏输入如实返回 2，并给可读原因，不抛堆栈。"""
     assert cli.main(["某篇.docx"]) == 2
-    assert "尚未实现" in capsys.readouterr().err
+    assert "无法审核" in capsys.readouterr().err

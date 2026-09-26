@@ -20,7 +20,18 @@ from .abstract_c import REGISTRY as _ABSTRACT_C
 from .abstract_e import REGISTRY as _ABSTRACT_E
 from .acknowledgements import REGISTRY as _ACK
 from .appendix import REGISTRY as _APPENDIX
-from .base import Comparison, Issue, Rule, ToleranceKey, Tolerances, Verdict, matches
+from .base import (
+    AttrGetter,
+    Comparison,
+    Issue,
+    Rule,
+    ToleranceKey,
+    Tolerances,
+    Verdict,
+    attrgetter,
+    matches,
+    trace_prop,
+)
 from .batch1 import REGISTRY as _BATCH1
 from .cover import REGISTRY as _COVER
 from .document_wide import REGISTRY as _GLOBAL
@@ -44,12 +55,15 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
 
 __all__ = [
     "REGISTRY",
+    "AttrGetter",
     "Comparison",
     "Issue",
     "Rule",
     "ToleranceKey",
     "Tolerances",
     "Verdict",
+    "attrgetter",
     "matches",
     "run_rules",
+    "trace_prop",
 ]

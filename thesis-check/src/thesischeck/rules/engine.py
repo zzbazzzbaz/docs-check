@@ -17,7 +17,7 @@ from typing import Any
 
 from ..errors import RuleError
 from ..semantics.blocks import CheckContext
-from .base import DEFAULT_TOLERANCES, Issue, Rule, Tolerances, Verdict, matches
+from .base import DEFAULT_TOLERANCES, Issue, Rule, Tolerances, Verdict, matches, trace_prop
 
 
 def run_rules(
@@ -30,12 +30,22 @@ def run_rules(
     issues: list[Issue] = []
     for rule in registry:
         try:
+            prop = trace_prop(rule.prop)
             for obj in rule.of(context):
                 got = rule.prop(obj)
                 if got is None:
-                    issues.append(Issue(rule.id, Verdict.UNDETERMINED, obj, expect=rule.expect, src=rule.src))
+                    issues.append(
+                        Issue(
+                            rule.id,
+                            Verdict.UNDETERMINED,
+                            obj,
+                            expect=rule.expect,
+                            src=rule.src,
+                            prop=prop,
+                        )
+                    )
                 elif not matches(rule, got, tolerances):
-                    issues.append(Issue(rule.id, Verdict.FAIL, obj, got, rule.expect, rule.src))
+                    issues.append(Issue(rule.id, Verdict.FAIL, obj, got, rule.expect, rule.src, prop=prop))
         except Exception as exc:
             issues.append(Issue(rule.id, Verdict.UNDETERMINED, error=RuleError(rule.id, str(exc))))
     return issues

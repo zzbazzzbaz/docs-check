@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from operator import attrgetter
 from typing import Any
 
 from ..index import Citation
 from ..semantics import select
 from ..semantics.blocks import Block, CheckContext, Scope
 from ..semantics.matchers import looks_like_number
-from .base import Comparison, Rule, ToleranceKey
+from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .support import (
     blanks_after,
     cjk_of,

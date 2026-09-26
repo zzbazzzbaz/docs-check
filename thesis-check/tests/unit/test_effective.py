@@ -128,7 +128,7 @@ def test_run_direct_beats_everything() -> None:
     trace: list[Source] = []
     fmt = RESOLVER.run(rpr('<w:sz w:val="28"/>'), "Heading1", trace=trace)
     assert fmt.size == 14.0
-    assert source_of(trace, "size") == "run"
+    assert source_of(trace, "size") == "直接设置"
 
 
 def test_basedon_chain_walk_and_cycle_protection() -> None:
@@ -161,7 +161,7 @@ def test_abstract_run_keeps_western_font_inherited_from_normal() -> None:
     fmt = resolver.run(rpr('<w:rFonts w:eastAsia="宋体"/>'), trace=trace)
     assert fmt.ea == "宋体"
     assert fmt.west == "Times New Roman"
-    assert source_of(trace, "ea") == "run"
+    assert source_of(trace, "ea") == "直接设置"
     assert source_of(trace, "west") == "默认段落样式"
 
 
@@ -317,14 +317,14 @@ def test_paragraph_style_name_and_direct_overrides_style() -> None:
     fmt = RESOLVER.para(ppr('<w:pStyle w:val="Heading1"/><w:jc w:val="right"/>'), trace=trace)
     assert (fmt.style_id, fmt.style_name) == ("Heading1", "heading 1")
     assert fmt.align == "right"
-    assert source_of(trace, "align") == "run"
+    assert source_of(trace, "align") == "直接设置"
     assert source_of(trace, "outline") == "样式:heading 1"
 
 
 def test_trace_is_opt_in_and_source_of_picks_the_winner() -> None:
     trace: list[Source] = []
     RESOLVER.run(rpr('<w:sz w:val="28"/>'), "Normal", trace=trace)
-    assert source_of(trace, "size") == "run"
+    assert source_of(trace, "size") == "直接设置"
     assert source_of(trace, "west") == "docDefaults"
     assert source_of(trace, "absent") is None
 

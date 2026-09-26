@@ -7,3 +7,23 @@
 - 批注回写**只插标记，不改正文**（需求 `FR-11.4.1`）：标注版与原文档正文必须逐字一致
 - 定位分两层：机器层（块号 + run 序号 + XML 元素引用）与人类层（作用域 › 章/节 + 文字摘要 + 字符片段）
 """
+
+from .issues import (
+    RULESET_VERSION,
+    SCHEMA_VERSION,
+    UNCOVERED,
+    Entry,
+    Location,
+    Report,
+    build_report,
+)
+
+__all__ = [
+    "RULESET_VERSION",
+    "SCHEMA_VERSION",
+    "UNCOVERED",
+    "Entry",
+    "Location",
+    "Report",
+    "build_report",
+]

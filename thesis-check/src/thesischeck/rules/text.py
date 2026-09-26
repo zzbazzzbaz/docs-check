@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from operator import attrgetter
 from typing import Any
 
 from ..index import Chapter, FloatRef
@@ -21,7 +20,7 @@ from ..parse.model import Cell, Run, Table
 from ..semantics import select
 from ..semantics.blocks import Block, CheckContext, Scope
 from ..semantics.matchers import chapter_no, is_citation
-from .base import Comparison, Rule, ToleranceKey
+from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .support import (
     H1_TEXT_SHAPE,
     H2_TEXT_SHAPE,

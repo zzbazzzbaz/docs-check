@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from operator import attrgetter
 from typing import Any
 
 from ..index import MODULE_ORDER, detected_modules, module_spans
@@ -16,7 +15,7 @@ from ..parse.model import HeaderFooter, Run, Section
 from ..semantics import select
 from ..semantics.blocks import Block, CheckContext, Scope
 from ..semantics.matchers import has_cjk
-from .base import Comparison, Rule, ToleranceKey
+from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .support import BlockSel, last_of, neighbour_flag
 
 HEADER_TEXT = "山东石油化工学院本科毕业设计（论文）"

@@ -7,11 +7,14 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from . import __version__
+from .errors import ThesisCheckError
 from .parse import compat
 from .parse.document import parse_document
 from .parse.package import Package
+from .pipeline import review
 
 SUITES = ("own", "ownpages", "ownborders", "owntextbox", "ownindex")
 
@@ -41,9 +44,14 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write("\n")
         return 0
 
-    # M1 起接 pipeline.review()；现在如实说明，不假装能跑
-    print("解析尚未实现（M1）。当前只验证命令行与打包。", file=sys.stderr)
-    return 2
+    try:
+        result = review(Path(args.docx), Path(args.outdir))
+    except ThesisCheckError as exc:
+        print(f"无法审核：{exc}", file=sys.stderr)
+        return 2
+    print(f"问题清单：{result.issues_json}")
+    print(f"审核报告：{result.report_html}")
+    return 0
 
 
 if __name__ == "__main__":

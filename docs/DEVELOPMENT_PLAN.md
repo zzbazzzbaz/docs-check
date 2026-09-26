@@ -450,20 +450,52 @@ Outcome:
 
 ### Phase 11: Reporting
 
-- [ ] Implement `src/thesischeck/report/issues.py`
-  - [ ] Normalised, stable ordering so snapshots diff cleanly
-  - [ ] Machine-readable serialisation and a human-readable rendering
-  - [ ] Strict separation of the three categories: failed, undetermined, unrecognised structure
-  - [ ] Uncovered-items statement listing what this release does not check
-- [ ] Implement locations
-  - [ ] Machine layer: block identifier, run index, element reference
-  - [ ] Human layer: scope, chapter, section, ordinal within the scope, text excerpt, and the exact
+- [x] Implement `src/thesischeck/report/issues.py`
+  - [x] Normalised, stable ordering so snapshots diff cleanly
+  - [x] Machine-readable serialisation and a human-readable rendering
+  - [x] Strict separation of the three categories: failed, undetermined, unrecognised structure
+  - [x] Uncovered-items statement listing what this release does not check
+- [x] Implement locations
+  - [x] Machine layer: block identifier, run index, element reference
+  - [x] Human layer: scope, chapter, section, ordinal within the scope, text excerpt, and the exact
         character span for run-level problems
-- [ ] Implement the pipeline in `src/thesischeck/pipeline.py` and wire `cli.py` to it
-  - [ ] Produce the issue list, the human-readable report and the annotated document
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Implement the pipeline in `src/thesischeck/pipeline.py` and wire `cli.py` to it
+  - [x] Produce the issue list, the human-readable report and the annotated document
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- `report/issues.py` turns `list[Issue]` into a `Report` with four partitions - fail / undetermined /
+  not-run (`RuleError`) / unrecognised structure - plus the uncovered-items statement. `to_json()`
+  emits a stable `issues.json` (scope, block, run, rule, excerpt ordering; no timestamp, no absolute
+  path, no timing) and `to_html()` a single-file `report.html` with inline CSS and no build step.
+  Unrecognised structure comes from `Role.UNKNOWN` blocks; the four partition lists are separate so
+  undetermined, not-run and unrecognised can never be read as passing.
+- Location is two-layered (FR-9.1): machine layer is `block_id` (paragraph id) + `run_index` +
+  a stable relative element path (`document/body[1]/p[38]/r[1]`); human layer is
+  `module > chapter > section` with the ordinal inside the section, the paragraph excerpt and, for
+  run-level problems, the exact run text. Chapter and section text are read back from the real
+  paragraphs (not the whitespace-stripped anchors), so the report shows `正文 > 第一章  绪论 >
+  1.1.1 现状分析（该节第 3 段）` and a "search for this" hint.
+- On-demand provenance (technical design 4.2) is wired: on a FAIL the report re-walks the cascade for
+  that one property through `parse.effective.run_source`, which reuses `Resolver.run` with a trace -
+  no second value/source implementation. The recorded defect was fixed: the paragraph-direct layer
+  no longer reuses the `run` label; both direct layers now emit the neutral `直接设置`, and the
+  report composes "on the run" / "in the paragraph" by object type, or "from style X" for inherited
+  values.
+- The two Phase 8 leftovers are handled: the line-spacing sentinel (`NOT_MULTIPLE`, `nan`) is
+  special-cased so the report says "fixed line spacing 20pt" instead of `nan`, and `GLB-28`'s
+  summary count ("N paragraphs use automatic numbering") is emitted in `summary.auto_numbering_paragraphs`
+  and printed in the report footer.
+- `pipeline.review(docx, outdir)` runs parse -> semantics -> index -> rules -> report and writes
+  `issues.json` + `report.html`; `cli.py` calls it and keeps `--compat-dump` and `--version`. The
+  normative version strings sit in the report header. The annotated document remains Phase 12, so the
+  pipeline writes two products today.
+- Gates green: `./scripts/check.sh` passes (649 tests). The 204-rule base still reports zero problems
+  end to end; a font deviation reports the expected rule with value, expectation, basis, location and
+  provenance.
 
 ### Phase 12: Comment Write-Back
 
