@@ -605,18 +605,52 @@ Outcome:
 
 ### Phase 14: Hardening, Regression and Acceptance
 
-- [ ] Run the whole corpus through the pipeline and confirm the invariants hold
-- [ ] Confirm the regression snapshot of the issue list over the corpus is produced and reviewed
-- [ ] Verify each non-functional requirement: performance, security, robustness, maintainability,
+- [x] Run the whole corpus through the pipeline and confirm the invariants hold
+- [x] Confirm the regression snapshot of the issue list over the corpus is produced and reviewed
+- [x] Verify each non-functional requirement: performance, security, robustness, maintainability,
       testability and reproducibility
-- [ ] Walk the acceptance criteria in the requirements document item by item for both batches and
+- [x] Walk the acceptance criteria in the requirements document item by item for both batches and
       record the outcome
-- [ ] Resolve or record every pending confirmation item listed in the requirements document
-- [ ] Confirm the rule coverage count: 197 in batch 1 and 7 in batch 2, with none missing and none
+- [x] Resolve or record every pending confirmation item listed in the requirements document
+- [x] Confirm the rule coverage count: 197 in batch 1 and 7 in batch 2, with none missing and none
       extra
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome (evidence lives in `docs/验收记录.md`):
+
+- **Corpus run**: 40 real documents plus the two school specification documents, **zero crashes and
+  zero `not_run`**. Totals over the 40 documents: 6332 fail, 467 undetermined, 0 not-run, 523
+  unrecognised (7322 items). `undetermined` and `unrecognised` are both demonstrated on real input:
+  the former is concentrated in `TXT-28` / `ABS-C-10` / `TXT-47`, the latter is 523 blocks in one
+  document whose chapter headings omit the `第X章` prefix (role coverage 96.61 per cent).
+- **Regression snapshot**: `tests/golden/corpus_snapshot.json` (committed; counts and corpus sha256
+  only, no file names, text, paths or timestamps) plus `tests/golden/test_corpus_snapshot.py`, which
+  fails on any count change and re-runs the corpus twice to assert the output is byte-identical.
+  `NFR-5.2` was previously asserted but not delivered; it now exists.
+- **Performance**: judge-only P95 0.237 s, full pipeline (with comment write-back) P95 0.391 s, no
+  document above 0.9 s; a class of 50 documents extrapolates to 6.5 s. Peak RSS about 100 MB.
+- **Invariants**: seven `index/checks.py` invariants over 40 documents give zero failures and four
+  warnings, all reviewed (three duplicate float-number documents, one document without a body scope
+  whose citations are explicitly undetermined).
+- **Equivalence gate**: five suites, 1,229,105 leaf field comparisons, zero differences; the
+  historical WPS truth in `test2/snapshots/compare.json.gz` gives 333,843 / 333,849 = 99.998 per
+  cent on the paragraph suite, with all six differences being the known `firstLineChars` conflict.
+- **Coverage**: 204 registered rules = 197 batch 1 + 7 batch 2; the six out-of-scope rules
+  (`TXT-50`, `REF-16`-`REF-20`) are confirmed absent; per-scope counts match the requirements
+  annex exactly.
+- **Maintainability**: 80 rules are pure attribute data rows and 84 reuse a shared extractor (164,
+  or 80.4 per cent, cost one line); 40 rules need bespoke judgement code. This corrects the Phase 8
+  claim that structural rules are "a small number".
+- **Gate**: `./scripts/check.sh` green with **680 tests**, about 30 seconds. Ten tests were added
+  this phase: the corpus snapshot (2), the four auto-numbered-object cases, single-rule exception
+  isolation, tolerance override, single-entry zip limit and upload filename basename.
+- **Known gaps recorded, not hidden**: `FR-10.4` (parser unrecognised-element ledger) and
+  `NFR-2.4` (parse timeout) are not implemented; the `TXT-49` per-table audit is not complete (one
+  table out of 228 unattributed); an annotation document has not been opened in WPS by hand; the
+  report has not been read by a non-XML reader. The four requirement items that are only partly met
+  are marked as such in `docs/验收记录.md`.
 
 ## Important Considerations & Requirements
 
@@ -691,22 +725,28 @@ If issues arise during implementation:
 
 ## QA Checklist
 
-- [ ] All user instructions followed
-- [ ] All requirements implemented and tested
-- [ ] No critical code smell warnings
-- [ ] British or Australian spelling used throughout
-- [ ] No smart formatting, non-ASCII characters or emojis
-- [ ] Code follows project conventions and standards
-- [ ] Documentation is updated and accurate if needed
-- [ ] Security considerations addressed
-- [ ] Integration points verified
-- [ ] `./scripts/check.sh` passes: ruff lint, ruff format check, `mypy --strict`, import-linter, pytest
-- [ ] Layering contracts kept, including the prohibition on `lxml` in rules, semantics and index
-- [ ] Rule identifier cross-check passes in both directions
-- [ ] Every rule has a hit case and a pass case
-- [ ] Anti-tautology cases present for existence and cross-reference rules
-- [ ] Equivalence dump against the harness snapshots reviewed, with differences explained
-- [ ] Undetermined and unrecognised-structure results appear in the report and are not treated as passing
-- [ ] Uncovered-items statement present in every report
-- [ ] Comment write-back leaves body text character-for-character identical
-- [ ] Coverage confirmed at 197 batch 1 rules and 7 batch 2 rules
+- [x] All user instructions followed
+- [ ] All requirements implemented and tested - **not met**: `FR-10.4` (parser unrecognised-element
+      ledger) and `NFR-2.4` (parse timeout) are not implemented; both are recorded as known gaps in
+      `docs/验收记录.md`
+- [x] No critical code smell warnings
+- [x] British or Australian spelling used throughout
+- [ ] No smart formatting, non-ASCII characters or emojis - **not met by the letter**: source
+      comments and documentation are Chinese (the project convention since Phase 1), so non-ASCII
+      characters are pervasive; there are no smart quotes or emojis
+- [x] Code follows project conventions and standards
+- [x] Documentation is updated and accurate if needed
+- [ ] Security considerations addressed - **partly**: every packet-layer defence is paired with a
+      test and every HTTP-layer defence is implemented, but `NFR-2.4` (parse timeout) is missing and
+      the random on-disk name and catch-all 500 have no dedicated tests
+- [x] Integration points verified
+- [x] `./scripts/check.sh` passes: ruff lint, ruff format check, `mypy --strict`, import-linter, pytest
+- [x] Layering contracts kept, including the prohibition on `lxml` in rules, semantics and index
+- [x] Rule identifier cross-check passes in both directions
+- [x] Every rule has a hit case and a pass case
+- [x] Anti-tautology cases present for existence and cross-reference rules
+- [x] Equivalence dump against the harness snapshots reviewed, with differences explained
+- [x] Undetermined and unrecognised-structure results appear in the report and are not treated as passing
+- [x] Uncovered-items statement present in every report
+- [x] Comment write-back leaves body text character-for-character identical
+- [x] Coverage confirmed at 197 batch 1 rules and 7 batch 2 rules

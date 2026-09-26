@@ -181,6 +181,23 @@ def test_auto_numbering_is_counted_at_the_end() -> None:
     assert f"共 {report.auto_numbering} 段使用了自动编号" in report.to_html()
 
 
+def test_a_rule_that_raises_is_not_run_and_others_continue() -> None:
+    """需求 §11 第 2 条 / `NFR-3.3`：单条规则抛异常只记"未执行"，其余规则照跑。"""
+
+    def boom(ctx: CheckContext) -> tuple[Block, ...]:
+        raise RuntimeError("boom")
+
+    bad: Rule[Any, Any] = Rule(id="TST-E1", of=boom, prop=lambda block: None, expect="黑体", src="测试")
+    good: Rule[Any, Any] = Rule(
+        id="TST-U2", of=lambda ctx: (ctx[0],), prop=lambda block: None, expect="有值", src="测试"
+    )
+    report = _report_for(BASE, registry=(bad, good))
+    assert [entry.rule for entry in report.not_run] == ["TST-E1"]
+    assert report.not_run[0].error == "boom"
+    assert [entry.rule for entry in report.undetermined] == ["TST-U2"]
+    assert report.fail == ()
+
+
 # ── 未覆盖项声明 ────────────────────────────────────────────────
 
 

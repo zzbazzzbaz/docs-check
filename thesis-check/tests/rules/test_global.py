@@ -95,6 +95,15 @@ def test_global_pass_on_base(rule_id: str) -> None:
     CASE(rule_id, change=None, expect_only=[])
 
 
+@pytest.mark.parametrize("target", ["正文段落", "文献条目", "附录子标题", "三级以下标题"])
+def test_auto_numbering_paragraphs_are_left_to_glb28(target: str) -> None:
+    """验收 6.1-8：自动编号段让开下游编号类规则（`TXT-19` / `REF-10` / `REF-11` / `APP-06`）。
+
+    选择器过滤（需求 §3.4）生效时，这些段落只由 `GLB-28` 报出，下游规则不再给出错误的修改指令。
+    """
+    CASE("GLB-28", change=auto_numbering(target), expect_only=["GLB-28"])
+
+
 def test_glb27_module_order_verdict() -> None:
     """GLB-27 判定：顺序正确放行，乱序报出（识别器与判定器分离，不靠 XML 构造）。"""
     from thesischeck.rules.document_wide import module_order

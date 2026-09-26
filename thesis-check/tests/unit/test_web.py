@@ -104,6 +104,12 @@ def test_unknown_job_is_not_found(client: TestClient) -> None:
     assert client.get("/api/review/not-a-job/report.html").status_code == 404
 
 
+def test_upload_filename_is_reduced_to_basename() -> None:
+    """上传名里的路径成分一律丢弃（Windows 反斜杠也要处理），落盘另有随机名。"""
+    assert web._safe_name("..\\..\\evil.docx") == "evil.docx"
+    assert web._safe_name("/etc/passwd.docx") == "passwd.docx"
+
+
 def test_expired_job_is_removed(client: TestClient, tmp_path: Path) -> None:
     payload = _upload(client, "case.docx", BASE).json()
     job_dir = tmp_path / "jobs" / payload["job"]

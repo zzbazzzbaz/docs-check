@@ -196,6 +196,12 @@ def test_total_uncompressed_size() -> None:
         pkg.check_entries(entries)
 
 
+def test_oversized_single_entry() -> None:
+    big = entry("word/media/image1.png", size=pkg.MAX_ENTRY_BYTES + 1, compressed=pkg.MAX_ENTRY_BYTES // 100)
+    with pytest.raises(BadDocument, match="超大部件"):
+        pkg.check_entries([big])
+
+
 # ── XML 解析防护 ─────────────────────────────────────────────────
 
 
