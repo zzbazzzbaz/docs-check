@@ -157,6 +157,18 @@ class Location:
 
 
 @dataclass(frozen=True, slots=True)
+class Downgrade:
+    """一条**无法写入批注**、退回报告的问题（`FR-11.4.5` / `FR-11.6`）。
+
+    页眉 / 页脚、页面设置 / 分节、以及找不到安全锚点的问题走这里；报告里要注明原因并计数，
+    而不是悄悄消失。
+    """
+
+    rule: str | None
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
 class Entry:
     """一条规范化后的报告条目。"""
 
@@ -206,6 +218,7 @@ class Report:
     unrecognised: tuple[Entry, ...]
     uncovered: tuple[str, ...]
     auto_numbering: int
+    annotation: tuple[Downgrade, ...] = ()
 
     def problem_count(self) -> int:
         """需要学生处理的问题数（三态 + 未识别结构）。"""
@@ -241,6 +254,10 @@ class Report:
             "not_run": [entry.to_dict() for entry in self.not_run],
             "unrecognised": [entry.to_dict() for entry in self.unrecognised],
             "uncovered": list(self.uncovered),
+            "annotation": {
+                "not_annotated": len(self.annotation),
+                "items": [{"rule": item.rule, "reason": item.reason} for item in self.annotation],
+            },
         }
 
     def to_html(self) -> str:
@@ -269,6 +286,7 @@ class Report:
             ruleset=html.escape(self.ruleset_version),
             summary=summary,
             groups="\n".join(body),
+            annotation=_annotation_html(self.annotation),
             uncovered=uncovered,
             auto_numbering=self.auto_numbering,
             total=self.problem_count(),
@@ -520,6 +538,7 @@ def build_report(
     parser_version: str,
     ruleset_version: str,
     resolver: Resolver | None = None,
+    annotation: Sequence[Downgrade] = (),
 ) -> Report:
     """把引擎产出的 `Issue` 规范化、分区、定位，组装成 `Report`。"""
     blocks = tuple(context)
@@ -582,6 +601,7 @@ def build_report(
         unrecognised=tuple(unrecognised),
         uncovered=UNCOVERED,
         auto_numbering=sum(1 for para in context.paragraphs if para.numbering is not None),
+        annotation=tuple(annotation),
     )
 
 
@@ -628,6 +648,7 @@ footer {{ margin-top:2rem; padding-top:.8rem; border-top:1px solid var(--line); 
 <main>
 {summary}
 {groups}
+{annotation}
 <section class="group"><h2>本轮未覆盖项</h2><ul>{uncovered}</ul></section>
 </main>
 <footer>共 {auto_numbering} 段使用了自动编号。</footer>
@@ -647,6 +668,22 @@ def _summary_html(by_scope: dict[str, dict[str, int]], counts: dict[str, int]) -
         f"<th>未执行</th><th>未识别</th></tr></thead><tbody>{rows}</tbody></table>"
         f"<p>合计：不通过 {counts['fail']} · 无法判定 {counts['undetermined']} · 未执行 {counts['not_run']}"
         f" · 未识别结构 {counts['unrecognised']}</p>"
+    )
+
+
+def _annotation_html(items: tuple[Downgrade, ...]) -> str:
+    if not items:
+        return ""
+    rows = "".join(
+        f"<li>{html.escape(item.reason)}"
+        + (f"（规则 {html.escape(item.rule)}）" if item.rule else "")
+        + "</li>"
+        for item in items
+    )
+    return (
+        f'<section class="group"><h2>无法写入批注的问题（{len(items)} 条）</h2>'
+        "<p>下列问题位于页眉 / 页脚、页面设置等无法批注的位置，请对照上面的清单处理：</p>"
+        f"<ul>{rows}</ul></section>"
     )
 
 

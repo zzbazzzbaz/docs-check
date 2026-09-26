@@ -499,24 +499,55 @@ Outcome:
 
 ### Phase 12: Comment Write-Back
 
-- [ ] Implement `src/thesischeck/report/annotate.py`
-  - [ ] Insert comment range markers and the comment reference run
-  - [ ] Write the comments part, register the content type and add the relationship
-  - [ ] Aggregate problems by object so a paragraph with several problems carries one comment
-  - [ ] Anchor paragraph-level problems to the whole paragraph, table problems to the first cell
+- [x] Implement `src/thesischeck/report/annotate.py`
+  - [x] Insert comment range markers and the comment reference run
+  - [x] Write the comments part, register the content type and add the relationship
+  - [x] Aggregate problems by object so a paragraph with several problems carries one comment
+  - [x] Anchor paragraph-level problems to the whole paragraph, table problems to the first cell
         paragraph, and text-box problems to the host paragraph
-  - [ ] Downgrade problems that cannot be annotated (headers, footers, page setup) to report entries
+  - [x] Downgrade problems that cannot be annotated (headers, footers, page setup) to report entries
         and count them
-  - [ ] Append to an existing comments part rather than replacing it
-  - [ ] Insert markers only; never modify body text
-- [ ] Implement the four closed-loop checks and run them in tests
-  - [ ] Text identity before anchoring
-  - [ ] Comment count equals aggregated problem count, with downgrades counted separately
-  - [ ] Body text unchanged after write-back, compared character by character
-  - [ ] Re-parse the annotated document and verify each comment anchors the expected object
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+  - [x] Append to an existing comments part rather than replacing it
+  - [x] Insert markers only; never modify body text
+- [x] Implement the four closed-loop checks and run them in tests
+  - [x] Text identity before anchoring
+  - [x] Comment count equals aggregated problem count, with downgrades counted separately
+  - [x] Body text unchanged after write-back, compared character by character
+  - [x] Re-parse the annotated document and verify each comment anchors the expected object
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- `report/annotate.py` writes the annotated document from the **same parsed tree**: `plan_comments`
+  resolves each `Issue.where` (block / run / paragraph / table / float, and tuples) to a target
+  paragraph, aggregates same-paragraph problems into one comment, and returns a relative-numbered
+  plan plus a separate list of downgrades. `write_marked` inserts
+  `<w:commentRangeStart/>…<w:commentRangeEnd/>` plus a `<w:commentReference/>` run **inside one
+  paragraph only**, appends to `word/comments.xml` (creating it when absent), registers the content
+  type and the `document.xml.rels` relationship, and re-zips every other part untouched. `annotate`
+  is the `(pkg, doc, issues) -> bytes` entry point and never modifies the source file.
+- Anchoring follows `FR-11.2`: paragraph problems span the whole paragraph, run-level problems merge
+  into their paragraph's comment and name the character snippet (`「…」这几个字`), table problems
+  anchor the first cell's first paragraph, text-box problems anchor the host paragraph and mark
+  `（在文本框内）`. Headers / footers, page setup / sections, and unresolvable anchors (including
+  `GLB-26` module-missing) are downgraded; the pipeline passes them to `build_report`, so
+  `issues.json` gains an `annotation.not_annotated` count and `report.html` a "无法写入批注的问题"
+  section — nothing disappears silently.
+- Comment bodies are plain-language "where / now / should be", end with the rule id and basis, are
+  cleaned of XML-illegal characters, capped at 200 characters (truncation says `…（详见报告）`), and
+  carry author `格式审核` and a UTC timestamp. Append mode reads the maximum existing id (comments
+  and range markers) and numbers new comments after it.
+- The four closed-loop checks are automated in `tests/unit/test_annotate.py`: planned text equals the
+  XML text before anchoring, comment count equals the aggregated problem count with downgrades
+  counted separately, the re-parsed body is character-for-character identical, and each re-parsed
+  comment range reads back the expected object text. The same file also covers the four downgrade
+  paths (header/footer, page setup, text box, missing module), "a bad anchor never yields a bad
+  file", and writing twice into the same document (ids stay unique and the first round survives).
+- Gates green: `./scripts/check.sh` passes with 661 tests. The 204-rule base still reports zero
+  problems; a font deviation produces `case.marked.docx` whose `word/comments.xml` carries the
+  expected comment.
 
 ### Phase 13: Web Service
 

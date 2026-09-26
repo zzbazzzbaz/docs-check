@@ -12,6 +12,8 @@ from typing import Any
 from tests.fixtures.base import BASE
 from tests.fixtures.synth import ea
 from thesischeck import cli
+from thesischeck.parse.document import parse_document
+from thesischeck.parse.package import PART_COMMENTS, Package
 from thesischeck.pipeline import review
 
 
@@ -57,3 +59,19 @@ def test_cli_runs_review_and_writes_products(tmp_path: Path) -> None:
     assert cli.main([str(docx), "-o", str(outdir)]) == 0
     assert (outdir / "issues.json").is_file()
     assert (outdir / "report.html").is_file()
+    assert (outdir / "case.marked.docx").is_file()
+
+
+def test_review_writes_marked_document_with_comments(tmp_path: Path) -> None:
+    """第三件产物：标注版 docx（批注回写），且不破坏正文。"""
+    docx = tmp_path / "case.docx"
+    docx.write_bytes(ea("中文摘要标题", "仿宋").apply(BASE))
+    result = review(docx, tmp_path / "out")
+
+    assert result.marked_docx.name == "case.marked.docx"
+    with Package.open(result.marked_docx) as pkg:
+        document = parse_document(pkg)
+        comments = pkg.read(PART_COMMENTS)
+    assert comments is not None
+    assert b"ABS-C-02" in comments
+    assert any(para.text.startswith("摘") for para in document.paragraphs)
