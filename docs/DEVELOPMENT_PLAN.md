@@ -106,19 +106,19 @@ the readable rejection and the fact that it returns immediately.
 
 ### Phase 2: Effective Format Resolution
 
-- [ ] Implement `src/thesischeck/parse/effective.py`
-  - [ ] Cascade order: run properties, character style, paragraph style chain including `basedOn`,
+- [x] Implement `src/thesischeck/parse/effective.py`
+  - [x] Cascade order: run properties, character style, paragraph style chain including `basedOn`,
         default paragraph style, `docDefaults`, theme fonts
-  - [ ] Unit normalisation: `w:sz` to points, twips to points, `firstLineChars` priority over
+  - [x] Unit normalisation: `w:sz` to points, twips to points, `firstLineChars` priority over
         `firstLine`, line rule auto to multiple, exact and atLeast flagged for rejection
-  - [ ] Single resolution entry point that optionally collects a trace for provenance (D2)
-  - [ ] Font slots resolved separately: `eastAsia` for Chinese, `ascii` for Western
-- [ ] Write unit tests in `tests/unit/test_effective.py`
-  - [ ] One test per cascade level, asserting the resolved value and, where traced, the source label
-  - [ ] Regression tests for the known traps: `ABSTRACT` inheriting `ascii` from `Normal`,
+  - [x] Single resolution entry point that optionally collects a trace for provenance (D2)
+  - [x] Font slots resolved separately: `eastAsia` for Chinese, `ascii` for Western
+- [x] Write unit tests in `tests/unit/test_effective.py`
+  - [x] One test per cascade level, asserting the resolved value and, where traced, the source label
+  - [x] Regression tests for the known traps: `ABSTRACT` inheriting `ascii` from `Normal`,
         `heading 3` with contradictory first-line values, missing line spacing defaulting to single,
         negative hanging indent preserved, `numId` of zero meaning numbering explicitly cancelled
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
 
