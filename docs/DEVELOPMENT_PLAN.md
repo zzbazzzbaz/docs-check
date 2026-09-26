@@ -188,30 +188,45 @@ not needed):
 
 ### Phase 6: Semantics (Scopes, Roles, Selectors)
 
-- [ ] Implement `src/thesischeck/semantics/scope.py`
-  - [ ] Partition the document into the eight scopes using keyword text with internal whitespace
+- [x] Implement `src/thesischeck/semantics/scope.py`
+  - [x] Partition the document into the eight scopes using keyword text with internal whitespace
         removed
-  - [ ] Exclude table-of-contents-styled paragraphs from boundary detection, while allowing the
+  - [x] Exclude table-of-contents-styled paragraphs from boundary detection, while allowing the
         table-of-contents title itself to be the boundary
-- [ ] Implement `src/thesischeck/semantics/roles.py`
-  - [ ] Total role assignment: every block receives a role; unrecognised blocks become `UNKNOWN`
-  - [ ] Heading levels from outline level or style name only, never guessed from size or bold
-- [ ] Implement `src/thesischeck/semantics/select.py`
-  - [ ] Named selectors for every object used by more than one rule
-  - [ ] Character-based selectors: runs containing Chinese characters, runs containing ASCII letters
+- [x] Implement `src/thesischeck/semantics/roles.py`
+  - [x] Total role assignment: every block receives a role; unrecognised blocks become `UNKNOWN`
+  - [x] Heading levels from outline level or style name only, never guessed from size or bold
+- [x] Implement `src/thesischeck/semantics/select.py`
+  - [x] Named selectors for every object used by more than one rule
+  - [x] Character-based selectors: runs containing Chinese characters, runs containing ASCII letters
         or digits, superscript runs, caption runs
-  - [ ] Numbering-aware selectors implementing the downgraded suppression (D6)
-- [ ] Implement `src/thesischeck/semantics/matchers.py`
-  - [ ] Shared predicates: looks like a reference number, chapter text, appendix sub-heading,
+  - [x] Numbering-aware selectors implementing the downgraded suppression (D6)
+- [x] Implement `src/thesischeck/semantics/matchers.py`
+  - [x] Shared predicates: looks like a reference number, chapter text, appendix sub-heading,
         figure or table caption, formula number
-  - [ ] Confirm the mutual exclusion between the two reference-numbering rules is achieved by the
+  - [x] Confirm the mutual exclusion between the two reference-numbering rules is achieved by the
         shared predicate, with no engine mechanism involved
-- [ ] Write unit tests asserting the recognisers are supersets: lower-case appendix letters, Chinese
+- [x] Write unit tests asserting the recognisers are supersets: lower-case appendix letters, Chinese
         numeral appendices, spaced and unspaced chapter headings, and Arabic-numeral chapters are
         all recognised
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- `thesischeck.semantics` now wraps the frozen `Para` in `Block(para, scope, role)`; `Scope` and
+  `Role` are defined in `scope.py` / `roles.py` and re-exported from `blocks.py` to avoid a cycle.
+  Real-corpus run (40 documents, 15411 paragraphs): every document has contiguous, non-overlapping
+  scope ranges covering the whole file, and every paragraph receives a role. Total unrecognised
+  share is 3.39 per cent, concentrated in one document whose chapter headings omit the `第X章`
+  prefix; its body therefore falls into the table-of-contents scope and is reported as `UNKNOWN`
+  (the missing chapter marker is `TXT-51` / `GLB-26` territory). All other 39 documents have zero
+  unrecognised blocks.
+- `.importlinter` contract 2 gained `allow_indirect_imports = true`: the layering requires
+  semantics (and later rules / index) to consume `parse.model`, which itself imports `lxml` as the
+  leaf dependency. The contract still forbids a direct `lxml` import in these layers (negatively
+  tested).
 
 ### Phase 7: Rule Engine and Test Harness
 

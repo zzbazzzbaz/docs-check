@@ -31,3 +31,6 @@ source_modules =
     thesischeck.index
 forbidden_modules =
     lxml
+; 这三层必须消费 parse 的冻结模型（`parse.model` 自身 import lxml，是合法的叶子依赖），
+; 所以要禁的是**直接** import lxml——间接链 rules/semantics/index -> parse.model -> lxml 必须放行。
+allow_indirect_imports = true
