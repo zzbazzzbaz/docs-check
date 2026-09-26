@@ -143,12 +143,17 @@ class Cell:
 
 @dataclass(frozen=True, slots=True)
 class Table:
-    """一个**顶层**表格。嵌套表格不单独成 Table，其段落仍留在宿主单元格里。"""
+    """一个**顶层**表格。嵌套表格不单独成 Table，其段落仍留在宿主单元格里。
+
+    `style_conditional_borders` 是**事实**：该表所用表格样式的条件格式里写了边框
+    （解析层不合成这类线）。三线表规则据此把"缺线"降级为无法判定，而不是误判为不符合。
+    """
 
     id: int
     n_rows: int
     n_cols: int
     rows: tuple[tuple[Cell, ...], ...]
+    style_conditional_borders: bool
     xml: etree._Element
 
 

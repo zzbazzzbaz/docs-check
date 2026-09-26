@@ -187,6 +187,14 @@ def _table_borders(styles: StyleTable, tbl: etree._Element) -> dict[str, bool]:
     return out
 
 
+def _style_conditional_borders(styles: StyleTable, tbl: etree._Element) -> bool:
+    """该表所用表格样式链里，是否任一样式带条件格式边框（事实，不合成线）。"""
+    pr = tbl.find(w("tblPr"))
+    st = pr.find(w("tblStyle")) if pr is not None else None
+    sid = st.get(w("val")) if st is not None else None
+    return any(style.conditional_borders for style in styles.chain(sid))
+
+
 def _cell_borders(
     tc: etree._Element, base: dict[str, bool], row: int, col: int, n_rows: int, n_cols: int
 ) -> Borders:
@@ -329,7 +337,14 @@ def _record_table(
                 )
             )
         rows.append(tuple(cells))
-    return Table(id=tid, n_rows=n_rows, n_cols=n_cols, rows=tuple(rows), xml=tbl)
+    return Table(
+        id=tid,
+        n_rows=n_rows,
+        n_cols=n_cols,
+        rows=tuple(rows),
+        style_conditional_borders=_style_conditional_borders(resolver.styles, tbl),
+        xml=tbl,
+    )
 
 
 def _host_para(txbx: etree._Element, by_element: dict[etree._Element, Para]) -> int | None:

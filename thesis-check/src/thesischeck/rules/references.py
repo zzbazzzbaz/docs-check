@@ -1,8 +1,11 @@
-"""参考文献规则 REF-01 ~ REF-13、REF-21、REF-22。
+"""参考文献规则 REF-01 ~ REF-15、REF-21、REF-22。
 
 标题按模块标题取；条目按**宽松锚点**取（区内非空段落，不要求以编号开头），编号格式 / 连续性 /
 类型标识 / 重复 / 段落完整性写代码，其余是一行数据。`REF-10` 与 `REF-21` 共用
 `matchers.looks_like_number`，互斥天然成立（README 通用判定口径第 10 条 + 需求 §3.4）。
+
+批 2 的 `REF-14` / `REF-15` 消费整篇索引的正文引用集合（文本 `[数字]`，不是上标），
+抽不到引用时显式「无法判定」。
 """
 
 from __future__ import annotations
@@ -12,13 +15,15 @@ from collections.abc import Sequence
 from operator import attrgetter
 from typing import Any
 
+from ..index import Citation
 from ..semantics import select
-from ..semantics.blocks import Block, Scope
+from ..semantics.blocks import Block, CheckContext, Scope
 from ..semantics.matchers import looks_like_number
 from .base import Comparison, Rule, ToleranceKey
 from .support import (
     blanks_after,
     cjk_of,
+    context_index,
     count,
     found,
     para_align,
@@ -104,6 +109,40 @@ def ref_integrity_verdict(block: Block) -> str:
     if "\n" in block.para.text:
         return "条目内出现手动换行"
     return "合规" if looks_like_number(block.para.text) else "未以编号开头"
+
+
+# ── 批 2：正文引用与顺序（REF-14 / REF-15，消费整篇索引）──────
+
+
+def _entry_numbers(blocks: Sequence[Block]) -> tuple[int, ...]:
+    numbers = (_leading_number(block.para.text) for block in numbered_items(blocks))
+    return tuple(number for number in numbers if number is not None)
+
+
+def citation_payload(ctx: CheckContext) -> tuple[tuple[tuple[int, ...], tuple[Citation, ...] | None], ...]:
+    """（条目编号, 正文引用标注）；引用为 `None` 表示正文区定位不到（无法判定）。"""
+    return ((_entry_numbers(ctx), context_index(ctx).citations),)
+
+
+def citation_coverage_verdict(payload: tuple[tuple[int, ...], tuple[Citation, ...] | None]) -> str | None:
+    """REF-14：`R \\ C`（有条目、正文没引用）报出；`C \\ R`（悬空引用）不报。"""
+    numbers, citations = payload
+    if citations is None:
+        return None
+    cited = {citation.no for citation in citations}
+    missing = [number for number in numbers if number not in cited]
+    return "合规" if not missing else "正文未引用：" + "、".join(f"[{number}]" for number in missing)
+
+
+def citation_order_verdict(payload: tuple[tuple[int, ...], tuple[Citation, ...] | None]) -> str | None:
+    """REF-15：按首次出现顺序与 `1…N` 比对，报**首个倒置位置**。"""
+    _numbers, citations = payload
+    if citations is None:
+        return None
+    for position, citation in enumerate(citations, 1):
+        if citation.no != position:
+            return f"第 {position} 个引用是 [{citation.no}]，与从 1 起的顺序不符"
+    return "合规"
 
 
 REGISTRY: tuple[Rule[Any, Any], ...] = (
@@ -198,6 +237,20 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         prop=ref_duplicate_verdict,
         expect="合规",
         src="规范原文：同一条文献只出现一次",
+    ),
+    Rule(
+        id="REF-14",
+        of=citation_payload,
+        prop=citation_coverage_verdict,
+        expect="合规",
+        src="规范原文：所有参考文献必须都在正文中有引用",
+    ),
+    Rule(
+        id="REF-15",
+        of=citation_payload,
+        prop=citation_order_verdict,
+        expect="合规",
+        src="规范原文：按在正文中出现的先后次序排列",
     ),
     Rule(
         id="REF-21",

@@ -55,6 +55,14 @@ def a(tag: str) -> str:
     return f"{{{A_NS}}}{tag}"
 
 
+def _conditional_borders(style: etree._Element) -> bool:
+    """该样式是否在条件格式（``w:tblStylePr``）里定义了任何边框。"""
+    for pr in style.findall(w("tblStylePr")):
+        if pr.find(f".//{w('tblBorders')}") is not None or pr.find(f".//{w('tcBorders')}") is not None:
+            return True
+    return False
+
+
 def _local_attrs(el: etree._Element) -> dict[str, str]:
     """按本地名取属性：`w:left` 与裸 `left` 都要认（后者不符合规范但真实文档里出现过）。"""
     return {cast(str, k).rsplit("}", 1)[-1]: cast(str, v) for k, v in el.attrib.items()}
@@ -68,7 +76,12 @@ def _onoff(el: etree._Element) -> bool:
 
 @dataclass(frozen=True, slots=True)
 class StyleDef:
-    """一个样式定义。``is_default`` 是 ``w:default="1"``。"""
+    """一个样式定义。``is_default`` 是 ``w:default="1"``。
+
+    ``conditional_borders`` 是**事实**：该样式的 ``w:tblStylePr`` 条件格式里写了任何
+    边框（``tblBorders`` / ``tcBorders``）。解析层不合成条件格式的边框，只把"这里可能有线"
+    记下来，供三线表规则把"缺线"降级为无法判定，而不是误判为不符合。
+    """
 
     id: str
     name: str
@@ -78,6 +91,7 @@ class StyleDef:
     rpr: etree._Element | None
     ppr: etree._Element | None
     tbl_pr: etree._Element | None
+    conditional_borders: bool = False
 
 
 class StyleTable:
@@ -105,6 +119,7 @@ class StyleTable:
                 rpr=el.find(w("rPr")),
                 ppr=el.find(w("pPr")),
                 tbl_pr=el.find(w("tblPr")),
+                conditional_borders=_conditional_borders(el),
             )
         defaults = root.find(w("docDefaults"))
         if defaults is not None:

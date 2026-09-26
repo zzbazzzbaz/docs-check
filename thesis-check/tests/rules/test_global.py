@@ -71,7 +71,13 @@ HITS: list[tuple[str, Deviation, list[str]]] = [
     # （GLB-14）——规则文档未定义抑制口径，按字面实现并记录
     ("GLB-22", remove_section_break(4), ["GLB-14", "GLB-22"]),
     ("GLB-23", insert_line_before("参考文献标题", "插入的正文段落。"), ["GLB-23"]),
-    ("GLB-24", insert_line_before("致谢标题", "[3] 张三.测试文献[M].北京：某社，2000：1."), ["GLB-24"]),
+    # 在致谢前插入一条文献 [3]：它落在参考文献区，且正文里没有 [3] 的引用，
+    # 所以 REF-14 也报出（跨作用域耦合，按字面实现并记录）
+    (
+        "GLB-24",
+        insert_line_before("致谢标题", "[3] 张三.测试文献[M].北京：某社，2000：1."),
+        ["GLB-24", "REF-14"],
+    ),
     ("GLB-25", insert_line_before("附录标题", "插入的致谢段落。"), ["GLB-25"]),
     ("GLB-26", delete("本科生毕业设计行"), ["GLB-26"]),
     # 反恒真：给正文段落加 Word 自动编号

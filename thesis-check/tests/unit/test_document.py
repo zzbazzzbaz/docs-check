@@ -320,6 +320,28 @@ def test_table_style_borders_follow_based_on_chain(tmp_path: Path) -> None:
     assert cells[1][0].borders.top is False  # Grid 没写 insideH
 
 
+CONDITIONAL_STYLES = f"""<?xml version="1.0"?>
+<w:styles xmlns:w="{W}">
+  <w:style w:type="table" w:styleId="Cond">
+    <w:name w:val="Cond"/>
+    <w:tblPr><w:tblBorders><w:top w:val="single"/></w:tblBorders></w:tblPr>
+    <w:tblStylePr w:type="firstRow">
+      <w:tcPr><w:tcBorders><w:bottom w:val="single"/></w:tcBorders></w:tcPr>
+    </w:tblStylePr>
+  </w:style>
+</w:styles>"""
+
+
+def test_table_style_conditional_borders_are_recorded_as_a_fact(tmp_path: Path) -> None:
+    """条件格式（`tblStylePr`）里的边框不合成，但作为事实记下，供三线表规则降级判定。"""
+    body = table([[para("a")], [para("b")]], '<w:tblPr><w:tblStyle w:val="Cond"/></w:tblPr>')
+    with_conditional = load(tmp_path, body, styles=CONDITIONAL_STYLES)
+    assert with_conditional.tables[0].style_conditional_borders is True
+
+    plain = load(tmp_path, body, styles=STYLES)
+    assert plain.tables[0].style_conditional_borders is False
+
+
 def test_table_direct_borders_override_style(tmp_path: Path) -> None:
     tbl_pr = '<w:tblPr><w:tblStyle w:val="Grid"/><w:tblBorders><w:top w:val="none"/></w:tblBorders></w:tblPr>'
     body = table([[para("a")]], tbl_pr)

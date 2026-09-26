@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from ..parse.model import Document, Para, Section
+from ..parse.model import Document, Para, Section, Table
 from .roles import Role, assign_role
 from .scope import Scope, scope_map
 
@@ -36,6 +36,7 @@ class CheckContext(tuple[Block, ...]):
 
     sections: tuple[Section, ...]
     paragraphs: tuple[Para, ...]
+    tables: tuple[Table, ...]
     has_numbering_part: bool
 
     def __new__(
@@ -44,11 +45,13 @@ class CheckContext(tuple[Block, ...]):
         *,
         sections: tuple[Section, ...] = (),
         paragraphs: tuple[Para, ...] = (),
+        tables: tuple[Table, ...] = (),
         has_numbering_part: bool = False,
     ) -> CheckContext:
         self = super().__new__(cls, blocks)
         self.sections = sections
         self.paragraphs = paragraphs
+        self.tables = tables
         self.has_numbering_part = has_numbering_part
         return self
 
@@ -63,11 +66,12 @@ def tag_blocks(doc: Document) -> tuple[Block, ...]:
 
 
 def tag_context(doc: Document) -> CheckContext:
-    """构建规则引擎的上下文：块序列 + 分节 + 全部段落（含文本框）+ numbering 信号。"""
+    """构建规则引擎的上下文：块序列 + 分节 + 全部段落（含文本框）+ 表格 + numbering 信号。"""
     box_paragraphs = tuple(para for box in doc.boxes for para in box.paragraphs)
     return CheckContext(
         tag_blocks(doc),
         sections=doc.sections,
         paragraphs=(*doc.paragraphs, *box_paragraphs),
+        tables=doc.tables,
         has_numbering_part=doc.has_numbering_part,
     )

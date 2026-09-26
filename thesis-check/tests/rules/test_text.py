@@ -11,17 +11,20 @@ import pytest
 from tests.fixtures.synth import (
     Deviation,
     alignment,
+    combined,
     delete,
     ea,
     first_line,
     insert_blank_after,
     line_spacing,
     page_break,
+    run_replace,
     run_size,
     run_text,
     run_va,
     run_west,
     size,
+    table_border,
     west,
 )
 from tests.rules.case import CASE
@@ -72,6 +75,26 @@ HITS: list[tuple[str, Deviation, list[str]]] = [
     ("TXT-45", alignment("表题", "left"), ["TXT-45"]),
     ("TXT-46", ea("表题", "仿宋"), ["TXT-46"]),
     ("TXT-47", run_text("表题", "表", "表1-1主要器件清单"), ["TXT-47"]),
+    # ── 批 2（FR-8）：必须有引用 / 三线表 / 公式编号 ──
+    # 反恒真：删掉正文里的公式引用（题注自身不算数），TXT-36 必须报出
+    ("TXT-36", run_replace("结果引用段落", "本文", "式(1-1)", ""), ["TXT-36"]),
+    # 反恒真：删掉正文里的图引用，图题里的「图1-1」不参与搜索
+    ("TXT-42", run_replace("结果引用段落", "本文", "图1-1", ""), ["TXT-42"]),
+    # 反恒真：删掉正文里的表引用，表题里的「表1-1」不参与搜索
+    ("TXT-48", run_replace("结果引用段落", "本文", "表1-1", ""), ["TXT-48"]),
+    # 给三线表加一条竖线：不再是三线表
+    ("TXT-49", table_border("insideV", "single"), ["TXT-49"]),
+    # 序号跳号：把 (1-1) 改成 (1-2)，同时把正文引用一并改成式(1-2)，只由 TXT-52 报出
+    (
+        "TXT-52",
+        combined(
+            [
+                run_replace("公式段落", "(1-1)", "(1-1)", "(1-2)"),
+                run_replace("结果引用段落", "本文", "式(1-1)", "式(1-2)"),
+            ]
+        ),
+        ["TXT-52"],
+    ),
     ("TXT-51", run_text("第三章标题", "第三章", "第三篇  系统设计"), ["TXT-51"]),
 ]
 

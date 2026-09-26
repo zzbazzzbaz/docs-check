@@ -114,6 +114,19 @@ def _body_line(text: str, *, indent: bool = True) -> str:
     )
 
 
+def _reference_line() -> str:
+    """正文普通段落：承载文献引用 `[1]` 与图 / 表 / 公式的引用（批 2「必须有引用」靠它）。
+
+    `[1]` 出现在表格单元格的 `[2]` 之前，保证 `REF-15` 的首次出现顺序是 1、2。
+    """
+    return para(
+        run("本文的主要结果由图1-1、表1-1和式(1-1)给出。", ea="宋体", west="Times New Roman", size=12)
+        + run("[1]", west="Times New Roman", size=12, va="superscript"),
+        line=1.5,
+        first_line_chars=2,
+    )
+
+
 def _cover() -> str:
     lines = [
         # 样张该行末尾有一个空的 42pt run，用于验证 COV-02 忽略空 run
@@ -259,6 +272,7 @@ def _chapter(number: int, title: str, *, with_objects: bool) -> str:
     parts = [head, para(), sub, subsub, sub3, body]
     if with_objects:
         parts += [
+            _reference_line(),
             para("<w:r><w:drawing><wp:inline/></w:drawing></w:r>", align="center"),
             para(run("图1-1 系统总体结构", ea="宋体", size=10.5), align="center"),
             para(run("表1-1 主要器件清单", ea="宋体", size=10.5), align="center"),
@@ -267,10 +281,6 @@ def _chapter(number: int, title: str, *, with_objects: bool) -> str:
                 "<w:r><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></w:r>"
                 + run("(1-1)", ea="宋体", west="Times New Roman", size=10.5),
                 align="center",
-            ),
-            _body_line(
-                "该结论与已有研究一致" + run("[1]", west="Times New Roman", size=12, va="superscript") + "。",
-                indent=True,
             ),
         ]
     return "".join(parts)

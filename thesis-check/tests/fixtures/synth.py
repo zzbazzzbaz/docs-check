@@ -92,6 +92,8 @@ TARGETS: dict[str, Callable[[_El], bool]] = {
     "三级标题": lambda p: _key(p).endswith("现状分析"),
     "三级以下标题": lambda p: _key(p).startswith("（1）"),
     "正文段落": lambda p: _key(p).startswith("这是第"),
+    # 批 2：承载图 / 表 / 公式引用与文献引用 [1] 的正文普通段落
+    "结果引用段落": lambda p: _key(p).startswith("本文的主要结果"),
     # 目录条目：层级看样式名
     "目录条目": _is_toc,
     "目录一级条目": lambda p: _style_val(p) == "TOC1",
@@ -827,3 +829,108 @@ def auto_numbering(target: str, num_id: int = 5) -> Deviation:
 def combined(deviations: Iterable[Deviation]) -> Deviation:
     """把多个偏差合成一个。"""
     return Deviation(tuple(c for deviation in deviations for c in deviation.changes))
+
+
+# ── 批 2：构造引用 / 公式 / 表格边框的偏差 ─────────────────────
+
+
+def _run_element(text: str, *, superscript: bool = False, math: bool = False) -> _El:
+    """一个合规 run（宋体 / TNR / 小四），可选上标或包一个 `m:oMath`。"""
+    run_el = etree.Element(_w("r"))
+    rpr = etree.SubElement(run_el, _w("rPr"))
+    fonts = etree.SubElement(rpr, _w("rFonts"))
+    fonts.set(_w("ascii"), "Times New Roman")
+    fonts.set(_w("hAnsi"), "Times New Roman")
+    fonts.set(_w("eastAsia"), "宋体")
+    etree.SubElement(rpr, _w("sz")).set(_w("val"), "24")
+    if superscript:
+        etree.SubElement(rpr, _w("vertAlign")).set(_w("val"), "superscript")
+    if math:
+        omath = etree.SubElement(run_el, _m("oMath"))
+        mr = etree.SubElement(omath, _m("r"))
+        etree.SubElement(mr, _m("t")).text = "y"
+    else:
+        node = etree.SubElement(run_el, _w("t"))
+        node.set(_XML_SPACE, "preserve")
+        node.text = text
+    return run_el
+
+
+def _compliant_para(runs: list[_El]) -> _El:
+    p = etree.Element(_w("p"))
+    ppr = etree.SubElement(p, _w("pPr"))
+    etree.SubElement(ppr, _w("jc")).set(_w("val"), "both")
+    spacing = etree.SubElement(ppr, _w("spacing"))
+    spacing.set(_w("line"), "360")
+    spacing.set(_w("lineRule"), "auto")
+    etree.SubElement(ppr, _w("ind")).set(_w("firstLineChars"), "200")
+    for run_el in runs:
+        p.append(run_el)
+    return p
+
+
+def _insert_para(target: str, para_el: _El, *, before: bool) -> Change:
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            parent = p.getparent()
+            if parent is not None:
+                parent.insert(parent.index(p) + (0 if before else 1), para_el)
+            break  # 只插在第一处，避免命中同锚点的多个段落
+
+    return _edit(DOCUMENT, edit)
+
+
+def _formula_para(number: str) -> _El:
+    p = etree.Element(_w("p"))
+    ppr = etree.SubElement(p, _w("pPr"))
+    etree.SubElement(ppr, _w("jc")).set(_w("val"), "center")
+    run_no = etree.SubElement(p, _w("r"))
+    rpr = etree.SubElement(run_no, _w("rPr"))
+    fonts = etree.SubElement(rpr, _w("rFonts"))
+    fonts.set(_w("ascii"), "Times New Roman")
+    fonts.set(_w("hAnsi"), "Times New Roman")
+    fonts.set(_w("eastAsia"), "宋体")
+    etree.SubElement(rpr, _w("sz")).set(_w("val"), "21")
+    node = etree.SubElement(run_no, _w("t"))
+    node.set(_XML_SPACE, "preserve")
+    node.text = f"({number})"
+    p.insert(0, _run_element("", math=True))
+    return p
+
+
+def _table_border(edge: str, val: str) -> Change:
+    def edit(root: _El) -> None:
+        tbl = root.find(f".//{_w('tbl')}")
+        if tbl is None:
+            return
+        pr = tbl.find(_w("tblPr"))
+        if pr is None:
+            pr = etree.Element(_w("tblPr"))
+            tbl.insert(0, pr)
+        borders = pr.find(_w("tblBorders"))
+        if borders is None:
+            borders = etree.SubElement(pr, _w("tblBorders"))
+        node = borders.find(_w(edge))
+        if node is None:
+            node = etree.SubElement(borders, _w(edge))
+        node.set(_w("val"), val)
+
+    return _edit(DOCUMENT, edit)
+
+
+def insert_citation_before(target: str, number: int) -> Deviation:
+    """在目标段落前插入一个合规正文行，含一条上标引用 `[number]`。"""
+    para_el = _compliant_para(
+        [_run_element("此处引用先前文献"), _run_element(f"[{number}]", superscript=True)]
+    )
+    return Deviation((_insert_para(target, para_el, before=True),))
+
+
+def insert_formula_after(target: str, number: str) -> Deviation:
+    """在目标公式段后插入一个合规公式段，编号为 `(number)`。"""
+    return Deviation((_insert_para(target, _formula_para(number), before=False),))
+
+
+def table_border(edge: str, val: str) -> Deviation:
+    """改第一个表格 `tblBorders` 的某条边（`insideV` / `insideH` / `left` / `right`）。"""
+    return Deviation((_table_border(edge, val),))

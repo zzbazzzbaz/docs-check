@@ -393,25 +393,60 @@ Outcome:
 
 ### Phase 10: Batch 2 Rules
 
-- [ ] Implement three-line table checking (`TXT-49`)
-  - [ ] Use the positional border mapping already implemented in Phase 3
-  - [ ] Mark any table whose lines come only from table-style conditional formatting as judged by
+- [x] Implement three-line table checking (`TXT-49`)
+  - [x] Use the positional border mapping already implemented in Phase 3
+  - [x] Mark any table whose lines come only from table-style conditional formatting as judged by
         style, not as a firm conclusion
-- [ ] Implement formula number correctness (`TXT-52`)
-  - [ ] Chapter number must equal the containing first-level heading
-  - [ ] Sequence numbers within a chapter must be exactly one to N
-- [ ] Implement mandatory cross-references (`TXT-36`, `TXT-42`, `TXT-48`)
-  - [ ] Search only ordinary body paragraphs; exclude captions, formula paragraphs, table cells and
+- [x] Implement formula number correctness (`TXT-52`)
+  - [x] Chapter number must equal the containing first-level heading
+  - [x] Sequence numbers within a chapter must be exactly one to N
+- [x] Implement mandatory cross-references (`TXT-36`, `TXT-42`, `TXT-48`)
+  - [x] Search only ordinary body paragraphs; exclude captions, formula paragraphs, table cells and
         the table of contents
-  - [ ] Prove by construction that removing a reference causes a report, so the rule is not a tautology
-- [ ] Implement citation coverage and ordering (`REF-14`, `REF-15`)
-  - [ ] Report items that are never cited; do not report citations with no matching item
-  - [ ] Emit an explicit undetermined result when citations cannot be collected
-  - [ ] Apply the agreed correction to the citation identifier anchor so the check is not a
+  - [x] Prove by construction that removing a reference causes a report, so the rule is not a tautology
+- [x] Implement citation coverage and ordering (`REF-14`, `REF-15`)
+  - [x] Report items that are never cited; do not report citations with no matching item
+  - [x] Emit an explicit undetermined result when citations cannot be collected
+  - [x] Apply the agreed correction to the citation identifier anchor so the check is not a
         tautology
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- **7 rules registered; the suite is now 204 rules** (`issues_for(BASE) == []`, base stays fully
+  compliant). `TXT-36` / `TXT-42` / `TXT-48` and `REF-14` / `REF-15` live in the scope modules
+  (`rules/text.py`, `rules/references.py`); the shared index access is `rules/support.context_index`.
+- **TXT-49** judges the positional per-cell borders already parsed in Phase 3. `parse/model.Table`
+  gained the **fact** `style_conditional_borders` (the style chain writes borders under
+  `w:tblStylePr`), computed in `parse/effective.StyleDef`. When a table is non-compliant but that
+  fact is true the verdict is `None` (undetermined), never a firm "not compliant". The pure function
+  `three_line_verdict` is unit-tested (vertical line, missing header line, conditional-format
+  downgrade, single-row table).
+- **TXT-52** consumes `index.chapters` + `index.floats`; the chapter number comes from the containing
+  `第X章` heading and each chapter's sequence numbers must be exactly `1…N`. Counterexamples cover
+  chapter mismatch, a sequence jump and a duplicate.
+- **The citation anchor was corrected** per FR-8.4: `index._citations` now collects runs by text
+  (`matchers.is_citation`) instead of superscript, so `REF-14` / `REF-15` are not tautologies;
+  `TXT-30` still judges superscript. `index.citations is None` yields an explicit undetermined result.
+  Constructed cases prove it: deleting the `[2]` body citation reports `REF-14` only; inserting an
+  early `[2]` makes first-appearance order `2, 1` and reports the first inversion by `REF-15`.
+- **Anti-tautology references are proven by construction**: deleting `式(1-1)` / `图1-1` / `表1-1`
+  from the ordinary body paragraph reports `TXT-36` / `TXT-42` / `TXT-48` exactly (the caption text is
+  excluded from the search, otherwise `图1-1` would always be found in its own caption).
+- **Base document additions**: the chapter-1 body now carries a separate reference paragraph with the
+  literature citation `[1]`, the formula reference `式(1-1)` and the figure / table references
+  `图1-1` / `表1-1`. `_reference_line` is placed before the table so the first-appearance order is
+  `1, 2` and `REF-15` passes.
+- **Recorded couplings**: renumbering a reference item (`REF-11` case) or inserting an uncited item
+  (`GLB-24` case) now also trips `REF-14`, because the added entry is never cited; both cases list
+  `REF-14` alongside the original rule.
+- **Two documented index-level changes**: `index.index_from(paragraphs, blocks)` exposes the
+  collection entry point the rules layer can call (it has no `Document`), and `CheckContext` now
+  carries `doc.tables` so `TXT-49` can see top-level tables.
+- `./scripts/check.sh` green: 635 tests pass, `mypy --strict`, ruff and the two layering contracts
+  all pass. The rule-identifier cross-check is a hard assertion down to the six out-of-scope rules.
 
 ### Phase 11: Reporting
 

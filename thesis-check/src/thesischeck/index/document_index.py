@@ -248,14 +248,17 @@ def _floats(paragraphs: Sequence[Para]) -> Floats:
 
 
 def _citations(blocks: Sequence[Block], body: ModuleSpan | None) -> tuple[Citation, ...] | None:
+    """正文区的引用标注：**按文本 `[数字]` 认，不看是否上标**（`FR-8.4` 的修正）。
+
+    用上标当锚点再判上标是恒真式（`TXT-30` 判的就是上标），所以识别锚点改为文本形状
+    （`matchers.is_citation` 的超集），`TXT-30` 再从集合里挑没上标的报。
+    """
     if body is None:
         return None  # 定位不到正文区 = 无法判定，宁可显式给出，也不当作「没有引用」
     seen: dict[int, int] = {}
     out: list[Citation] = []
     for i in range(body.start, body.end + 1):
         for run in blocks[i].para.runs:
-            if run.va != "superscript" or not run.text.strip():
-                continue
             for number in citation_numbers(run.text):
                 if number not in seen:
                     seen[number] = len(seen) + 1
@@ -274,15 +277,24 @@ def _toc_entries(blocks: Sequence[Block], toc: ModuleSpan | None) -> tuple[TocEn
     return tuple(out)
 
 
-def build_index(doc: Document, blocks: Sequence[Block]) -> DocumentIndex:
-    """收集整篇事实。`blocks` 是带 `(scope, role)` 的块序列，与 `doc.paragraphs` 一一对应。"""
+def index_from(paragraphs: Sequence[Para], blocks: Sequence[Block]) -> DocumentIndex:
+    """从**正文故事区段落**与块序列收集整篇事实。
+
+    规则层手里只有 `CheckContext`（块序列 + 全部段落），没有 `Document`，所以事实收集的
+    入口按"段落 + 块"暴露；`build_index` 只是它的 `Document` 版包装。
+    """
     modules = module_spans(blocks)
     body = next((span for span in modules if span.name == "正文"), None)
     toc = next((span for span in modules if span.name == "目录"), None)
     return DocumentIndex(
         modules=modules,
         chapters=_chapters(blocks, body),
-        floats=_floats(doc.paragraphs),
+        floats=_floats(paragraphs),
         citations=_citations(blocks, body),
         toc_entries=_toc_entries(blocks, toc),
     )
+
+
+def build_index(doc: Document, blocks: Sequence[Block]) -> DocumentIndex:
+    """收集整篇事实（`doc.paragraphs` 即正文故事区的全部段落）。"""
+    return index_from(doc.paragraphs, blocks)

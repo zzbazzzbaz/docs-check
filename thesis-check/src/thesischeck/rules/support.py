@@ -2,6 +2,7 @@
 
 只组合 `semantics` 的选择器与匹配器，**不新增对象判据**（`NFR-4.3`）。作用域规则
 （封面 / 摘要）都从这里取对象定位与文本切分；判定值本身仍是各规则里的数据。
+跨作用域规则（批 2）从 `context_index` 取整篇只读索引，本模块只做入口转接。
 """
 
 from __future__ import annotations
@@ -9,8 +10,9 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 
-from ..parse.model import LineRule, Para, Run
-from ..semantics.blocks import Block, Role
+from ..index import DocumentIndex, index_from
+from ..parse.model import LineRule, Para, Run, Story
+from ..semantics.blocks import Block, CheckContext, Role
 from ..semantics.matchers import has_ascii_alnum, has_cjk
 
 BlockSel = Callable[[Sequence[Block]], tuple[Block, ...]]
@@ -314,3 +316,16 @@ def neighbour_flag(sel: BlockSel, *, before: bool, pred: Callable[[Block], bool]
 
 def flag(pair: tuple[Block, bool]) -> bool:
     return pair[1]
+
+
+# ── 整篇索引（跨作用域规则共用）────────────────────────────────
+
+
+def context_index(ctx: CheckContext) -> DocumentIndex:
+    """从只读上下文收集整篇索引。
+
+    索引层的入口按"段落 + 块"暴露（规则手里没有 `Document`）；只喂**正文故事区**段落，
+    与 `build_index(doc, ...)` 口径一致（文本框段落不在索引范围内）。
+    """
+    main = tuple(para for para in ctx.paragraphs if para.story is Story.MAIN)
+    return index_from(main, ctx)

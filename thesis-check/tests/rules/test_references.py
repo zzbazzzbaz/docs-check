@@ -10,6 +10,7 @@ from tests.fixtures.synth import (
     delete,
     ea,
     insert_blank_after,
+    insert_citation_before,
     insert_line_after,
     line_spacing,
     run_replace,
@@ -31,8 +32,9 @@ HITS: list[tuple[str, Deviation, list[str]]] = [
     ("REF-09", line_spacing("文献条目", 2.0), ["REF-09"]),
     # 编号后多 1 个空格：编号仍可解析，连续性不受影响（REF-10 与 REF-11 不重复报）
     ("REF-10", run_replace("文献条目", "[1]", "[1] ", "[1]  "), ["REF-10"]),
-    # 把 [2] 改成 [3]：跳号，由 REF-11 报
-    ("REF-11", run_replace("文献条目", "[2]", "[2]", "[3]"), ["REF-11"]),
+    # 把 [2] 改成 [3]：跳号，由 REF-11 报；条目 [3] 从此在正文里没有引用，
+    # 由 REF-14 一并报出（跨作用域耦合，按字面实现并记录）
+    ("REF-11", run_replace("文献条目", "[2]", "[2]", "[3]"), ["REF-11", "REF-14"]),
     ("REF-12", run_replace("文献条目", "[1]", "[M]", "[C]"), ["REF-12"]),
     (
         "REF-13",
@@ -42,6 +44,10 @@ HITS: list[tuple[str, Deviation, list[str]]] = [
     # 区内插入一条「有类型标识但没有编号」的条目：REF-21 报，REF-10 让开
     ("REF-21", insert_line_after("文献条目2", "无编号.某文献[M].北京：某社，2000：1."), ["REF-21"]),
     ("REF-22", delete("文献条目"), ["REF-22"]),
+    # REF-14：删掉正文里对 [2] 的引用，条目 [2] 未被引用 → 报出（悬空引用不报）
+    ("REF-14", run_text("引用标注", "[2]", ""), ["REF-14"]),
+    # REF-15：在正文前部插入 [2] 引用，首次出现顺序变成 2、1 → 报首个倒置位置
+    ("REF-15", insert_citation_before("正文段落", 2), ["REF-15"]),
 ]
 
 

@@ -23,6 +23,7 @@ from .document_index import (
     TocEntry,
     build_index,
     detected_modules,
+    index_from,
     matches_module,
     module_spans,
 )
@@ -41,6 +42,7 @@ __all__ = [
     "build_index",
     "check_index",
     "detected_modules",
+    "index_from",
     "matches_module",
     "module_spans",
 ]
