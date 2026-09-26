@@ -12,9 +12,18 @@
 有自动编号的段落要让开下游编号类规则——用选择器过滤实现，不做"抑制机制"。
 """
 
+from __future__ import annotations
+
+from typing import Any
+
+from .abstract_c import REGISTRY as _ABSTRACT_C
+from .abstract_e import REGISTRY as _ABSTRACT_E
 from .base import Comparison, Issue, Rule, ToleranceKey, Tolerances, Verdict, matches
-from .batch1 import REGISTRY
+from .batch1 import REGISTRY as _BATCH1
+from .cover import REGISTRY as _COVER
 from .engine import run_rules
+
+REGISTRY: tuple[Rule[Any, Any], ...] = (*_BATCH1, *_COVER, *_ABSTRACT_C, *_ABSTRACT_E)
 
 __all__ = [
     "REGISTRY",

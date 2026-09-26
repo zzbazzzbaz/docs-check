@@ -102,8 +102,8 @@ def _sect_break(sect_pr: str) -> str:
     return f"<w:p><w:pPr><w:sectPr>{sect_pr}</w:sectPr></w:pPr></w:p>"
 
 
-def _module_title_line(text: str) -> str:
-    return para(run(text, ea="黑体", size=16), align="center")
+def _module_title_line(text: str, *, bold: bool = False) -> str:
+    return para(run(text, ea="黑体", size=16, bold=bold), align="center")
 
 
 def _body_line(text: str, *, indent: bool = True) -> str:
@@ -116,7 +116,12 @@ def _body_line(text: str, *, indent: bool = True) -> str:
 
 def _cover() -> str:
     lines = [
-        para(run("本科生毕业设计（论文）", ea="方正小标宋简体", size=36), align="center"),
+        # 样张该行末尾有一个空的 42pt run，用于验证 COV-02 忽略空 run
+        para(
+            run("本科生毕业设计（论文）", ea="方正小标宋简体", size=36)
+            + run("", ea="方正小标宋简体", size=42),
+            align="center",
+        ),
         para(
             run("题    目：", ea="仿宋", size=16, bold=True)
             + run("基于嵌入式系统的智能监测装置", ea="黑体", size=18),
@@ -127,7 +132,7 @@ def _cover() -> str:
         para(run("院    系：信息科学与工程学院", ea="仿宋", size=16, bold=True), align="center"),
         para(run("专业年级：电子信息工程2022级", ea="仿宋", size=16, bold=True), align="center"),
         para(run("指导教师：李四", ea="仿宋", size=16, bold=True), align="center"),
-        para(run("2026 年 6 月", ea="仿宋", size=16, bold=True), align="center"),
+        para(run("2026 年 6 月 1 日", ea="仿宋", size=16, bold=True), align="center"),
     ]
     return "".join(lines)
 
@@ -137,12 +142,12 @@ def _chinese_abstract() -> str:
         [
             _module_title_line("摘    要"),
             para(),  # 标题后 1 个空段
-            _body_line("本设计针对嵌入式场景下的实时监测需求，给出了一套软硬件协同方案。"),
+            _body_line("本设计针对ARM嵌入式场景下的实时监测需求，给出了一套软硬件协同方案。"),
             _body_line("测试表明该方案满足精度与实时性要求，具有一定应用价值。"),
             para(),  # 正文后 1 个空段
             para(
                 run("关键词：", ea="宋体", size=12, bold=True)
-                + run("嵌入式系统；智能监测；实时性", ea="宋体", west="Times New Roman", size=12),
+                + run("嵌入式系统；ARM；实时性", ea="宋体", west="Times New Roman", size=12),
                 line=1.5,
                 first_line_chars=2,
                 align="both",
@@ -154,7 +159,7 @@ def _chinese_abstract() -> str:
 def _english_abstract() -> str:
     return "".join(
         [
-            _module_title_line("ABSTRACT"),
+            _module_title_line("ABSTRACT", bold=True),
             para(),
             _body_line(
                 "This design addresses real-time monitoring in embedded scenarios with a "
@@ -162,8 +167,8 @@ def _english_abstract() -> str:
             ),
             para(),
             para(
-                run("Keywords: ", west="Times New Roman", size=12, bold=True)
-                + run("embedded system; monitoring; real time", west="Times New Roman", size=12),
+                run("Keywords：", west="Times New Roman", size=12, bold=True)
+                + run("embedded system；monitoring；real time", west="Times New Roman", size=12),
                 line=1.5,
                 first_line_chars=2,
                 align="both",

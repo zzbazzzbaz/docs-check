@@ -50,10 +50,16 @@ TARGETS: dict[str, Callable[[_El], bool]] = {
     "附录标题": _is_module_title("附录"),
     "中文关键词行": lambda p: _key(p).startswith("关键词"),
     "英文关键词行": lambda p: _key(p).lower().startswith("keywords"),
+    "本科生毕业设计行": lambda p: _key(p) == "本科生毕业设计（论文）",
     "题目行": lambda p: _key(p).startswith("题目"),
     "信息行": lambda p: any(
         _key(p).startswith(k) for k in ("学生姓名", "学号", "院系", "专业年级", "指导教师")
     ),
+    "学生姓名行": lambda p: _key(p).startswith("学生姓名"),
+    "日期行": lambda p: all(mark in _key(p) for mark in "年月日"),
+    "中文摘要正文": lambda p: _key(p).startswith(("本设计", "测试表明")),
+    "中文摘要正文末段": lambda p: _key(p).startswith("测试表明"),
+    "英文摘要正文": lambda p: _key(p).startswith("Thisdesign"),
     "图题": lambda p: _key(p).startswith("图"),
     "表题": lambda p: _key(p).startswith("表"),
     "文献条目": lambda p: _key(p).startswith("["),
@@ -236,6 +242,87 @@ def _rename_style(old: str, new: str) -> Change:
     return _edit(STYLES, edit)
 
 
+def _run_text_value(run: _El) -> str:
+    return "".join(t.text or "" for t in run.iter(_w("t")))
+
+
+def _target_runs(root: _El, target: str, prefix: str) -> Iterator[_El]:
+    """目标段落里**文本以 `prefix` 开头**的 run（按行内片段改动用）。"""
+    for p in _targets(root, target):
+        for run in _runs(p):
+            if _run_text_value(run).startswith(prefix):
+                yield run
+
+
+def _run_ea(target: str, prefix: str, font: str) -> Change:
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            _rfonts(run).set(_w("eastAsia"), font)
+
+    return _edit(DOCUMENT, edit)
+
+
+def _run_west(target: str, prefix: str, font: str) -> Change:
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            fonts = _rfonts(run)
+            fonts.set(_w("ascii"), font)
+            fonts.set(_w("hAnsi"), font)
+
+    return _edit(DOCUMENT, edit)
+
+
+def _run_size(target: str, prefix: str, pt: float) -> Change:
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            rpr = _rpr(run)
+            sz = rpr.find(_w("sz"))
+            if sz is None:
+                sz = etree.SubElement(rpr, _w("sz"))
+            sz.set(_w("val"), str(int(pt * 2)))
+
+    return _edit(DOCUMENT, edit)
+
+
+def _run_bold(target: str, prefix: str, on: bool = True) -> Change:
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            rpr = _rpr(run)
+            existing = rpr.find(_w("b"))
+            if existing is not None:
+                rpr.remove(existing)
+            if on:
+                rpr.insert(0, etree.Element(_w("b")))
+
+    return _edit(DOCUMENT, edit)
+
+
+def _run_text(target: str, prefix: str, text: str) -> Change:
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            texts = list(run.iter(_w("t")))
+            if not texts:
+                continue
+            texts[0].set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+            texts[0].text = text
+            for extra in texts[1:]:
+                extra.text = ""
+
+    return _edit(DOCUMENT, edit)
+
+
+def _first_line(target: str, chars: float) -> Change:
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            ppr = _ppr(p)
+            ind = ppr.find(_w("ind"))
+            if ind is None:
+                ind = etree.SubElement(ppr, _w("ind"))
+            ind.set(_w("firstLineChars"), str(int(chars * 100)))
+
+    return _edit(DOCUMENT, edit)
+
+
 @dataclass(frozen=True, slots=True)
 class Deviation:
     """一个偏差声明：底稿 + 串好的改动。`CASE` 用它跑"只报这一条"。"""
@@ -280,6 +367,35 @@ def delete(target: str) -> Deviation:
 
 def rename_style(old: str, new: str) -> Deviation:
     return Deviation((_rename_style(old, new),))
+
+
+def run_ea(target: str, prefix: str, font: str) -> Deviation:
+    """只改目标段落里以 `prefix` 开头那个 run 的中文字体。"""
+    return Deviation((_run_ea(target, prefix, font),))
+
+
+def run_west(target: str, prefix: str, font: str) -> Deviation:
+    """只改目标段落里以 `prefix` 开头那个 run 的西文字体。"""
+    return Deviation((_run_west(target, prefix, font),))
+
+
+def run_size(target: str, prefix: str, pt: float) -> Deviation:
+    """只改目标段落里以 `prefix` 开头那个 run 的字号。"""
+    return Deviation((_run_size(target, prefix, pt),))
+
+
+def run_bold(target: str, prefix: str, on: bool = True) -> Deviation:
+    """只改目标段落里以 `prefix` 开头那个 run 的加粗。"""
+    return Deviation((_run_bold(target, prefix, on),))
+
+
+def run_text(target: str, prefix: str, text: str) -> Deviation:
+    """只改目标段落里以 `prefix` 开头那个 run 的文本。"""
+    return Deviation((_run_text(target, prefix, text),))
+
+
+def first_line(target: str, chars: float) -> Deviation:
+    return Deviation((_first_line(target, chars),))
 
 
 def combined(deviations: Iterable[Deviation]) -> Deviation:
