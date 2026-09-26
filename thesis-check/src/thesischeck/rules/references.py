@@ -2,7 +2,7 @@
 
 标题按模块标题取；条目按**宽松锚点**取（区内非空段落，不要求以编号开头），编号格式 / 连续性 /
 类型标识 / 重复 / 段落完整性写代码，其余是一行数据。`REF-10` 与 `REF-21` 共用
-`matchers.looks_like_number`，互斥天然成立（README 通用判定口径第 10 条 + 需求 §3.4）。
+`matchers.looks_like_number`，互斥天然成立（`docs/规则/README.md` 通用判定口径第 10 条 + 需求 §3.4）。
 
 批 2 的 `REF-14` / `REF-15` 消费整篇索引的正文引用集合（文本 `[数字]`，不是上标），
 抽不到引用时显式「无法判定」。
@@ -19,6 +19,7 @@ from ..semantics import select
 from ..semantics.blocks import Block, CheckContext, Scope
 from ..semantics.matchers import looks_like_number
 from .base import Comparison, Rule, ToleranceKey, attrgetter
+from .catalog import text
 from .support import (
     blanks_after,
     cjk_of,
@@ -150,15 +151,15 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         of=found(select.ref_items),
         prop=present,
         expect=True,
-        src="规范原文：参考文献区必须至少有 1 条文献条目",
+        src=text("REF-22"),
     ),
-    Rule(id="REF-01", of=refs_title, prop=para_text, expect="参考文献", src="规范原文：标题「参考文献」"),
+    Rule(id="REF-01", of=refs_title, prop=para_text, expect="参考文献", src=text("REF-01")),
     Rule(
         id="REF-02",
         of=cjk_of(refs_title),
         prop=attrgetter("ea"),
         expect="黑体",
-        src="规范原文：一级标题黑体",
+        src=text("REF-02"),
     ),
     Rule(
         id="REF-03",
@@ -167,29 +168,29 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：一级标题三号（16pt）",
+        src=text("REF-03"),
     ),
-    Rule(id="REF-04", of=refs_title, prop=para_align, expect="center", src="规范原文：一级标题居中"),
+    Rule(id="REF-04", of=refs_title, prop=para_align, expect="center", src=text("REF-04")),
     Rule(
         id="REF-05",
         of=blanks_after(refs_title),
         prop=count,
         expect=1,
-        src="规范原文：标题后空 1 行",
+        src=text("REF-05"),
     ),
     Rule(
         id="REF-06",
         of=cjk_of(select.ref_items),
         prop=attrgetter("ea"),
         expect="宋体",
-        src="规范样张：文献条目宋体",
+        src=text("REF-06"),
     ),
     Rule(
         id="REF-07",
         of=west_of(select.ref_items),
         prop=attrgetter("west"),
         expect="Times New Roman",
-        src="规范样张：文献条目字母数字 Times New Roman",
+        src=text("REF-07"),
     ),
     Rule(
         id="REF-08",
@@ -198,7 +199,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=12.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范样张：文献条目小四（12pt）",
+        src=text("REF-08"),
     ),
     Rule(
         id="REF-09",
@@ -207,55 +208,55 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=1.5,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.LINE,
-        src="规范样张：文献条目 1.5 倍行距",
+        src=text("REF-09"),
     ),
     Rule(
         id="REF-10",
         of=numbered_items,
         prop=ref_number_verdict,
         expect="合规",
-        src="规范原文：编号「[n]」后恰好 1 个半角空格",
+        src=text("REF-10"),
     ),
     Rule(
         id="REF-11",
         of=ref_continuity,
         prop=ref_continuity_verdict,
         expect="合规",
-        src="规范原文：编号从 1 起连续，不跳号、不重复",
+        src=text("REF-11"),
     ),
     Rule(
         id="REF-12",
         of=select.ref_items,
         prop=ref_type_verdict,
         expect="合规",
-        src="规范原文：文献类型标识只能是 [M] [J] [N] [D] [EB/OL]",
+        src=text("REF-12"),
     ),
     Rule(
         id="REF-13",
         of=ref_duplication,
         prop=ref_duplicate_verdict,
         expect="合规",
-        src="规范原文：同一条文献只出现一次",
+        src=text("REF-13"),
     ),
     Rule(
         id="REF-14",
         of=citation_payload,
         prop=citation_coverage_verdict,
         expect="合规",
-        src="规范原文：所有参考文献必须都在正文中有引用",
+        src=text("REF-14"),
     ),
     Rule(
         id="REF-15",
         of=citation_payload,
         prop=citation_order_verdict,
         expect="合规",
-        src="规范原文：按在正文中出现的先后次序排列",
+        src=text("REF-15"),
     ),
     Rule(
         id="REF-21",
         of=select.ref_items_no_auto,
         prop=ref_integrity_verdict,
         expect="合规",
-        src="规范原文：一条文献占且仅占 1 个段落，不手动换行",
+        src=text("REF-21"),
     ),
 )

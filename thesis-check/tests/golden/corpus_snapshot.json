@@ -116,7 +116,7 @@
       "undetermined": 0
     },
     "ABS-E-01": {
-      "fail": 29,
+      "fail": 1,
       "not_run": 0,
       "undetermined": 0
     },
@@ -216,7 +216,7 @@
       "undetermined": 0
     },
     "ACK-01": {
-      "fail": 5,
+      "fail": 2,
       "not_run": 0,
       "undetermined": 0
     },
@@ -485,11 +485,6 @@
       "not_run": 0,
       "undetermined": 5
     },
-    "REF-01": {
-      "fail": 3,
-      "not_run": 0,
-      "undetermined": 0
-    },
     "REF-02": {
       "fail": 1,
       "not_run": 0,
@@ -501,7 +496,7 @@
       "undetermined": 0
     },
     "REF-05": {
-      "fail": 31,
+      "fail": 2,
       "not_run": 0,
       "undetermined": 0
     },
@@ -536,7 +531,7 @@
       "undetermined": 0
     },
     "REF-12": {
-      "fail": 184,
+      "fail": 155,
       "not_run": 0,
       "undetermined": 0
     },
@@ -556,7 +551,7 @@
       "undetermined": 1
     },
     "REF-21": {
-      "fail": 33,
+      "fail": 4,
       "not_run": 0,
       "undetermined": 0
     },
@@ -566,7 +561,7 @@
       "undetermined": 0
     },
     "TOC-01": {
-      "fail": 30,
+      "fail": 1,
       "not_run": 0,
       "undetermined": 0
     },
@@ -845,7 +840,7 @@
   "parser_version": "0.1.0",
   "per_document": [
     {
-      "fail": 305,
+      "fail": 302,
       "index": 1,
       "not_run": 0,
       "sha256": "146e7756e3116620",
@@ -861,7 +856,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 103,
+      "fail": 99,
       "index": 3,
       "not_run": 0,
       "sha256": "5cd024d9d997ba7e",
@@ -869,7 +864,7 @@
       "unrecognised": 523
     },
     {
-      "fail": 298,
+      "fail": 296,
       "index": 4,
       "not_run": 0,
       "sha256": "300adc5c2fee1afa",
@@ -877,7 +872,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 220,
+      "fail": 213,
       "index": 5,
       "not_run": 0,
       "sha256": "a7213eb02dd4b8a9",
@@ -885,7 +880,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 28,
+      "fail": 23,
       "index": 6,
       "not_run": 0,
       "sha256": "a047a5baaf5fd531",
@@ -893,7 +888,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 28,
+      "fail": 23,
       "index": 7,
       "not_run": 0,
       "sha256": "3328fa2afd67c50c",
@@ -901,7 +896,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 31,
+      "fail": 26,
       "index": 8,
       "not_run": 0,
       "sha256": "6b588bc5035dd06e",
@@ -909,7 +904,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 30,
+      "fail": 25,
       "index": 9,
       "not_run": 0,
       "sha256": "b6e15e5544aed7aa",
@@ -917,7 +912,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 38,
+      "fail": 34,
       "index": 10,
       "not_run": 0,
       "sha256": "50c5742582ba0f2b",
@@ -925,7 +920,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 28,
+      "fail": 23,
       "index": 11,
       "not_run": 0,
       "sha256": "1320c0cfed34d786",
@@ -933,7 +928,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 27,
+      "fail": 22,
       "index": 12,
       "not_run": 0,
       "sha256": "b5e00a9ba3168da4",
@@ -941,7 +936,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 28,
+      "fail": 23,
       "index": 13,
       "not_run": 0,
       "sha256": "c06fa98e32a5fda9",
@@ -949,7 +944,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 29,
+      "fail": 24,
       "index": 14,
       "not_run": 0,
       "sha256": "9a63cddbb6d37d4f",
@@ -957,7 +952,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 25,
+      "fail": 20,
       "index": 15,
       "not_run": 0,
       "sha256": "4440d9a1d88be39a",
@@ -965,7 +960,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 27,
+      "fail": 22,
       "index": 16,
       "not_run": 0,
       "sha256": "ed1d71bf930f0f09",
@@ -973,7 +968,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 24,
+      "fail": 19,
       "index": 17,
       "not_run": 0,
       "sha256": "b44b32f2524215b1",
@@ -981,7 +976,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 24,
+      "fail": 19,
       "index": 18,
       "not_run": 0,
       "sha256": "56379cbe3913cf2a",
@@ -989,7 +984,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 33,
+      "fail": 28,
       "index": 19,
       "not_run": 0,
       "sha256": "0f8f018170d604d3",
@@ -997,7 +992,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 24,
+      "fail": 19,
       "index": 20,
       "not_run": 0,
       "sha256": "c15a22338dee4940",
@@ -1005,7 +1000,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 41,
+      "fail": 36,
       "index": 21,
       "not_run": 0,
       "sha256": "2dd4fd41f4ae97df",
@@ -1013,7 +1008,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 28,
+      "fail": 23,
       "index": 22,
       "not_run": 0,
       "sha256": "5d788b08beb92800",
@@ -1021,7 +1016,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 46,
+      "fail": 41,
       "index": 23,
       "not_run": 0,
       "sha256": "50ca4d35b22d751a",
@@ -1029,7 +1024,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 29,
+      "fail": 24,
       "index": 24,
       "not_run": 0,
       "sha256": "3a843307d2f0b87e",
@@ -1037,7 +1032,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 100,
+      "fail": 95,
       "index": 25,
       "not_run": 0,
       "sha256": "33365f9a09d9a798",
@@ -1045,7 +1040,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 24,
+      "fail": 19,
       "index": 26,
       "not_run": 0,
       "sha256": "9901b10ed59c5a6c",
@@ -1053,7 +1048,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 15,
+      "fail": 13,
       "index": 27,
       "not_run": 0,
       "sha256": "acf10a5f6fbb913e",
@@ -1061,7 +1056,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 36,
+      "fail": 31,
       "index": 28,
       "not_run": 0,
       "sha256": "6ada04c9385ce788",
@@ -1069,7 +1064,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 32,
+      "fail": 29,
       "index": 29,
       "not_run": 0,
       "sha256": "94bcc177fbda108e",
@@ -1077,7 +1072,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 32,
+      "fail": 29,
       "index": 30,
       "not_run": 0,
       "sha256": "dba3a26e53b22c56",
@@ -1085,7 +1080,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 36,
+      "fail": 33,
       "index": 31,
       "not_run": 0,
       "sha256": "6d4f846fc6ef51fd",
@@ -1093,7 +1088,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 32,
+      "fail": 29,
       "index": 32,
       "not_run": 0,
       "sha256": "4a740a290d3f3eb3",
@@ -1101,7 +1096,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 32,
+      "fail": 29,
       "index": 33,
       "not_run": 0,
       "sha256": "6885207506bf7cfd",
@@ -1109,7 +1104,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 32,
+      "fail": 29,
       "index": 34,
       "not_run": 0,
       "sha256": "55f194cec3b6bc7b",
@@ -1133,7 +1128,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 60,
+      "fail": 58,
       "index": 37,
       "not_run": 0,
       "sha256": "d012a7c00e996550",
@@ -1141,7 +1136,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 85,
+      "fail": 82,
       "index": 38,
       "not_run": 0,
       "sha256": "aca61fdcc47e0af1",
@@ -1168,9 +1163,9 @@
   "ruleset_version": "batch-1+2/204",
   "schema": 1,
   "totals": {
-    "fail": 6332,
+    "fail": 6182,
     "not_run": 0,
-    "problems": 7322,
+    "problems": 7172,
     "undetermined": 467,
     "unrecognised": 523
   }

@@ -166,6 +166,26 @@ def test_html_is_student_facing_and_searchable() -> None:
         assert xml_term not in page
 
 
+def test_verdict_expectation_is_not_echoed_as_compliance() -> None:
+    """判定型规则的期望值是哨兵「合规」，不再渲染同义反复的「应为「合规」」。"""
+    assert report_issues.detail_text("未以编号开头", "合规", None) == "未以编号开头。"
+    assert report_issues.undetermined_text("任意", "合规", None) == "无法判定是否符合要求，请人工确认。"
+
+
+def test_basis_text_folds_the_source_prefix() -> None:
+    """依据串自带来源前缀时并进「依据 X：」，不叠成「依据：规范原文：」。"""
+    assert report_issues.basis_text("规范原文：一级标题黑体") == "依据规范原文：一级标题黑体"
+    assert report_issues.basis_text("用户确认：题目标签仿宋") == "依据用户确认：题目标签仿宋"
+    assert report_issues.basis_text("") == ""
+
+
+def test_html_avoids_the_mechanical_template() -> None:
+    page = _report_for(ea("中文摘要标题", "仿宋").apply(BASE)).to_html()
+    assert "中文字体应为「黑体」，现在是「仿宋」" in page
+    assert "现在「" not in page  # 旧的「现在「X」，应为「Y」」模板
+    assert "依据：规范原文：" not in page  # 重复的来源前缀
+
+
 # ── 已知待办：行距哨兵与 GLB-28 汇总计数 ────────────────────────
 
 
@@ -229,10 +249,10 @@ def test_unknown_elements_are_counted_and_split_benign() -> None:
         auto_numbering=0,
         unknown_elements=("bookmarkStart", "customXml", "gridCol"),
     )
-    assert report.unknown_benign() == ("bookmarkStart",)
-    assert report.unknown_notable() == ("customXml", "gridCol")
-    assert report.to_json()["unknown_elements"] == {"total": 3, "benign": 1, "notable": 2}
-    assert "2 种值得关注" in report.to_html()
+    assert report.unknown_benign() == ("bookmarkStart", "gridCol")
+    assert report.unknown_notable() == ("customXml",)
+    assert report.to_json()["unknown_elements"] == {"total": 3, "benign": 2, "notable": 1}
+    assert "1 种值得关注" in report.to_html()
 
 
 # ── 规则集版本（NFR-6）──────────────────────────────────────────

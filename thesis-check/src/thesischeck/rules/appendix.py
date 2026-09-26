@@ -14,6 +14,7 @@ from ..semantics.blocks import Block, Role, Scope
 from ..semantics.matchers import key_text
 from ..semantics.roles import heading_level
 from .base import Comparison, Rule, ToleranceKey, attrgetter
+from .catalog import text
 from .support import (
     blanks_after,
     cjk_of,
@@ -67,21 +68,21 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         of=found(select.appendix_subs),
         prop=present,
         expect=True,
-        src="规范原文：附录区至少要有 1 个附录子标题",
+        src=text("APP-18"),
     ),
     Rule(
         id="APP-01",
         of=app_title,
         prop=para_text,
         expect="附    录",
-        src="规范原文：标题「附    录」，中间 4 个半角空格",
+        src=text("APP-01"),
     ),
     Rule(
         id="APP-02",
         of=cjk_of(app_title),
         prop=attrgetter("ea"),
         expect="黑体",
-        src="规范原文：一级标题黑体",
+        src=text("APP-02"),
     ),
     Rule(
         id="APP-03",
@@ -90,36 +91,36 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：一级标题三号（16pt）",
+        src=text("APP-03"),
     ),
-    Rule(id="APP-04", of=app_title, prop=para_align, expect="center", src="规范样张：一级标题居中"),
+    Rule(id="APP-04", of=app_title, prop=para_align, expect="center", src=text("APP-04")),
     Rule(
         id="APP-05",
         of=blanks_after(app_title),
         prop=count,
         expect=1,
-        src="规范原文：标题后空 1 行",
+        src=text("APP-05"),
     ),
     Rule(
         id="APP-06",
         of=app_numbering,
         prop=app_numbering_verdict,
         expect="合规",
-        src="规范原文：附录用大写字母 A、B、C 连续编号",
+        src=text("APP-06"),
     ),
     Rule(
         id="APP-13",
         of=select.appendix_subs,
         prop=app_outline_level,
         expect=2,
-        src="规范样张：附录子标题为 2 级（heading 2）",
+        src=text("APP-13"),
     ),
     Rule(
         id="APP-14",
         of=cjk_of(select.appendix_subs),
         prop=attrgetter("ea"),
         expect="黑体",
-        src="规范样张：附录子标题黑体",
+        src=text("APP-14"),
     ),
     Rule(
         id="APP-15",
@@ -128,14 +129,14 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=14.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范样张：附录子标题四号（14pt）",
+        src=text("APP-15"),
     ),
     Rule(
         id="APP-16",
         of=west_of(select.appendix_subs),
         prop=attrgetter("west"),
         expect="Times New Roman",
-        src="规范样张：附录子标题字母数字 Times New Roman",
+        src=text("APP-16"),
     ),
     Rule(
         id="APP-17",
@@ -144,21 +145,21 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=1.5,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.LINE,
-        src="规范样张：附录子标题 1.5 倍行距",
+        src=text("APP-17"),
     ),
     Rule(
         id="APP-07",
         of=cjk_of(app_body),
         prop=attrgetter("ea"),
         expect="宋体",
-        src="规范样张：附录正文宋体",
+        src=text("APP-07"),
     ),
     Rule(
         id="APP-08",
         of=west_of(app_body),
         prop=attrgetter("west"),
         expect="Times New Roman",
-        src="规范样张：附录正文字母数字 Times New Roman",
+        src=text("APP-08"),
     ),
     Rule(
         id="APP-09",
@@ -167,7 +168,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=12.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范样张：附录正文小四（12pt）",
+        src=text("APP-09"),
     ),
     Rule(
         id="APP-10",
@@ -176,7 +177,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=1.5,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.LINE,
-        src="规范样张：附录正文 1.5 倍行距",
+        src=text("APP-10"),
     ),
     Rule(
         id="APP-11",
@@ -185,13 +186,13 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=2.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.INDENT_CHARS,
-        src="规范样张：附录正文首行缩进 2 字符",
+        src=text("APP-11"),
     ),
     Rule(
         id="APP-12",
         of=app_body,
         prop=para_align,
         expect="both",
-        src="规范样张：附录正文两端对齐",
+        src=text("APP-12"),
     ),
 )

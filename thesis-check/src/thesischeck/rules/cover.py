@@ -14,6 +14,7 @@ from ..semantics import select
 from ..semantics.blocks import Block, Scope
 from ..semantics.matchers import key_text
 from .base import Comparison, Rule, ToleranceKey, attrgetter
+from .catalog import text
 from .support import (
     cjk_of,
     content_of,
@@ -116,7 +117,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         of=cjk_of(cover_main_line),
         prop=attrgetter("ea"),
         expect="方正小标宋简体",
-        src="规范原文：本科生毕业设计（论文）用方正小标宋简体",
+        src=text("COV-01"),
     ),
     Rule(
         id="COV-02",
@@ -125,28 +126,28 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=36.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：小初（36pt），空 run 不算",
+        src=text("COV-02"),
     ),
     Rule(
         id="COV-03",
         of=cover_main_line,
         prop=para_align,
         expect="center",
-        src="规范原文：居中",
+        src=text("COV-03"),
     ),
     Rule(
         id="COV-04",
         of=cover_title_line,
         prop=cover_label_text,
         expect="题    目：",
-        src="规范样张：题目标签「题    目：」（4 个半角空格 + 全角冒号）",
+        src=text("COV-04"),
     ),
     Rule(
         id="COV-05",
         of=_LABEL_CJK,
         prop=attrgetter("ea"),
         expect="仿宋",
-        src="用户确认：题目标签仿宋",
+        src=text("COV-05"),
     ),
     Rule(
         id="COV-06",
@@ -155,21 +156,21 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="用户确认：题目标签三号（16pt）",
+        src=text("COV-06"),
     ),
     Rule(
         id="COV-07",
         of=_LABEL_VISIBLE,
         prop=attrgetter("bold"),
         expect=True,
-        src="用户确认：题目标签加粗",
+        src=text("COV-07"),
     ),
     Rule(
         id="COV-08",
         of=_CONTENT_CJK,
         prop=attrgetter("ea"),
         expect="黑体",
-        src="规范原文：题目内容黑体",
+        src=text("COV-08"),
     ),
     Rule(
         id="COV-09",
@@ -178,14 +179,14 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=18.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：题目内容小二（18pt）",
+        src=text("COV-09"),
     ),
     Rule(
         id="COV-10",
         of=cjk_of(cover_info_lines),
         prop=attrgetter("ea"),
         expect="仿宋",
-        src="规范原文：信息行仿宋",
+        src=text("COV-10"),
     ),
     Rule(
         id="COV-11",
@@ -194,28 +195,28 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：信息行三号（16pt）",
+        src=text("COV-11"),
     ),
     Rule(
         id="COV-12",
         of=visible_of(cover_info_lines),
         prop=attrgetter("bold"),
         expect=True,
-        src="规范原文：信息行加粗",
+        src=text("COV-12"),
     ),
     Rule(
         id="COV-13",
         of=cover_info_consistency,
         prop=info_consistency,
         expect="一致",
-        src="规范原文：学生姓名、学号、院系、专业年级、指导教师要求一致",
+        src=text("COV-13"),
     ),
     Rule(
         id="COV-14",
         of=cjk_of(cover_date_line),
         prop=attrgetter("ea"),
         expect="仿宋",
-        src="规范原文：日期行仿宋",
+        src=text("COV-14"),
     ),
     Rule(
         id="COV-15",
@@ -224,13 +225,13 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：日期行三号（16pt）",
+        src=text("COV-15"),
     ),
     Rule(
         id="COV-16",
         of=visible_of(cover_date_line),
         prop=attrgetter("bold"),
         expect=True,
-        src="规范原文：日期行加粗",
+        src=text("COV-16"),
     ),
 )

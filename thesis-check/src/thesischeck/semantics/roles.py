@@ -93,7 +93,9 @@ def assign_role(para: Para, scope: Scope) -> Role:
     if scope is Scope.ABS_E and is_keyword_line(key, english=True):
         return Role.KEYWORDS
     if scope is Scope.REFS:
-        return Role.REF_ITEM
+        # 「条目 = 区内的**非空段落**」：只有图片 / 浮动的段落没有文字，不算条目，
+        # 否则会被 REF-12 / REF-13 / REF-21 当空条目误报。
+        return Role.REF_ITEM if key_text(para.text) else Role.EMPTY
     if scope is Scope.TOC:
         # 目录区里既不是标题、又不是 `toc N` 条目的非空段落：认不出
         return Role.UNKNOWN

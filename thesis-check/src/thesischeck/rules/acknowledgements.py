@@ -12,6 +12,7 @@ from typing import Any
 from ..semantics import select
 from ..semantics.blocks import Block, Role, Scope
 from .base import Comparison, Rule, ToleranceKey, attrgetter
+from .catalog import text
 from .support import (
     blanks_after,
     cjk_of,
@@ -43,14 +44,14 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         of=ack_title,
         prop=para_text,
         expect="致    谢",
-        src="规范原文：标题「致    谢」，中间 4 个半角空格",
+        src=text("ACK-01"),
     ),
     Rule(
         id="ACK-02",
         of=cjk_of(ack_title),
         prop=attrgetter("ea"),
         expect="黑体",
-        src="规范原文：一级标题黑体",
+        src=text("ACK-02"),
     ),
     Rule(
         id="ACK-03",
@@ -59,36 +60,36 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：一级标题三号（16pt）",
+        src=text("ACK-03"),
     ),
-    Rule(id="ACK-04", of=ack_title, prop=para_align, expect="center", src="规范样张：一级标题居中"),
+    Rule(id="ACK-04", of=ack_title, prop=para_align, expect="center", src=text("ACK-04")),
     Rule(
         id="ACK-05",
         of=blanks_after(ack_title),
         prop=count,
         expect=1,
-        src="规范原文：标题后空 1 行",
+        src=text("ACK-05"),
     ),
     Rule(
         id="ACK-12",
         of=found(ack_body),
         prop=present,
         expect=True,
-        src="规范原文：致谢区必须有致谢正文（至少 1 个非空段落）",
+        src=text("ACK-12"),
     ),
     Rule(
         id="ACK-06",
         of=cjk_of(ack_body),
         prop=attrgetter("ea"),
         expect="宋体",
-        src="规范样张：致谢正文宋体",
+        src=text("ACK-06"),
     ),
     Rule(
         id="ACK-07",
         of=west_of(ack_body),
         prop=attrgetter("west"),
         expect="Times New Roman",
-        src="规范样张：致谢正文字母数字 Times New Roman",
+        src=text("ACK-07"),
     ),
     Rule(
         id="ACK-08",
@@ -97,7 +98,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=12.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范样张：致谢正文小四（12pt）",
+        src=text("ACK-08"),
     ),
     Rule(
         id="ACK-09",
@@ -106,7 +107,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=1.5,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.LINE,
-        src="规范样张：致谢正文 1.5 倍行距",
+        src=text("ACK-09"),
     ),
     Rule(
         id="ACK-10",
@@ -115,13 +116,13 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=2.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.INDENT_CHARS,
-        src="规范样张：致谢正文首行缩进 2 字符",
+        src=text("ACK-10"),
     ),
     Rule(
         id="ACK-11",
         of=ack_body,
         prop=para_align,
         expect="both",
-        src="规范样张：致谢正文两端对齐",
+        src=text("ACK-11"),
     ),
 )

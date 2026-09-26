@@ -36,8 +36,9 @@ from ..parse.package import (
     rels_part_name,
 )
 from ..rules import Issue, Verdict
+from ..rules.catalog import content as rule_content
 from ..semantics.blocks import Block
-from .issues import _PROP_LABELS, Downgrade, _format_value
+from .issues import Downgrade
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
@@ -207,57 +208,34 @@ def _clean(text: str) -> str:
     return "".join(ch for ch in text if _legal(ch))
 
 
-def _clip(text: str, limit: int) -> str:
-    return text if len(text) <= limit else text[: limit - 1] + "…"
-
-
 def _fit(text: str) -> str:
     if len(text) <= MAX_BODY:
         return text
     return text[: MAX_BODY - len(TRUNCATED)].rstrip() + TRUNCATED
 
 
-def _first_run(where: object) -> Run | None:
-    if isinstance(where, Run):
-        return where
-    if isinstance(where, tuple):
-        for item in where:
-            found = _first_run(item)
-            if found is not None:
-                return found
-    return None
+def _describe(issue: Issue) -> str:
+    """一条批注的人话：只说「违反哪条编号、这一条要求什么」。
 
-
-def _span(issue: Issue) -> str:
-    run = _first_run(issue.where)
-    if run is None or not run.text.strip():
-        return ""
-    return f"「{_clip(run.text.strip(), 12)}」这几个字"
-
-
-def _describe(issue: Issue, target: _Target) -> str:
+    规则内容统一取自 `rules.catalog` 的编号 → 内容数组，不在渲染层另起炉灶。
+    未知编号（测试里自造的规则）退化成只报编号。
+    """
     if issue.error is not None:
-        return f"【{issue.rule}】该规则本次未能执行，详见报告"
-    prop = _PROP_LABELS.get(issue.prop, issue.prop) if issue.prop else "格式"
-    got = _format_value(issue.got, prop=issue.prop, para=target.para)
-    expect = _format_value(issue.expect, prop=issue.prop, para=target.para)
-    span = _span(issue)
-    subject = f"{span}{prop}" if span else prop
+        return f"【{issue.rule}】本次未能执行，详见报告"
+    content = rule_content(issue.rule)
+    head = f"【{issue.rule}】{content}" if content else f"【{issue.rule}】"
     if issue.verdict is Verdict.FAIL:
-        head = f"{subject}现在为「{got}」，应为「{expect}」"
-    else:
-        head = f"{subject}无法判定，应为「{expect}」"
-    detail = f"【{issue.rule}"
-    detail += f"；依据：{issue.src}" if issue.src else ""
-    return head + detail + "】"
+        return head
+    return f"{head}（无法自动判定，请人工确认）"
 
 
 def _body_for(issues: Sequence[Issue], target: _Target) -> str:
-    multiple = len(issues) > 1
-    lines = [
-        (f"{number}) " if multiple else "") + _describe(issue, target)
-        for number, issue in enumerate(issues, 1)
-    ]
+    """同段多条问题：每条一行，同一条规则只列一次。"""
+    lines: list[str] = []
+    for issue in issues:
+        line = _describe(issue)
+        if line not in lines:
+            lines.append(line)
     if target.in_textbox:
         lines[0] = "（在文本框内）" + lines[0]
     return _fit(_clean("\n".join(lines)))

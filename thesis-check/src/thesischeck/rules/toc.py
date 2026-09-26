@@ -13,6 +13,7 @@ from ..semantics import select
 from ..semantics.blocks import Block, Scope
 from ..semantics.matchers import is_chapter, toc_style_level
 from .base import Comparison, Rule, ToleranceKey, attrgetter
+from .catalog import text
 from .support import (
     H1_TEXT_SHAPE,
     H2_TEXT_SHAPE,
@@ -68,14 +69,14 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         of=toc_title,
         prop=para_text,
         expect="目    录",
-        src="规范原文：目录标题「目    录」，中间 4 个半角空格",
+        src=text("TOC-01"),
     ),
     Rule(
         id="TOC-02",
         of=cjk_of(toc_title),
         prop=attrgetter("ea"),
         expect="黑体",
-        src="规范原文：目录标题黑体",
+        src=text("TOC-02"),
     ),
     Rule(
         id="TOC-03",
@@ -84,14 +85,14 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=16.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范原文：目录标题三号（16pt）",
+        src=text("TOC-03"),
     ),
     Rule(
         id="TOC-04",
         of=toc_title,
         prop=para_align,
         expect="center",
-        src="规范原文：目录标题居中",
+        src=text("TOC-04"),
     ),
     Rule(
         id="TOC-05",
@@ -100,35 +101,35 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=1.5,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.LINE,
-        src="规范原文：目录标题 1.5 倍行距",
+        src=text("TOC-05"),
     ),
     Rule(
         id="TOC-06",
         of=blanks_after(toc_title),
         prop=count,
         expect=1,
-        src="规范原文：目录标题与目录条目之间空一行",
+        src=text("TOC-06"),
     ),
     Rule(
         id="TOC-15",
         of=found(select.toc_entries),
         prop=present,
         expect=True,
-        src="规范原文：目录必须是自动生成的 TOC 域（至少有 1 个目录条目）",
+        src=text("TOC-15"),
     ),
     Rule(
         id="TOC-07",
         of=cjk_of(select.toc_entries),
         prop=attrgetter("ea"),
         expect="宋体",
-        src="规范样张：目录条目宋体",
+        src=text("TOC-07"),
     ),
     Rule(
         id="TOC-08",
         of=west_of(select.toc_entries),
         prop=attrgetter("west"),
         expect="Times New Roman",
-        src="规范样张：目录条目西文和数字 Times New Roman",
+        src=text("TOC-08"),
     ),
     Rule(
         id="TOC-09",
@@ -137,7 +138,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=12.0,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.SIZE_PT,
-        src="规范样张：目录条目小四（12pt）",
+        src=text("TOC-09"),
     ),
     Rule(
         id="TOC-10",
@@ -146,34 +147,34 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         expect=1.5,
         cmp=Comparison.APPROX,
         tol=ToleranceKey.LINE,
-        src="规范样张：目录条目 1.5 倍行距",
+        src=text("TOC-10"),
     ),
     Rule(
         id="TOC-11",
         of=select.toc_entries,
         prop=para_bold_verdict,
         expect="不加粗",
-        src="规范样张：目录条目非空白字符不加粗",
+        src=text("TOC-11"),
     ),
     Rule(
         id="TOC-12",
         of=toc_l1_chapter,
         prop=_H1_VERDICT,
         expect="合规",
-        src="规范原文：一级目录条目编号后空 2 格",
+        src=text("TOC-12"),
     ),
     Rule(
         id="TOC-13",
         of=TOC_L2,
         prop=_H2_VERDICT,
         expect="合规",
-        src="规范原文：二级目录条目编号后空 1 格",
+        src=text("TOC-13"),
     ),
     Rule(
         id="TOC-14",
         of=TOC_L3,
         prop=_H3_VERDICT,
         expect="合规",
-        src="规范原文：三级目录条目编号后空 1 格",
+        src=text("TOC-14"),
     ),
 )

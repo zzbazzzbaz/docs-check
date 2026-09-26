@@ -80,6 +80,8 @@ BENIGN_ELEMENTS: frozenset[str] = frozenset(
         "docPartObj",
         "docPartGallery",
         "docPartUnique",
+        "tblGrid",
+        "gridCol",
     }
 )
 
@@ -188,8 +190,16 @@ class Location:
         return head
 
     def find(self) -> str:
-        """报告里的"怎么找"：优先搜最具体的标题，其次搜本段摘要。"""
-        return self.section or self.chapter or self.excerpt or self.module
+        """报告里的"怎么找"：优先搜最具体的标题，其次搜本段摘要。
+
+        章节名若与模块名相同（条目类规则没有小节、定位只落到模块），退回本段摘要，
+        否则"搜「参考文献」"会把学生引到标题而不是出问题的那一段。
+        """
+        if self.section:
+            return self.section
+        if self.chapter and self.chapter != self.module:
+            return self.chapter
+        return self.excerpt or self.chapter or self.module
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -587,6 +597,46 @@ def _source_text(label: str | None, anchor: object) -> str | None:
     return label
 
 
+# ── 人话：实际值 / 期望值 / 依据（报告与批注共用）──────────────
+#
+# 早期模板固定写成「现在为「X」，应为「Y」」+「【规则；依据：规范原文：…】」，两条毛病：
+# ① 判定型规则（`REF-10` 一类）的期望值就是「合规」，等于"应该没问题"，同义反复；
+# ② `src` 自带「规范原文：」前缀，再接「依据：」就叠成「依据：规范原文：…」。
+
+# 判定型规则的期望值哨兵：`got` 本身就是问题描述，期望「合规」无信息量，渲染时省掉
+_VERDICT = "合规"
+# `src` 自带的来源前缀：并进「依据 X：」，不重复「依据：」
+_SRC_KINDS = ("规范原文：", "规范样张：", "用户确认：")
+
+
+def basis_text(src: str) -> str:
+    """依据的人话：`规范原文：X` → `依据规范原文：X`；其他 → `依据：X`。空串返回空串。"""
+    if not src:
+        return ""
+    for kind in _SRC_KINDS:
+        if src.startswith(kind):
+            return f"依据{kind}{src[len(kind) :]}"
+    return f"依据：{src}"
+
+
+def detail_text(got: str, expect: str, prop: str | None) -> str:
+    """把「实际值 / 期望值」写成一句人话（判不通过时）。"""
+    if expect == _VERDICT:
+        # 判定型规则：`got` 已是问题描述（如"未以编号开头"），直接陈述
+        return f"{got}。"
+    if prop:
+        return f"{prop}应为「{expect}」，现在是「{got}」。"
+    return f"应为「{expect}」，现在是「{got}」。"
+
+
+def undetermined_text(got: str, expect: str, prop: str | None) -> str:
+    """无法判定时的人话：说明要人工确认，而不是拿「合规」充期望值。"""
+    if expect == _VERDICT:
+        return "无法判定是否符合要求，请人工确认。"
+    subject = prop or "该项"
+    return f"无法判定{subject}是否符合要求（应为「{expect}」），请人工确认。"
+
+
 def _provenance(
     prop: str | None, anchor: object, block: Block | None, resolver: Resolver | None
 ) -> str | None:
@@ -766,10 +816,14 @@ def _entry_html(entry: Entry) -> str:
     elif entry.severity == "unrecognised":
         detail = f"{html.escape(entry.got)}；{html.escape(entry.expect)}"
     else:
-        prop = f"{html.escape(entry.property)}：" if entry.property else ""
-        source = f"（{html.escape(entry.source)}）" if entry.source else ""
-        detail = f"{prop}现在「{html.escape(entry.got)}」，应为「{html.escape(entry.expect)}」{source}"
-    basis = f'<p class="basis">依据：{html.escape(entry.src)}</p>' if entry.src else ""
+        if entry.severity == "undetermined":
+            sentence = undetermined_text(entry.got, entry.expect, entry.property)
+        else:
+            sentence = detail_text(entry.got, entry.expect, entry.property)
+            if entry.source:
+                sentence += f"（{entry.source}）"
+        detail = html.escape(sentence)
+    basis = f'<p class="basis">{html.escape(basis_text(entry.src))}</p>' if entry.src else ""
     find = f'<p class="find">怎么找：在文档里搜「{html.escape(entry.location.find())}」</p>'
     span = f'<p class="find">片段：{html.escape(entry.location.span)}</p>' if entry.location.span else ""
     return (

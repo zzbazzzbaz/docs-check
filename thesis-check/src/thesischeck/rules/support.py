@@ -168,7 +168,12 @@ def count_keywords(content: str) -> tuple[str, ...]:
 
 
 def para_text(block: Block) -> str:
-    return block.para.text
+    """标题 / 条目的纯文本：去掉首尾的换行与空白。
+
+    标题段落常以 `<w:br w:type="page"/>` 分页开头，`para.text` 会带一个前导换行，
+    那不该算进标题文字（"\\nABSTRACT" 仍是 "ABSTRACT"）。
+    """
+    return block.para.text.strip()
 
 
 def prefix_text(block: Block) -> str:

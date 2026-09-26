@@ -202,6 +202,49 @@ def test_no_run_paragraph_is_annotated_safely() -> None:
     assert _ranges(marked)[1] == ""
 
 
+def test_comment_is_rule_id_plus_rule_content() -> None:
+    """批注只讲「违反哪条编号、这一条要求什么」，内容取自 catalog 数组。"""
+    with _case(BASE) as (_, doc, _):
+        para = next(p for p in doc.paragraphs if p.text.strip())
+        issues = [
+            Issue(
+                "REF-10",
+                Verdict.FAIL,
+                para,
+                got="x",
+                expect="y",
+                src="规范原文：编号「[n]」后恰好 1 个半角空格",
+            ),
+            Issue("TST-UNKNOWN", Verdict.FAIL, para, got="a", expect="b", src="s"),
+            Issue(
+                "REF-14",
+                Verdict.UNDETERMINED,
+                para,
+                got="a",
+                expect="b",
+                src="规范原文：所有参考文献必须都在正文中有引用",
+            ),
+            Issue(  # 同一条规则重复命中只列一次
+                "REF-10",
+                Verdict.FAIL,
+                para,
+                got="z",
+                expect="y",
+                src="规范原文：编号「[n]」后恰好 1 个半角空格",
+            ),
+        ]
+        plan = plan_comments(doc, issues)
+
+    body = plan.comments[0].body
+    assert body.splitlines() == [
+        "【REF-10】编号「[n]」后恰好 1 个半角空格",
+        "【TST-UNKNOWN】",
+        "【REF-14】所有参考文献必须都在正文中有引用（无法自动判定，请人工确认）",
+    ]
+    assert "应为" not in body  # 不再堆「实际值 / 期望值」
+    assert "依据" not in body
+
+
 # ── 降级：页眉 / 页脚、页面设置、模块缺失 ──────────────────────
 
 
