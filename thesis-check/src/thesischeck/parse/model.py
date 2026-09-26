@@ -109,3 +109,66 @@ class Para:
     def is_empty(self) -> bool:
         """规则口径的空段落：无文字、无图片、无域结果（书签与批注锚点不算内容）。"""
         return not self.text.strip() and not self.objects.any
+
+
+@dataclass(frozen=True, slots=True)
+class Borders:
+    """一个单元格四边**有没有线**（已是有效值，合成见 `document.py`）。
+
+    OOXML 里四边都没写就是"无线"，这是确定值，不是"无法判定"。
+    """
+
+    top: bool
+    bottom: bool
+    left: bool
+    right: bool
+
+
+@dataclass(frozen=True, slots=True)
+class Cell:
+    """表格里的一格。`row` / `col` 从 1 起，`col` 是该格在行里的位置（合并格算作一格）。"""
+
+    row: int
+    col: int
+    borders: Borders
+    paragraphs: tuple[Para, ...]
+    xml: etree._Element
+
+
+@dataclass(frozen=True, slots=True)
+class Table:
+    """一个**顶层**表格。嵌套表格不单独成 Table，其段落仍留在宿主单元格里。"""
+
+    id: int
+    n_rows: int
+    n_cols: int
+    rows: tuple[tuple[Cell, ...], ...]
+    xml: etree._Element
+
+
+@dataclass(frozen=True, slots=True)
+class Box:
+    """一个文本框（`w:txbxContent`）。**不走正文块序列**，单独一路采集。
+
+    `host` 是宿主段落号（最近的 `w:p` 祖先的 `Para.id`）；文本框套文本框时为 `None`。
+    """
+
+    id: int
+    host: int | None
+    paragraphs: tuple[Para, ...]
+    xml: etree._Element
+
+
+@dataclass(frozen=True, slots=True)
+class Document:
+    """一篇文档的 L1 事实。
+
+    `blocks` 是文件顺序的块序列，`w:p` 与 `w:tbl` 交错（内容控件透传、不下钻文本框）；
+    `paragraphs` 是正文故事区的全部段落，含表格单元格内的段落，`id` 连续。
+    """
+
+    blocks: tuple[Para | Table, ...]
+    paragraphs: tuple[Para, ...]
+    tables: tuple[Table, ...]
+    boxes: tuple[Box, ...]
+    xml: etree._Element

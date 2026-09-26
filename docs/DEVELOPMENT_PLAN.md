@@ -124,22 +124,22 @@ the readable rejection and the fact that it returns immediately.
 
 ### Phase 3: Document Model
 
-- [ ] Implement `src/thesischeck/parse/document.py`
-  - [ ] Block sequence of paragraphs and tables in file order, with content controls treated as
+- [x] Implement `src/thesischeck/parse/document.py`
+  - [x] Block sequence of paragraphs and tables in file order, with content controls treated as
         transparent and paragraph numbering not reset when descending into them
-  - [ ] Paragraph records: visible text excluding field instructions and Word control characters,
+  - [x] Paragraph records: visible text excluding field instructions and Word control characters,
         style name, outline level, alignment, line spacing, indentation, effective numbering
-  - [ ] Run records: text, effective fonts, size, bold, italic, vertical alignment
-  - [ ] Handle `w:noBreakHyphen`, `m:t` and other text carriers; exclude `w:pPr/w:tabs`
-  - [ ] Table records: only top-level tables counted; count paragraphs by descending through rows
+  - [x] Run records: text, effective fonts, size, bold, italic, vertical alignment
+  - [x] Handle `w:noBreakHyphen`, `m:t` and other text carriers; exclude `w:pPr/w:tabs`
+  - [x] Table records: only top-level tables counted; count paragraphs by descending through rows
         and cells; resolve per-cell borders by positional mapping (first row to top, interior rows
         to insideH, first column to left, interior columns to insideV)
-  - [ ] Text box records collected on a separate path; `mc:Fallback` duplicates skipped
-- [ ] Write unit tests in `tests/unit/test_document.py`
-  - [ ] Assert block coverage is complete and non-overlapping for the synthetic documents
-  - [ ] Assert the control-character and field-instruction exclusions
-  - [ ] Assert that substituting a top-level table does not disturb paragraph numbering
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+  - [x] Text box records collected on a separate path; `mc:Fallback` duplicates skipped
+- [x] Write unit tests in `tests/unit/test_document.py`
+  - [x] Assert block coverage is complete and non-overlapping for the synthetic documents
+  - [x] Assert the control-character and field-instruction exclusions
+  - [x] Assert that substituting a top-level table does not disturb paragraph numbering
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
 

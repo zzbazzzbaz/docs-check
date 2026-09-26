@@ -77,6 +77,7 @@ class StyleDef:
     based_on: str | None
     rpr: etree._Element | None
     ppr: etree._Element | None
+    tbl_pr: etree._Element | None
 
 
 class StyleTable:
@@ -103,6 +104,7 @@ class StyleTable:
                 based_on=based_on.get(w("val")) if based_on is not None else None,
                 rpr=el.find(w("rPr")),
                 ppr=el.find(w("pPr")),
+                tbl_pr=el.find(w("tblPr")),
             )
         defaults = root.find(w("docDefaults"))
         if defaults is not None:
