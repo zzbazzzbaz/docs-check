@@ -145,18 +145,18 @@ the readable rejection and the fact that it returns immediately.
 
 ### Phase 4: Sections, Headers, Footers, Fields and Objects
 
-- [ ] Implement `src/thesischeck/parse/section.py`
-  - [ ] Section properties from the body-level and paragraph-level `sectPr`
-  - [ ] Header and footer references per section, distinguishing a section's own reference from an
+- [x] Implement `src/thesischeck/parse/section.py`
+  - [x] Section properties from the body-level and paragraph-level `sectPr`
+  - [x] Header and footer references per section, distinguishing a section's own reference from an
         inherited one
-  - [ ] Page setup: paper size, margins, page number format, page break markers in all three forms
+  - [x] Page setup: paper size, margins, page number format, page break markers in all three forms
         (section break, explicit page break, page-break-before)
-- [ ] Implement fields and objects
-  - [ ] Field types and spans, with the table-of-contents span available for scope delimitation
-  - [ ] Images from `w:drawing` and formulae from both `w:object` and `m:oMath`
-- [ ] Write unit tests covering inheritance of headers, page break detection in all three forms,
+- [x] Implement fields and objects
+  - [x] Field types and spans, with the table-of-contents span available for scope delimitation
+  - [x] Images from `w:drawing` and formulae from both `w:object` and `m:oMath`
+- [x] Write unit tests covering inheritance of headers, page break detection in all three forms,
       and formula counting without double counting `m:oMathPara`
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
 

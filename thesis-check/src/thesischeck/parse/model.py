@@ -76,7 +76,11 @@ class Run:
 
 @dataclass(frozen=True, slots=True)
 class Para:
-    """一个段落的事实。字段名与规则文档用到的概念一一对应。"""
+    """一个段落的事实。字段名与规则文档用到的概念一一对应。
+
+    `field_codes` 是**起始于本段**的真实域代码（嵌套域也算）；`section` 是本段所属分节的
+    序号（1 起），页眉页脚与文本框段落为 `None`。
+    """
 
     id: int
     story: Story
@@ -98,11 +102,13 @@ class Para:
     page_break_before: bool
     keep_with_next: bool | None
     section_break: bool
+    has_page_break: bool
     runs: tuple[Run, ...]
     objects: Objects
     field_codes: tuple[str, ...]
     in_table: bool
     row_end: bool
+    section: int | None
     xml: etree._Element
 
     @property
@@ -160,15 +166,79 @@ class Box:
 
 
 @dataclass(frozen=True, slots=True)
+class Field:
+    """一个**真实域**（`w:fldChar` begin/end 配成对，或 `w:fldSimple`）。
+
+    `code` 是域代码首个词的大写（`PAGE` / `TOC` / `PAGEREF`…）；`start` / `end` 是段号
+    （正文故事区的 `Para.id`）；`end_content` 是域结果**内容**的最后一段——结束标记若落在
+    只有标记、没有内容的段落上，内容其实结束在上一段（TOC 的跨度用这个界定目录区）。
+    """
+
+    code: str
+    start: int
+    end: int
+    end_content: int
+    xml: etree._Element
+
+
+@dataclass(frozen=True, slots=True)
+class HeaderFooter:
+    """一个分节某一种页眉/页脚**生效后**的引用。
+
+    `owned` = 本节自己写了 `w:headerReference` / `w:footerReference`；否则 `part` 是从
+    上一节继承来的生效部件。`page_fields` 是该部件里的 PAGE 域个数。`ref_type` 取
+    `default` / `first` / `even`。
+    """
+
+    kind: str
+    ref_type: str
+    owned: bool
+    part: str | None
+    text: str
+    page_fields: int
+    paragraphs: tuple[Para, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Section:
+    """一个分节。
+
+    段落级 `w:sectPr` 结束它所在的那一节，body 级 `w:sectPr` 是最后一节；
+    `headers` / `footers` 固定是 default、first、even 三个（可能没有引用、没有部件）。
+    """
+
+    index: int
+    type: str
+    orientation: str
+    width_pt: float | None
+    height_pt: float | None
+    top_pt: float | None
+    bottom_pt: float | None
+    left_pt: float | None
+    right_pt: float | None
+    header_pt: float | None
+    footer_pt: float | None
+    page_number_format: str | None
+    different_first_page: bool
+    odd_and_even_pages: bool
+    headers: tuple[HeaderFooter, ...]
+    footers: tuple[HeaderFooter, ...]
+    xml: etree._Element
+
+
+@dataclass(frozen=True, slots=True)
 class Document:
     """一篇文档的 L1 事实。
 
     `blocks` 是文件顺序的块序列，`w:p` 与 `w:tbl` 交错（内容控件透传、不下钻文本框）；
-    `paragraphs` 是正文故事区的全部段落，含表格单元格内的段落，`id` 连续。
+    `paragraphs` 是正文故事区的全部段落，含表格单元格内的段落，`id` 连续；
+    `fields` 是正文故事区的**真实域**（页眉页脚里的域不算，在 `Section` 里）。
     """
 
     blocks: tuple[Para | Table, ...]
     paragraphs: tuple[Para, ...]
     tables: tuple[Table, ...]
     boxes: tuple[Box, ...]
+    fields: tuple[Field, ...]
+    sections: tuple[Section, ...]
     xml: etree._Element

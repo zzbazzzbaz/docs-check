@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from lxml import etree
 
@@ -244,6 +245,8 @@ def _record_para(
     *,
     in_table: bool = False,
     row_end: bool = False,
+    section: int | None = None,
+    field_codes: tuple[str, ...] = (),
 ) -> Para:
     ppr = p.find(w("pPr"))
     style_id = _style_id(ppr, resolver)
@@ -257,6 +260,10 @@ def _record_para(
         if val is not None:
             size_pt = int(val) / 2.0
     fmt = resolver.para(ppr, size_pt=size_pt)
+    # 显式分页符：`w:br w:type="page"`（`w:pageBreakBefore` 是另一路，两者都算"这一页到此为止"）
+    has_page_break = fmt.page_break_before or any(
+        br.get(w("type")) == "page" for br in p.iter(w("br")) if not _inside_txbx(br, p)
+    )
     return Para(
         id=pid,
         story=story,
@@ -278,11 +285,13 @@ def _record_para(
         page_break_before=fmt.page_break_before,
         keep_with_next=fmt.keep_with_next,
         section_break=ppr is not None and ppr.find(w("sectPr")) is not None,
+        has_page_break=has_page_break,
         runs=runs,
         objects=object_counts(p),
-        field_codes=(),
+        field_codes=field_codes,
         in_table=in_table,
         row_end=row_end,
+        section=section,
         xml=p,
     )
 
@@ -378,7 +387,11 @@ def _record_blocks(
 
 
 def parse_document(pkg: Package) -> Document:
-    """解析 `word/document.xml`：块序列 + 全部段落 + 顶层表格 + 文本框。"""
+    """解析 `word/document.xml`：块序列 + 全部段落 + 顶层表格 + 文本框 + 域 + 分节。
+
+    域与分节分别在 `fields.parse_fields`、`section.parse_sections` 里；这里只负责编排，
+    并在构造 `Para` 之前先把起始域代码与分节号算好（`Para` 是 frozen 的）。
+    """
     root = pkg.xml(PART_DOCUMENT)
     if root is None:
         raise BadDocument("缺少 word/document.xml")
@@ -389,20 +402,51 @@ def parse_document(pkg: Package) -> Document:
     resolver = Resolver(StyleTable(pkg.xml(PART_STYLES)), ThemeFonts(pkg.xml(PART_THEME)))
 
     flat = iter_paragraphs(body)
-    paras = [
-        _record_para(el, Story.MAIN, i, resolver, in_table=in_table, row_end=row_end)
-        for i, (el, in_table, row_end) in enumerate(flat)
-    ]
+
+    # 域分析要在构造 Para 之前做完：Para 是 frozen 的，「起始域代码」必须一次填好
+    from .fields import parse_fields  # 局部导入：fields 复用本模块的文本与对象口径
+
+    fields = parse_fields([el for el, _, _ in flat])
+    codes: dict[int, list[str]] = {}
+    for field in fields:
+        codes.setdefault(field.start, []).append(field.code)
+
+    # 段落级 sectPr 结束它所在的那一节；这一段属于当前节，之后进入下一节
+    paras: list[Para] = []
+    section = 1
+    for i, (el, in_table, row_end) in enumerate(flat):
+        ppr = el.find(w("pPr"))
+        break_here = ppr is not None and ppr.find(w("sectPr")) is not None
+        paras.append(
+            _record_para(
+                el,
+                Story.MAIN,
+                i,
+                resolver,
+                in_table=in_table,
+                row_end=row_end,
+                section=section,
+                field_codes=tuple(codes.get(i, ())),
+            )
+        )
+        if break_here:
+            section += 1
     by_element = {el: para for (el, _, _), para in zip(flat, paras, strict=True)}
 
     top = _top_level_tables(body)
     tables = [_record_table(el, i, by_element, resolver) for i, el in enumerate(top, 1)]
     by_table = dict(zip(top, tables, strict=True))
 
-    return Document(
+    document = Document(
         blocks=_record_blocks(body, by_element, by_table),
         paragraphs=tuple(paras),
         tables=tuple(tables),
         boxes=_record_boxes(body, by_element, resolver),
+        fields=fields,
+        sections=(),
         xml=body,
     )
+
+    from .section import parse_sections  # 局部导入：分节要复用本模块的段落构造
+
+    return replace(document, sections=parse_sections(pkg, document))

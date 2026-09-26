@@ -43,11 +43,13 @@ def para(**over: object) -> m.Para:
         "page_break_before": False,
         "keep_with_next": None,
         "section_break": False,
+        "has_page_break": False,
         "runs": (),
         "objects": m.Objects(),
         "field_codes": (),
         "in_table": False,
         "row_end": False,
+        "section": None,
         "xml": element(),
     }
     base.update(over)
