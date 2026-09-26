@@ -551,21 +551,57 @@ Outcome:
 
 ### Phase 13: Web Service
 
-- [ ] Implement `src/thesischeck/web/app.py`
-  - [ ] Synchronous endpoints defined with `def` so FastAPI runs them in a thread pool
-  - [ ] Upload endpoint returning a summary and three download links
-  - [ ] Download endpoints for the issue list, the report and the annotated document
-  - [ ] Request size limit, random temporary file names, and expiry-based cleanup
-- [ ] Implement the single-page interface in `src/thesischeck/web/static/index.html`
-  - [ ] Native form upload and fetch, no build step
-  - [ ] Show the three categories separately, show the uncovered-items statement, and offer the
+- [x] Implement `src/thesischeck/web/app.py`
+  - [x] Synchronous endpoints defined with `def` so FastAPI runs them in a thread pool
+  - [x] Upload endpoint returning a summary and three download links
+  - [x] Download endpoints for the issue list, the report and the annotated document
+  - [x] Request size limit, random temporary file names, and expiry-based cleanup
+- [x] Implement the single-page interface in `src/thesischeck/web/static/index.html`
+  - [x] Native form upload and fetch, no build step
+  - [x] Show the three categories separately, show the uncovered-items statement, and offer the
         three downloads
-  - [ ] Student-facing wording only; no XML terminology
-- [ ] Write endpoint tests using the test client, covering a valid upload, an oversized upload and a
+  - [x] Student-facing wording only; no XML terminology
+- [x] Write endpoint tests using the test client, covering a valid upload, an oversized upload and a
       corrupt file
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- `src/thesischeck/web/app.py` is the HTTP layer, defined entirely with `def` endpoints (upload and
+  the three downloads) so FastAPI runs the synchronous parser in its thread pool. It imports only
+  `thesischeck.pipeline` / `thesischeck.errors`, so the web and CLI entries cannot diverge. `GET /`
+  serves the single static page, `POST /api/review` runs `review()` synchronously and returns
+  `{job, summary, uncovered, downloads}`, and the three `GET /api/review/{job}/...` routes stream
+  the products. Two entry points exist: the `thesis-check-web` console script and
+  `python -m thesischeck.web`; both default to `--host 127.0.0.1 --port 8000`.
+- Security (technical design §8.3, the HTTP-layer items of NFR-2): the request body is read in
+  chunks with a `MAX_UPLOAD_BYTES` (50 MB) cap and a `Content-Length`/`UploadFile.size` pre-check, so
+  an oversized upload is a 413 with a readable reason and is never written to disk; only the
+  filename `basename` is inspected (backslashes included) and the stored input uses a random UUID
+  name; job ids must match `[0-9a-f]{32}`, so no path can be injected through the URL, and no URL
+  found inside a document is ever fetched (the packet layer skips external relationships).
+  `BadDocument` / `ParseError` become 400 with the message the parser already wrote in plain
+  language; a catch-all handler turns anything unexpected into a generic 500 without a stack.
+- Temporary products are per-job directories under `JOBS_ROOT` (system temp), kept for
+  `JOB_TTL_SECONDS` (1 hour). They are purged at startup through the app lifespan and again lazily
+  when an expired job is accessed (the job is deleted and answered with 404). No database, no task
+  queue. A failed review removes its job directory.
+- `src/thesischeck/web/static/index.html` is one file with native `fetch` + `FormData` and no build
+  step. It renders the three-state partition as cards (不通过 / 无法判定 / 未识别结构), a per-module
+  table, the uncovered-items statement, and the three download links; a failed upload shows the
+  server's plain-language reason. All dynamic text is inserted with `textContent`, and no XML / OOXML
+  term appears.
+- `tests/unit/test_web.py` (9 cases) drives the app with `TestClient`: a compliant upload returns
+  the summary fields and all three downloads with real content (the marked file's `comments.xml`
+  carries the expected rule for a font deviation), an oversized upload is rejected at 413 by
+  shrinking the limit constant, non-zip and old `.doc` inputs get readable 400s, unknown and
+  expired jobs return 404, and `GET /` is HTML.
+- Gates green: `./scripts/check.sh` passes with 670 tests (661 before plus 9 new); the 204-rule base
+  still reports zero problems. A real `uvicorn` run was smoke-tested end to end: `GET /` 200, upload
+  200 with `job`, and all three downloads 200.
+
 
 ### Phase 14: Hardening, Regression and Acceptance
 

@@ -19,6 +19,7 @@ dev = [
 
 [project.scripts]
 thesis-check = "thesischeck.cli:main"
+thesis-check-web = "thesischeck.web.app:main"
 
 [build-system]
 requires = ["hatchling"]
