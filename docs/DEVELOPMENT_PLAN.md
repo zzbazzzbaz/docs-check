@@ -230,30 +230,65 @@ Outcome:
 
 ### Phase 7: Rule Engine and Test Harness
 
-- [ ] Confirm the outstanding judgement decisions recorded in the requirements document before
+- [x] Confirm the outstanding judgement decisions recorded in the requirements document before
       encoding any affected rule: figure and table caption alignment, strictness of the
       every-formula-has-a-number rule, body line spacing, first-level heading alignment, reference
       heading spacing, and appendix float numbering. Record the outcome; do not guess.
-- [ ] Implement `src/thesischeck/rules/base.py`
-  - [ ] `Rule` dataclass holding rule identifier, selector, property extractor, expectation,
+- [x] Implement `src/thesischeck/rules/base.py`
+  - [x] `Rule` dataclass holding rule identifier, selector, property extractor, expectation,
         comparison kind and source citation
-  - [ ] `Issue` and `Verdict`: fail, undetermined, and pass which never reaches the report
-  - [ ] Comparators: equality, approximate with tolerance, pattern, membership, count range
-- [ ] Implement `src/thesischeck/rules/engine.py`
-  - [ ] Iterate registered rules, resolve properties, emit issues
-  - [ ] Catch per-rule failures as `RuleError` and continue with the remaining rules
-- [ ] Create the full-compliant base document under `tests/fixtures/`
-  - [ ] A hand-built minimal thesis that produces zero failures and zero undetermined results
-  - [ ] Do not use the school sample document as the base; it documents the specification rather
+  - [x] `Issue` and `Verdict`: fail, undetermined, and pass which never reaches the report
+  - [x] Comparators: equality, approximate with tolerance, pattern, membership, count range
+- [x] Implement `src/thesischeck/rules/engine.py`
+  - [x] Iterate registered rules, resolve properties, emit issues
+  - [x] Catch per-rule failures as `RuleError` and continue with the remaining rules
+- [x] Create the full-compliant base document under `tests/fixtures/`
+  - [x] A hand-built minimal thesis that produces zero failures and zero undetermined results
+  - [x] Do not use the school sample document as the base; it documents the specification rather
         than representing a compliant thesis
-- [ ] Implement the deviation helper in `tests/fixtures/synth.py`
-  - [ ] Declarative changes: set a font, set a size, set alignment, set spacing, insert or remove a
+- [x] Implement the deviation helper in `tests/fixtures/synth.py`
+  - [x] Declarative changes: set a font, set a size, set alignment, set spacing, insert or remove a
         blank paragraph, rename a style, remove a heading
-- [ ] Add the rule identifier cross-check test: the set of identifiers in the code equals the set in
+- [x] Add the rule identifier cross-check test: the set of identifiers in the code equals the set in
       the rule documents, in both directions
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- The six pending judgement items are **not decided by the school yet**. They are implemented
+  **verbatim from `docs/规则/*.md`** and recorded here unchanged for the user to forward; no
+  calibration was invented. In order: (1) `TXT-39`/`TXT-45` captions must be centred while the
+  sample is justified; (2) `TXT-32` every formula must carry a number while the sample has two
+  formulas and one number; (3) `TXT-29` body line spacing of 1.5 is taken from the sample, not the
+  specification text; (4) `TXT-04` first-level heading centred is taken from the sample; (5)
+  `REF-01` no space in the reference heading, specification and sample disagree; (6) appendix
+  figure/table/formula numbers (`图A1` `表B2` `式(B3)`) have no rule covering them. The two
+  already-fixed items are honoured: citation-run anchoring is text-based (`[数字]`, Phase 6
+  `citation_runs`) and `TXT-30` judges superscript (`superscript_runs`).
+- `rules/base.py`: `Rule[Obj, Val]` is a frozen data record (`id`, `of`, `prop`, `expect`, `src`,
+  `cmp`, `tol`); `Verdict` is `PASS`/`FAIL`/`UNDETERMINED`; `Issue` carries rule, verdict, where,
+  got, expect, src and an optional `RuleError`. Comparators are exactly the five required; tolerance
+  values live in `Tolerances` and rules reference a `ToleranceKey`, never a number.
+- `rules/engine.py`: `run_rules(blocks, registry, *, tolerances)` iterates the registry, treats
+  `None` as `UNDETERMINED`, and converts a per-rule exception into an `UNDETERMINED` issue holding
+  the `RuleError` so the remaining rules still run.
+- `tests/fixtures/base.py` generates the base in memory (no committed binary): eight modules, all
+  heading levels, body paragraphs, figure/table captions, a drawing, a three-line table, a formula
+  paragraph with its number, reference items, appendix sub-headings, both keyword lines, header,
+  footer with a PAGE field, three sections with inherited header and own footer, page setup and a
+  cross-paragraph `TOC` field with `toc 1/2/3` entries.
+- `tests/fixtures/synth.py` applies deviations to the base XML and repacks the archive; targets are
+  readable anchor names; changes offered are font (`ea`/`west`), size, bold, alignment, line
+  spacing, insert/delete a paragraph (including blank) and rename a style.
+- `tests/rules/case.py` provides `CASE(rule_id, base, change, expect_only)`, asserting that the set
+  of reported rules equals `expect_only` exactly. The demonstration rule `ABS-C-02` has one hit case
+  and one pass case. `tests/rules/test_rule_ids.py` extracts the identifiers from the rule documents
+  and checks both directions: the registered set must be a subset of the documents (hard), and the
+  reverse direction skips until `ALL_IN_SCOPE_RULES_REGISTERED` is set in Phase 8.
+- The base currently satisfies the single registered rule; reaching genuinely zero problems is
+  deferred to Phase 8 once the rules exist, as expected.
 
 ### Phase 8: Batch 1 Rules
 

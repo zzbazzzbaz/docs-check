@@ -11,3 +11,19 @@
 结果三态：`FAIL` / `UNDETERMINED`（`PASS` 不进报告）。
 有自动编号的段落要让开下游编号类规则——用选择器过滤实现，不做"抑制机制"。
 """
+
+from .base import Comparison, Issue, Rule, ToleranceKey, Tolerances, Verdict, matches
+from .batch1 import REGISTRY
+from .engine import run_rules
+
+__all__ = [
+    "REGISTRY",
+    "Comparison",
+    "Issue",
+    "Rule",
+    "ToleranceKey",
+    "Tolerances",
+    "Verdict",
+    "matches",
+    "run_rules",
+]
