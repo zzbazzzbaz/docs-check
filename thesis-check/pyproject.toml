@@ -55,4 +55,5 @@ addopts = "-q --strict-markers"
 markers = [
     "golden: 金标准快照（合成样张，可进 CI）",
     "real_corpus: 需要真实语料（THESIS_CORPUS_DIR，未设置则跳过）",
+    "slow: 需要真实语料或耗时较长的关卡",
 ]

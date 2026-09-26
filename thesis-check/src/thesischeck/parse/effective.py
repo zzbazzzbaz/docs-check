@@ -251,6 +251,12 @@ def _cascade_rpr(layers: Sequence[_Layer], theme: ThemeFonts) -> dict[str, _Entr
         va = pr.find(w("vertAlign"))
         if va is not None and (va_val := va.get(w("val"))) is not None:
             picked["va"] = (va_val, label)
+        underline = pr.find(w("u"))
+        if underline is not None:
+            picked["underline"] = (underline.get(w("val"), "single"), label)
+        rstyle = pr.find(w("rStyle"))
+        if rstyle is not None and (rstyle_val := rstyle.get(w("val"))):
+            picked["rstyle"] = (rstyle_val, label)
 
     def resolve_slot(slot: str) -> tuple[str | None, str | None]:
         entry = slots.get(slot)
@@ -304,6 +310,8 @@ def _cascade_ppr(layers: Sequence[_Layer]) -> dict[str, _Entry]:
             for attr, key in (
                 ("before", "space_before_twips"),
                 ("after", "space_after_twips"),
+                ("beforeLines", "space_before_lines"),
+                ("afterLines", "space_after_lines"),
                 ("line", "line"),
                 ("lineRule", "line_rule"),
             ):
@@ -367,14 +375,8 @@ class Resolver:
         self.styles = styles
         self.theme = theme
 
-    def run(
-        self,
-        rpr: etree._Element | None,
-        para_style_id: str | None = None,
-        *,
-        trace: list[Source] | None = None,
-    ) -> RunFormat:
-        """解析一个 run 的有效字符格式。``rpr`` 是该 run 自己的 ``w:rPr``。"""
+    def _rpr_layers(self, rpr: etree._Element | None, para_style_id: str | None) -> list[_Layer]:
+        """字符格式的级联层（低 -> 高）。"""
         chain = self.styles.chain(para_style_id or self.styles.default_para)
         char_chain: list[StyleDef] = []
         if rpr is not None:
@@ -385,7 +387,25 @@ class Resolver:
         layers += [(self.styles.label(style), style.rpr) for style in chain]
         layers += [(f"字符样式:{style.id}", style.rpr) for style in char_chain]
         layers.append(("run", rpr))
-        picked = _cascade_rpr(layers, self.theme)
+        return layers
+
+    def raw_rpr(self, rpr: etree._Element | None, para_style_id: str | None = None) -> dict[str, _Entry]:
+        """字符级联的原始结果。
+
+        兼容 dump（`parse/compat.py`）要 `rstyle` / `underline` 这两个产品模型不持有的槽，
+        从同一次级联里取，保证与 `run()` 不出现第二份实现。
+        """
+        return _cascade_rpr(self._rpr_layers(rpr, para_style_id), self.theme)
+
+    def run(
+        self,
+        rpr: etree._Element | None,
+        para_style_id: str | None = None,
+        *,
+        trace: list[Source] | None = None,
+    ) -> RunFormat:
+        """解析一个 run 的有效字符格式。``rpr`` 是该 run 自己的 ``w:rPr``。"""
+        picked = self.raw_rpr(rpr, para_style_id)
         for prop in ("ea", "west", "size", "bold", "italic", "va"):
             _emit(trace, prop, picked.get(prop))
         return RunFormat(
@@ -396,6 +416,26 @@ class Resolver:
             italic=_bool(picked, "italic"),
             va=_str(picked, "va"),
         )
+
+    def _para_style_id(self, ppr: etree._Element | None) -> str | None:
+        """段落直接写的 ``pStyle``，缺省回到默认段落样式。"""
+        if ppr is not None:
+            pstyle = ppr.find(w("pStyle"))
+            if pstyle is not None and pstyle.get(w("val")):
+                return pstyle.get(w("val"))
+        return self.styles.default_para
+
+    def _ppr_layers(self, ppr: etree._Element | None) -> list[_Layer]:
+        """段落格式的级联层（低 -> 高）。"""
+        chain = self.styles.chain(self._para_style_id(ppr))
+        layers: list[_Layer] = [("docDefaults", self.styles.dd_ppr)]
+        layers += [(self.styles.label(style), style.ppr) for style in chain]
+        layers.append(("run", ppr))
+        return layers
+
+    def raw_ppr(self, ppr: etree._Element | None) -> dict[str, _Entry]:
+        """段落级联的原始结果（含未归一的缩进缇值），供兼容 dump 对齐 test2 的单位。"""
+        return _cascade_ppr(self._ppr_layers(ppr))
 
     def para(
         self,
@@ -409,18 +449,8 @@ class Resolver:
         ``size_pt`` 是该段落的有效字号，仅用于把 ``@firstLine`` 之类的缇值换算成字符
         （``@firstLineChars`` 缺失时才用）。
         """
-        style_id: str | None = None
-        if ppr is not None:
-            pstyle = ppr.find(w("pStyle"))
-            if pstyle is not None and pstyle.get(w("val")):
-                style_id = pstyle.get(w("val"))
-        if not style_id:
-            style_id = self.styles.default_para
-        chain = self.styles.chain(style_id)
-        layers: list[_Layer] = [("docDefaults", self.styles.dd_ppr)]
-        layers += [(self.styles.label(style), style.ppr) for style in chain]
-        layers.append(("run", ppr))
-        picked = _cascade_ppr(layers)
+        style_id = self._para_style_id(ppr)
+        picked = self.raw_ppr(ppr)
 
         left = _chars(picked.get("left_chars"), picked.get("left_twips"), size_pt)
         right = _chars(picked.get("right_chars"), picked.get("right_twips"), size_pt)

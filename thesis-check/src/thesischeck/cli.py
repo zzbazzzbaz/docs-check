@@ -1,23 +1,44 @@
 """命令行入口。
 
-M0 只验证打包与入口点；解析实现后这里接 `pipeline.review()`。
+生产链路接 `pipeline.review()`；`--compat-dump` 是**只用于调试 / 等价性关卡**的旁路，
+把解析结果渲染成 `test2` 快照的形状，不进入生产链路。
 """
 
 import argparse
+import json
 import sys
 
 from . import __version__
+from .parse import compat
+from .parse.document import parse_document
+from .parse.package import Package
+
+SUITES = ("own", "ownpages", "ownborders", "owntextbox")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="thesis-check", description="毕业论文格式自动审核")
     parser.add_argument("docx", nargs="?", help="待审核的 .docx")
     parser.add_argument("-o", "--outdir", default="out", help="产物目录（默认 out/）")
+    parser.add_argument(
+        "--compat-dump",
+        choices=SUITES,
+        metavar="SUITE",
+        help="调试用：按 test2 快照形状输出解析结果（own / ownpages / ownborders / owntextbox）",
+    )
     parser.add_argument("--version", action="version", version=f"thesischeck {__version__}")
     args = parser.parse_args(argv)
 
     if args.docx is None:
         parser.print_help()
+        return 0
+
+    if args.compat_dump is not None:
+        with Package.open(args.docx) as pkg:
+            doc = parse_document(pkg)
+            dumped = compat.dump_suite(args.compat_dump, pkg, doc)
+        json.dump(dumped, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
         return 0
 
     # M1 起接 pipeline.review()；现在如实说明，不假装能跑
