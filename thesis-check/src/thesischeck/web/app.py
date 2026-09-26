@@ -198,7 +198,3 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     uvicorn.run(app, host=args.host, port=args.port)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
