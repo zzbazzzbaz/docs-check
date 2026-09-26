@@ -344,21 +344,52 @@ Outcome:
 
 ### Phase 9: Index Layer and Invariants
 
-- [ ] Implement `src/thesischeck/index/document_index.py`
-  - [ ] Collect modules, chapters, floats, citations and table-of-contents entries
-  - [ ] Use permissive collection and leave narrowing to the rules
-  - [ ] Emit an explicit undetermined result when a fact cannot be collected
-- [ ] Implement `src/thesischeck/index/checks.py`
-  - [ ] Block coverage complete and non-overlapping
-  - [ ] Scope ranges contiguous and covering the document
-  - [ ] Boundary paragraphs match their keyword text
-  - [ ] Chapters ordered and inside the body scope
-  - [ ] Float numbers unique within their kind, reported as a warning rather than a failure
-  - [ ] Citation numbers unique with contiguous first-appearance order
-- [ ] Write tests for the invariants over the synthetic documents
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Implement `src/thesischeck/index/document_index.py`
+  - [x] Collect modules, chapters, floats, citations and table-of-contents entries
+  - [x] Use permissive collection and leave narrowing to the rules
+  - [x] Emit an explicit undetermined result when a fact cannot be collected
+- [x] Implement `src/thesischeck/index/checks.py`
+  - [x] Block coverage complete and non-overlapping
+  - [x] Scope ranges contiguous and covering the document
+  - [x] Boundary paragraphs match their keyword text
+  - [x] Chapters ordered and inside the body scope
+  - [x] Float numbers unique within their kind, reported as a warning rather than a failure
+  - [x] Citation numbers unique with contiguous first-appearance order
+- [x] Write tests for the invariants over the synthetic documents
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- `index/document_index.py` collects the five facts and imports no XML. `DocumentIndex` holds
+  `modules` (`ModuleSpan(name, start, end, title_found)`), `chapters`
+  (`Chapter(no, text, start, end, outline, style, is_heading1)`), `floats`
+  (`Floats(figures, tables, formulas, formula_objects)`), `citations`
+  (`tuple[Citation, ...] | None`) and `toc_entries` (`TocEntry(level, text, para)`).
+  `build_index(doc, blocks)` is the entry point; `module_spans` / `detected_modules` are the
+  single source of module facts.
+- Permissive collection is enforced where it matters: chapter candidates are every paragraph in
+  the body scope whose key text starts with `第X章`, with outline, style and `is_heading1`
+  carried alongside and narrowing left to the rules; table-of-contents entries accept any
+  `toc N` level so the level invariant is not a tautology. Citations are `None` (undetermined)
+  when the body scope cannot be located, never an empty set.
+- `index/checks.py` (`check_index(doc, index)`) runs the seven invariants, separating failures
+  from warnings: float-number duplicates and undetermined citations are warnings, the rest are
+  failures. Its teeth are tested by breaking a good index and asserting each check fires.
+- `GLB-26` / `GLB-27` no longer own a copy of the module keywords: `document_wide` consumes
+  `index.module_spans` / `detected_modules`, so the index is the only place that detects modules.
+  The `GLB-27` verdict test still asserts the recognition/verdict split.
+- `ownindex` joined the Phase 5 equivalence gate: `compat.dump_index` renders the reference shape
+  and `tests/golden/test_equivalence.py` compares it field by field over all 40 documents.
+  **Zero differences; the accepted-difference list stays empty.** The compat renderer follows the
+  reference algorithm (loose citation bracket, `toc 1/2/3`); the product index is deliberately
+  stricter, which is why its evidence is the invariant run rather than the snapshot.
+- Real corpus (40 documents): all seven invariants pass with no failures; four warnings, all of
+  the accepted kind - two documents have duplicate figure/table numbers (left to `TXT-38` /
+  `TXT-44` to narrow) and one document has no body scope, so its citations are reported
+  undetermined. The base document still reports zero problems across all 197 batch 1 rules
+  (`issues_for(BASE) == []`).
 
 ### Phase 10: Batch 2 Rules
 

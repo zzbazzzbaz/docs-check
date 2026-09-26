@@ -1,7 +1,8 @@
 """兼容 dump：把解析结果渲染成 `test2` 快照的形状，**只调试 / 等价性关卡用**。
 
 四套与 `test2/docxfmt/own*.py` 一一对应：`own`（段落与字符）、`ownpages`（分节 / 页眉页脚 /
-页面设置）、`ownborders`（表格边框）、`owntextbox`（文本框）。字段名、单位、`None` 的用法
+页面设置）、`ownborders`（表格边框）、`owntextbox`（文本框），外加 `ownindex`（整篇索引，
+对应 `test2/docxfmt/index.py`）。字段名、单位、`None` 的用法
 逐一对齐，方便直接和 `test2/snapshots/*.json.gz` 比对。
 
 产品模型与对账口径有意不同，这里按需从节点保留的 lxml 引用回溯原始值，只为让关卡可逐字段
@@ -15,6 +16,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import cast
 
 from lxml import etree
@@ -31,7 +34,7 @@ from .document import (
     wp,
 )
 from .effective import Resolver, StyleTable, ThemeFonts, _Entry, _local_attrs, w
-from .model import Document, HeaderFooter, Para, Section, Story
+from .model import Document, HeaderFooter, Para, Section, Story, Table
 from .package import PART_STYLES, PART_THEME, Package
 from .section import _part_content
 
@@ -550,11 +553,234 @@ def dump_textbox(pkg: Package, doc: Document) -> dict[str, object]:
     }
 
 
+# ── ownindex：整篇索引的参考形状 ────────────────────────────────
+#
+# 与 `test2/docxfmt/index.py` 的 `DocIndex.dump()` 逐字段对齐。索引这一块没有 WPS 裁判，
+# 对账的是"解析器提供了参考实现所需的全部事实"——所以**照搬参考算法**（含它宽松的引用
+# 正则与 `toc 1/2/3` 口径），产品索引 `thesischeck.index` 是另一条更严格的收集路径。
+
+_INDEX_ZW = "\u200b"
+_INDEX_CHAPTER = re.compile(r"^第([一二三四五六七八九十]+|\d+)章")
+_INDEX_CN = {char: value for value, char in enumerate("一二三四五六七八九十", 1)}
+_INDEX_FIGURE = re.compile(r"^图\s*(\d+)\s*-\s*(\d+)")
+_INDEX_TABLE = re.compile(r"^表\s*(\d+)\s*-\s*(\d+)")
+_INDEX_FORMULA = re.compile(r"\((\d+)\s*-\s*(\d+)\)")
+_INDEX_TOC_STYLE = re.compile(r"^toc\s*([123])$")
+_INDEX_CITE = re.compile(r"^\[?\s*(\d+(?:\s*[-–,，]\s*\d+)*)\s*\]?$")
+_INDEX_MODULES: tuple[tuple[str, Callable[[str], bool]], ...] = (
+    ("中文摘要", lambda text: text == "摘要"),
+    ("英文摘要", lambda text: text == "ABSTRACT"),
+    ("目录", lambda text: text == "目录"),
+    ("正文", lambda text: re.match(r"^第[一二三四五六七八九十]+章", text) is not None),
+    ("参考文献", lambda text: text == "参考文献"),
+    ("致谢", lambda text: text == "致谢"),
+    ("附录", lambda text: text.startswith("附录")),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _IndexRecord:
+    text: str
+    style_name: str | None
+    outline: int | None
+    has_formula: bool
+    ole: int
+    omath: int
+    runs: tuple[tuple[str, str | None], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _IndexModule:
+    name: str
+    start: int
+    end: int
+
+
+def _index_key_text(text: str) -> str:
+    """参考实现的识别锚点：去所有空白，再去掉开头的零宽空格。"""
+    return re.sub(r"\s+", "", text or "").lstrip(_INDEX_ZW)
+
+
+def _index_chapter_no(text: str) -> int | None:
+    match = _INDEX_CHAPTER.match(text)
+    if match is None:
+        return None
+    group = match.group(1)
+    return int(group) if group.isdigit() else _INDEX_CN.get(group[0], 0) or None
+
+
+def _index_is_toc_like(record: _IndexRecord) -> bool:
+    return _INDEX_TOC_STYLE.match((record.style_name or "").strip().lower()) is not None
+
+
+def _index_records(doc: Document) -> list[_IndexRecord]:
+    return [
+        _IndexRecord(
+            text=para.text,
+            style_name=para.style,
+            outline=para.outline,
+            has_formula=(para.objects.ole + para.objects.omath) > 0,
+            ole=para.objects.ole,
+            omath=para.objects.omath,
+            runs=tuple((run.text, run.va) for run in para.runs),
+        )
+        for para in doc.paragraphs
+    ]
+
+
+def _index_blocks(doc: Document) -> list[dict[str, object]]:
+    blocks: list[dict[str, object]] = []
+    for block in doc.blocks:
+        if isinstance(block, Para):
+            blocks.append({"kind": "p", "paras": [block.id]})
+        elif isinstance(block, Table):
+            paras = [cell_para.id for row in block.rows for cell in row for cell_para in cell.paragraphs]
+            blocks.append({"kind": "tbl", "paras": paras, "rows": block.n_rows, "cols": block.n_cols})
+    for i, entry in enumerate(blocks):
+        entry["i"] = i
+    return blocks
+
+
+def _index_module_spans(records: list[_IndexRecord]) -> list[_IndexModule]:
+    bounds: list[tuple[str, int]] = []
+    for name, predicate in _INDEX_MODULES:
+        hit = next(
+            (
+                i
+                for i, record in enumerate(records)
+                if predicate(_index_key_text(record.text)) and not _index_is_toc_like(record)
+            ),
+            None,
+        )
+        if hit is not None:
+            bounds.append((name, hit))
+    spans: list[_IndexModule] = []
+    previous_name, previous_start = "封面", 0
+    for name, start in bounds:
+        if start > previous_start:
+            spans.append(_IndexModule(previous_name, previous_start, start - 1))
+        previous_name, previous_start = name, start
+    spans.append(_IndexModule(previous_name, previous_start, len(records) - 1))
+    return spans
+
+
+def _index_module_dicts(spans: list[_IndexModule]) -> list[dict[str, object]]:
+    return [{"name": span.name, "from": span.start, "to": span.end} for span in spans]
+
+
+def _index_zone(spans: list[_IndexModule], name: str) -> _IndexModule | None:
+    return next((span for span in spans if span.name == name), None)
+
+
+def _index_chapters(records: list[_IndexRecord], spans: list[_IndexModule]) -> list[dict[str, object]]:
+    zone = _index_zone(spans, "正文")
+    if zone is None:
+        return []
+    found: list[tuple[int, str, int, int | None, str | None]] = []
+    for i in range(zone.start, zone.end + 1):
+        record = records[i]
+        if _index_is_toc_like(record):
+            continue
+        key = _index_key_text(record.text)
+        no = _index_chapter_no(key)
+        if no is not None:
+            found.append((no, key[:24], i, record.outline, record.style_name))
+    out: list[dict[str, object]] = []
+    for position, (no, text, para, outline, style_name) in enumerate(found):
+        end = found[position + 1][2] - 1 if position + 1 < len(found) else zone.end
+        out.append(
+            {
+                "no": no,
+                "text": text,
+                "para": para,
+                "outline": outline,
+                "style_name": style_name,
+                "is_heading1": outline == 0,
+                "to": end,
+            }
+        )
+    return out
+
+
+def _index_floats(records: list[_IndexRecord]) -> dict[str, object]:
+    figures: list[dict[str, object]] = []
+    tables: list[dict[str, object]] = []
+    formulas: list[dict[str, object]] = []
+    objects = 0
+    for i, record in enumerate(records):
+        text = _index_key_text(record.text)
+        figure = _INDEX_FIGURE.match(text)
+        if figure:
+            figures.append({"no": f"{figure.group(1)}-{figure.group(2)}", "para": i})
+        table = _INDEX_TABLE.match(text)
+        if table:
+            tables.append({"no": f"{table.group(1)}-{table.group(2)}", "para": i})
+        if record.has_formula:
+            objects += record.ole + record.omath
+            formula = _INDEX_FORMULA.search(record.text)
+            no = f"{formula.group(1)}-{formula.group(2)}" if formula else None
+            formulas.append({"no": no, "para": i})
+    return {"figure": figures, "table": tables, "formula": formulas, "formula_objects": objects}
+
+
+def _index_citations(records: list[_IndexRecord], spans: list[_IndexModule]) -> list[dict[str, object]]:
+    zone = _index_zone(spans, "正文")
+    out: list[dict[str, object]] = []
+    if zone is None:
+        return out
+    seen: dict[int, int] = {}
+    for i in range(zone.start, zone.end + 1):
+        for text, va in records[i].runs:
+            if va != "superscript" or not text.strip():
+                continue
+            match = _INDEX_CITE.match(text.strip())
+            if match is None:
+                continue
+            for part in re.split(r"[,，]", match.group(1)):
+                numbers = [int(x) for x in re.split(r"[-–]", part.strip()) if x.strip().isdigit()]
+                if len(numbers) == 2:
+                    numbers = list(range(numbers[0], numbers[1] + 1))
+                for number in numbers:
+                    if number not in seen:
+                        seen[number] = len(seen) + 1
+                        out.append({"no": number, "para": i, "order": seen[number]})
+    return out
+
+
+def _index_toc_entries(records: list[_IndexRecord], doc: Document) -> list[dict[str, object]]:
+    toc = next((field for field in doc.fields if field.code == "TOC"), None)
+    if toc is None:
+        return []
+    out: list[dict[str, object]] = []
+    for i in range(toc.start, toc.end + 1):
+        record = records[i]
+        match = _INDEX_TOC_STYLE.match((record.style_name or "").strip().lower())
+        if match:
+            out.append({"level": int(match.group(1)), "text": record.text[:40], "para": i})
+    return out
+
+
+def dump_index(pkg: Package, doc: Document) -> dict[str, object]:
+    records = _index_records(doc)
+    spans = _index_module_spans(records)
+    return {
+        "path": str(pkg.path),
+        "tool": "own",
+        "blocks": _index_blocks(doc),
+        "modules": _index_module_dicts(spans),
+        "chapters": _index_chapters(records, spans),
+        "floats": _index_floats(records),
+        "citations": _index_citations(records, spans),
+        "toc_entries": _index_toc_entries(records, doc),
+    }
+
+
 _SUITES = {
     "own": dump_own,
     "ownpages": dump_pages,
     "ownborders": dump_borders,
     "owntextbox": dump_textbox,
+    "ownindex": dump_index,
 }
 
 

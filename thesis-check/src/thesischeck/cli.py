@@ -13,7 +13,7 @@ from .parse import compat
 from .parse.document import parse_document
 from .parse.package import Package
 
-SUITES = ("own", "ownpages", "ownborders", "owntextbox")
+SUITES = ("own", "ownpages", "ownborders", "owntextbox", "ownindex")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,7 +24,7 @@ def main(argv: list[str] | None = None) -> int:
         "--compat-dump",
         choices=SUITES,
         metavar="SUITE",
-        help="调试用：按 test2 快照形状输出解析结果（own / ownpages / ownborders / owntextbox）",
+        help="调试用：按 test2 快照形状输出解析结果（own / ownpages / ownborders / owntextbox / ownindex）",
     )
     parser.add_argument("--version", action="version", version=f"thesischeck {__version__}")
     args = parser.parse_args(argv)

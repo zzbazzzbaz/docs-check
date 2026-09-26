@@ -11,10 +11,11 @@ from collections.abc import Sequence
 from operator import attrgetter
 from typing import Any
 
+from ..index import MODULE_ORDER, detected_modules, module_spans
 from ..parse.model import HeaderFooter, Run, Section
 from ..semantics import select
 from ..semantics.blocks import Block, CheckContext, Scope
-from ..semantics.matchers import has_cjk, is_appendix_title, is_chapter, is_toc_entry_style, key_text
+from ..semantics.matchers import has_cjk
 from .base import Comparison, Rule, ToleranceKey
 from .support import BlockSel, last_of, neighbour_flag
 
@@ -22,35 +23,15 @@ HEADER_TEXT = "山东石油化工学院本科毕业设计（论文）"
 A4_PT = (595.28, 841.89)
 MARGIN_PT = 73.7  # 2.6 cm = 1474 缇 = 73.7 pt
 
-# 8 个顶层模块的**关键文本**（宽松锚点；空格 / 字体 / 样式写错仍算存在）
-_MODULES: tuple[tuple[str, Any], ...] = (
-    ("封面", lambda text: key_text(text) == "本科生毕业设计（论文）"),
-    ("中文摘要", lambda text: key_text(text) == "摘要"),
-    ("英文摘要", lambda text: key_text(text).upper() == "ABSTRACT"),
-    ("目录", lambda text: key_text(text) == "目录"),
-    ("正文", is_chapter),
-    ("参考文献", lambda text: key_text(text) == "参考文献"),
-    ("致谢", lambda text: key_text(text) == "致谢"),
-    ("附录", is_appendix_title),
-)
-_MODULE_ORDER = tuple(name for name, _ in _MODULES)
-
 
 # ── 模块完整性（GLB-26 / GLB-27）───────────────────────────────
+#
+# 模块识别是**索引**的事（`index.module_spans` 是唯一的模块事实来源）；这里只判定。
 
 
 def module_sequence(blocks: Sequence[Block]) -> tuple[str, ...]:
     """按出现顺序排出的模块名（目录条目与重复出现都排除）。"""
-    found: list[str] = []
-    for block in blocks:
-        if is_toc_entry_style(block.para.style):
-            continue
-        for name, predicate in _MODULES:
-            if predicate(block.para.text):
-                if name not in found:
-                    found.append(name)
-                break
-    return tuple(found)
+    return detected_modules(module_spans(blocks))
 
 
 def module_units(blocks: Sequence[Block]) -> tuple[tuple[str, ...], ...]:
@@ -58,12 +39,12 @@ def module_units(blocks: Sequence[Block]) -> tuple[tuple[str, ...], ...]:
 
 
 def modules_present(sequence: tuple[str, ...]) -> str:
-    missing = [name for name in _MODULE_ORDER if name not in sequence]
+    missing = [name for name in MODULE_ORDER if name not in sequence]
     return "八模块齐全" if not missing else "未识别到" + "、".join(missing)
 
 
 def module_order(sequence: tuple[str, ...]) -> str:
-    expected = [name for name in _MODULE_ORDER if name in sequence]
+    expected = [name for name in MODULE_ORDER if name in sequence]
     return "顺序正确" if list(sequence) == expected else "模块顺序有误"
 
 

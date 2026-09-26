@@ -30,7 +30,7 @@ _REPO = Path(__file__).resolve().parents[2]
 _TEST2 = _REPO.parent / "test2"
 CORPUS = _TEST2 / "corpus"
 SNAPSHOTS = _TEST2 / "snapshots"
-SUITES = ("own", "ownpages", "ownborders", "owntextbox")
+SUITES = ("own", "ownpages", "ownborders", "owntextbox", "ownindex")
 
 # 快照里相对 test2/ 的路径与工具标记，不参与解析事实比对
 IGNORED_KEYS = frozenset({"path", "tool"})
