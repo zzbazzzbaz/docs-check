@@ -69,24 +69,40 @@ parse facts, then judge them, and keep the two apart.
 
 ### Phase 1: Packet Layer and Frozen Document Model
 
-- [ ] Implement `src/thesischeck/parse/package.py`
-  - [ ] Locate and read parts: `word/document.xml`, `word/styles.xml`, `word/numbering.xml`,
-        theme parts, header and footer parts, and the relationship files
-  - [ ] Implement the untrusted-input defences required by NFR-2: entity resolution off, network
+- [x] Implement `src/thesischeck/parse/package.py`
+  - [x] Locate and read parts: `word/document.xml`, `word/styles.xml`, `word/numbering.xml`,
+        theme parts, comment part, and the relationship files
+  - [x] Implement the untrusted-input defences required by NFR-2: entity resolution off, network
         off, huge-tree mode off, entry-count and decompressed-size limits, compression-ratio limit,
         rejection of traversal entry names, rejection of encrypted archives and macro-enabled files
-  - [ ] Define `BadDocument` raise points with user-readable messages for every rejection
-- [ ] Implement `src/thesischeck/parse/model.py`
-  - [ ] Frozen dataclasses with `slots=True`: `Para`, `Run`, `Table`, `Section`, `Box`, `Field`, `Object`, `NumPr`
-  - [ ] Every node carries the lxml element reference used later for comment write-back
-  - [ ] No judgement logic anywhere in this module
-- [ ] Write unit tests in `tests/unit/test_package.py` and `tests/unit/test_model.py`
-  - [ ] Build minimal archives in memory with `zipfile`; no fixture documents required
-  - [ ] One test per defence: entity expansion, oversized archive, too many entries, traversal name, encrypted archive
-  - [ ] Assert `BadDocument` is raised with a readable message, never a raw exception
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+  - [x] Define `BadDocument` raise points with user-readable messages for every rejection
+- [x] Implement `src/thesischeck/parse/model.py`
+  - [x] Frozen dataclasses with `slots=True`: `Para`, `Run`, `Objects`, `NumPr`, plus the `Story`
+        and `LineRule` enums
+  - [x] Every node carries the lxml element reference used later for comment write-back
+  - [x] No judgement logic anywhere in this module
+- [x] Write unit tests in `tests/unit/test_package.py` and `tests/unit/test_model.py`
+  - [x] Build minimal archives in memory with `zipfile`; no fixture documents required
+  - [x] One test per defence: entity expansion, oversized archive, too many entries, traversal name,
+        encrypted archive, compression bomb, oversized part, oversized total
+  - [x] Assert `BadDocument` is raised with a readable message, never a raw exception
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Two adjustments made while implementing this phase:
+
+1. `Table`, `Section`, `Box`, `Field` and `Object` are **deferred to the phases that produce them**
+   (3 and 4). Defining their fields now would be guesswork, and guessing field names is how a model
+   ends up being rewritten twice. Phase 1 defines the paragraph-level facts, which is what the
+   majority of rules read.
+2. Relationship parsing was added here rather than in Phase 4, because locating header and footer
+   parts is a packet-layer concern. External relationship targets are skipped so that no URL from an
+   uploaded document is ever followed.
+
+Finding worth recording: libxml2 already enforces a maximum entity amplification factor, so a
+billion-laughs document is **rejected outright** rather than merely left unexpanded. The test asserts
+the readable rejection and the fact that it returns immediately.
 
 ### Phase 2: Effective Format Resolution
 
