@@ -210,11 +210,15 @@ def para_first_line(block: Block) -> float | None:
 
 
 def empty_run_after(blocks: Sequence[Block], block: Block) -> int:
-    """`block` 之后**紧接着**的空段落个数。"""
+    """`block` 之后**紧接着**的空段落个数。
+
+    分节符段落（承载 `w:sectPr` 的空段）是**结构标记**，不是空行——遇到它就停，
+    否则「标题后正好 1 个空行」会被文末分节符误算成 2 个。
+    """
     index = next(i for i, item in enumerate(blocks) if item is block)
     count = 0
     for item in blocks[index + 1 :]:
-        if item.role is not Role.EMPTY:
+        if item.para.section_break or item.role is not Role.EMPTY:
             break
         count += 1
     return count

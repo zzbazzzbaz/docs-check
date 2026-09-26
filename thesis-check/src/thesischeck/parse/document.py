@@ -22,7 +22,7 @@ from lxml import etree
 from ..errors import BadDocument
 from .effective import Resolver, StyleTable, ThemeFonts, w
 from .model import Borders, Box, Cell, Document, Objects, Para, Run, Story, Table
-from .package import PART_DOCUMENT, PART_STYLES, PART_THEME, Package
+from .package import PART_DOCUMENT, PART_NUMBERING, PART_STYLES, PART_THEME, Package
 
 M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
 WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
@@ -444,6 +444,7 @@ def parse_document(pkg: Package) -> Document:
         boxes=_record_boxes(body, by_element, resolver),
         fields=fields,
         sections=(),
+        has_numbering_part=pkg.has(PART_NUMBERING),
         xml=body,
     )
 

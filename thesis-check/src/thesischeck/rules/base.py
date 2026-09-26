@@ -18,13 +18,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
 from ..errors import RuleError
-from ..semantics.blocks import Block
+from ..semantics.blocks import CheckContext
 
 
 class Verdict(StrEnum):
@@ -80,7 +80,7 @@ class Rule[Obj, Val]:
     """一条规则的数据。`of` 选对象，`prop` 取属性，`expect` 是期望值。"""
 
     id: str
-    of: Callable[[Sequence[Block]], tuple[Obj, ...]]
+    of: Callable[[CheckContext], tuple[Obj, ...]]
     prop: Callable[[Obj], Val | None]
     expect: Val
     src: str
@@ -125,7 +125,15 @@ def matches(rule: Rule[Any, Any], got: Any, tolerances: Tolerances) -> bool:
     if rule.cmp is Comparison.APPROX:
         if rule.tol is None:
             raise ValueError(f"{rule.id}: APPROX 比较必须指定容差键")
-        return abs(_as_float(got) - _as_float(rule.expect)) <= _TOLERANCE_VALUE[rule.tol](tolerances)
+        tolerance = _TOLERANCE_VALUE[rule.tol](tolerances)
+        # 纸张尺寸是二维的：允许对同长的数值序列逐分量比较（GLB-15）
+        if isinstance(got, (tuple, list)) and isinstance(rule.expect, (tuple, list)):
+            if len(got) != len(rule.expect):
+                return False
+            return all(
+                abs(_as_float(a) - _as_float(b)) <= tolerance for a, b in zip(got, rule.expect, strict=True)
+            )
+        return abs(_as_float(got) - _as_float(rule.expect)) <= tolerance
     if rule.cmp is Comparison.PATTERN:
         if not isinstance(rule.expect, re.Pattern):
             raise TypeError(f"{rule.id}: PATTERN 比较的期望值必须是正则")

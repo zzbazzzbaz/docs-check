@@ -19,8 +19,11 @@ from lxml import etree
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 M = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 DOCUMENT = "word/document.xml"
 STYLES = "word/styles.xml"
+HEADER = "word/header1.xml"
+FOOTER = "word/footer1.xml"
 
 Change = Callable[[bytes], bytes]
 _El = etree._Element
@@ -43,7 +46,7 @@ def _key(p: _El) -> str:
 
 
 def _is_module_title(want: str) -> Callable[[_El], bool]:
-    return lambda p: _key(p).upper() == want.upper()
+    return lambda p: _key(p).upper() == want.upper() and not _is_toc(p)
 
 
 def _style_val(p: _El) -> str:
@@ -97,8 +100,11 @@ TARGETS: dict[str, Callable[[_El], bool]] = {
     "图题": lambda p: re.match(r"^图\d+-\d+", _key(p)) is not None,
     "表题": lambda p: re.match(r"^表\d+-\d+", _key(p)) is not None,
     "图块": lambda p: p.find(f".//{_w('drawing')}") is not None,
-    "引用标注": lambda p: any(_run_text_value(r).startswith("[") for r in p.iter(_w("r"))),
+    "引用标注": lambda p: any(re.fullmatch(r"\[\d+\]", _run_text_value(r)) for r in p.iter(_w("r"))),
     "文献条目": lambda p: _key(p).startswith("["),
+    "文献条目2": lambda p: _key(p).startswith("[2]"),
+    "致谢正文": lambda p: _key(p).startswith(("感谢导师", "感谢家人")),
+    "附录正文": lambda p: _key(p).startswith(("论文的附录", "此处为程序代码")),
     "附录子标题": lambda p: _key(p).startswith("附录") and _key(p) != "附录",
     "公式段落": lambda p: p.find(f".//{_m('oMath')}") is not None or p.find(f".//{_w('object')}") is not None,
     "空段落": lambda p: _text(p).strip() == "" and p.find(f".//{_w('fldChar')}") is None,
@@ -401,6 +407,245 @@ def _first_line(target: str, chars: float) -> Change:
     return _edit(DOCUMENT, edit)
 
 
+# ── 行内文本替换 / 大纲级别 / 插入合规段落 ─────────────────────
+
+
+def _run_replace(target: str, prefix: str, old: str, new: str) -> Change:
+    def edit(root: _El) -> None:
+        for run in _target_runs(root, target, prefix):
+            texts = list(run.iter(_w("t")))
+            if texts:
+                texts[0].set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                texts[0].text = (texts[0].text or "").replace(old, new)
+
+    return _edit(DOCUMENT, edit)
+
+
+def _outline(target: str, level: int) -> Change:
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            ppr = _ppr(p)
+            existing = ppr.find(_w("outlineLvl"))
+            if existing is not None:
+                ppr.remove(existing)
+            etree.SubElement(ppr, _w("outlineLvl")).set(_w("val"), str(level))
+
+    return _edit(DOCUMENT, edit)
+
+
+_XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
+
+
+def _compliant_line(text: str) -> _El:
+    """全合规正文行：宋体 / TNR / 小四 / 1.5 倍 / 首行缩进 2 字符 / 两端对齐。"""
+    p = etree.Element(_w("p"))
+    ppr = etree.SubElement(p, _w("pPr"))
+    etree.SubElement(ppr, _w("jc")).set(_w("val"), "both")
+    spacing = etree.SubElement(ppr, _w("spacing"))
+    spacing.set(_w("line"), "360")
+    spacing.set(_w("lineRule"), "auto")
+    etree.SubElement(ppr, _w("ind")).set(_w("firstLineChars"), "200")
+    run = etree.SubElement(p, _w("r"))
+    rpr = etree.SubElement(run, _w("rPr"))
+    fonts = etree.SubElement(rpr, _w("rFonts"))
+    fonts.set(_w("ascii"), "Times New Roman")
+    fonts.set(_w("hAnsi"), "Times New Roman")
+    fonts.set(_w("eastAsia"), "宋体")
+    etree.SubElement(rpr, _w("sz")).set(_w("val"), "24")
+    node = etree.SubElement(run, _w("t"))
+    node.set(_XML_SPACE, "preserve")
+    node.text = text
+    return p
+
+
+def _insert_line(target: str, text: str, *, before: bool) -> Change:
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            parent = p.getparent()
+            if parent is None:
+                continue
+            parent.insert(parent.index(p) + (0 if before else 1), _compliant_line(text))
+            if before:
+                break  # 只插在第一处之前（如模块标题），不影响其它同锚点段落
+
+    return _edit(DOCUMENT, edit)
+
+
+# ── 页眉 / 页脚部件 ────────────────────────────────────────────
+
+
+def _hf_ea(part: str, font: str) -> Change:
+    def edit(root: _El) -> None:
+        for run in root.iter(_w("r")):
+            _rfonts(run).set(_w("eastAsia"), font)
+
+    return _edit(part, edit)
+
+
+def _hf_west(part: str, font: str) -> Change:
+    def edit(root: _El) -> None:
+        for run in root.iter(_w("r")):
+            fonts = _rfonts(run)
+            fonts.set(_w("ascii"), font)
+            fonts.set(_w("hAnsi"), font)
+
+    return _edit(part, edit)
+
+
+def _hf_size(part: str, pt: float) -> Change:
+    def edit(root: _El) -> None:
+        for run in root.iter(_w("r")):
+            rpr = _rpr(run)
+            existing = rpr.find(_w("sz"))
+            if existing is None:
+                existing = etree.SubElement(rpr, _w("sz"))
+            existing.set(_w("val"), str(int(pt * 2)))
+
+    return _edit(part, edit)
+
+
+def _hf_align(part: str, value: str) -> Change:
+    def edit(root: _El) -> None:
+        for p in root.iter(_w("p")):
+            ppr = _ppr(p)
+            existing = ppr.find(_w("jc"))
+            if existing is not None:
+                ppr.remove(existing)
+            etree.SubElement(ppr, _w("jc")).set(_w("val"), value)
+
+    return _edit(part, edit)
+
+
+def _hf_text(part: str, text: str) -> Change:
+    def edit(root: _El) -> None:
+        for t in root.iter(_w("t")):
+            t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+            t.text = text
+            break
+
+    return _edit(part, edit)
+
+
+# ── 分节 / 页面设置 ────────────────────────────────────────────
+
+
+def _sect_prs(root: _El) -> list[tuple[_El, _El | None]]:
+    body = root.find(_w("body"))
+    if body is None:
+        return []
+    out: list[tuple[_El, _El | None]] = []
+    for p in body.iter(_w("p")):
+        ppr = p.find(_w("pPr"))
+        sect = ppr.find(_w("sectPr")) if ppr is not None else None
+        if sect is not None:
+            out.append((sect, p))
+    body_sect = body.find(_w("sectPr"))
+    if body_sect is not None:
+        out.append((body_sect, None))
+    return out
+
+
+def _sect_edit(index: int, edit: Callable[[_El], None]) -> Change:
+    def apply(root: _El) -> None:
+        items = _sect_prs(root)
+        if 1 <= index <= len(items):
+            edit(items[index - 1][0])
+
+    return _edit(DOCUMENT, apply)
+
+
+def _add_reference(kind: str, index: int) -> Change:
+    def edit(sect: _El) -> None:
+        node = etree.Element(_w(f"{kind}Reference"))
+        node.set(_w("type"), "default")
+        node.set(f"{{{R}}}id", "rIdF1" if kind == "footer" else "rIdH1")
+        sect.insert(0, node)
+
+    return _sect_edit(index, edit)
+
+
+def _remove_reference(kind: str, index: int) -> Change:
+    def edit(sect: _El) -> None:
+        for node in sect.findall(_w(f"{kind}Reference")):
+            sect.remove(node)
+
+    return _sect_edit(index, edit)
+
+
+def _dangling_reference(kind: str, index: int) -> Change:
+    """加一个指向不存在部件的引用：显式切断上一节的继承（用于「本节无页码」）。"""
+
+    def edit(sect: _El) -> None:
+        node = etree.Element(_w(f"{kind}Reference"))
+        node.set(_w("type"), "default")
+        node.set(f"{{{R}}}id", "rIdMissing")
+        sect.insert(0, node)
+
+    return _sect_edit(index, edit)
+
+
+def _set_page_number_format(index: int, fmt: str) -> Change:
+    def edit(sect: _El) -> None:
+        node = sect.find(_w("pgNumType"))
+        if node is None:
+            node = etree.SubElement(sect, _w("pgNumType"))
+        node.set(_w("fmt"), fmt)
+
+    return _sect_edit(index, edit)
+
+
+def _set_page_size(index: int) -> Change:
+    def edit(sect: _El) -> None:
+        node = sect.find(_w("pgSz"))
+        if node is None:
+            node = etree.SubElement(sect, _w("pgSz"))
+        node.set(_w("w"), "12240")
+        node.set(_w("h"), "15840")
+
+    return _sect_edit(index, edit)
+
+
+def _set_margin(index: int, side: str, value: str) -> Change:
+    def edit(sect: _El) -> None:
+        node = sect.find(_w("pgMar"))
+        if node is None:
+            node = etree.SubElement(sect, _w("pgMar"))
+        node.set(_w(side), value)
+
+    return _sect_edit(index, edit)
+
+
+def _remove_section_break(index: int) -> Change:
+    def apply(root: _El) -> None:
+        items = _sect_prs(root)
+        if not (1 <= index <= len(items)):
+            return
+        sect, para = items[index - 1]
+        if para is not None:
+            parent = para.getparent()
+            if parent is not None:
+                parent.remove(para)
+        else:
+            parent = sect.getparent()
+            if parent is not None:
+                parent.remove(sect)
+
+    return _edit(DOCUMENT, apply)
+
+
+def _add_auto_numbering(target: str, num_id: int = 5) -> Change:
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            ppr = _ppr(p)
+            numpr = etree.SubElement(ppr, _w("numPr"))
+            ilvl = etree.SubElement(numpr, _w("ilvl"))
+            ilvl.set(_w("val"), "0")
+            num = etree.SubElement(numpr, _w("numId"))
+            num.set(_w("val"), str(num_id))
+
+    return _edit(DOCUMENT, edit)
+
+
 @dataclass(frozen=True, slots=True)
 class Deviation:
     """一个偏差声明：底稿 + 串好的改动。`CASE` 用它跑"只报这一条"。"""
@@ -489,6 +734,94 @@ def run_text(target: str, prefix: str, text: str) -> Deviation:
 
 def first_line(target: str, chars: float) -> Deviation:
     return Deviation((_first_line(target, chars),))
+
+
+def run_replace(target: str, prefix: str, old: str, new: str) -> Deviation:
+    """在目标段落的某个 run 内做一次子串替换（编号 / 类型标识等文本微调）。"""
+    return Deviation((_run_replace(target, prefix, old, new),))
+
+
+def outline_level(target: str, level: int) -> Deviation:
+    """改目标段落的大纲级别（`w:outlineLvl`，0 起）。"""
+    return Deviation((_outline(target, level),))
+
+
+def insert_line_after(target: str, text: str) -> Deviation:
+    """在目标段落后插入一个全合规正文行。"""
+    return Deviation((_insert_line(target, text, before=False),))
+
+
+def insert_line_before(target: str, text: str) -> Deviation:
+    """在目标段落前插入一个全合规正文行。"""
+    return Deviation((_insert_line(target, text, before=True),))
+
+
+def header_ea(font: str) -> Deviation:
+    return Deviation((_hf_ea(HEADER, font),))
+
+
+def header_size(pt: float) -> Deviation:
+    return Deviation((_hf_size(HEADER, pt),))
+
+
+def header_align(value: str) -> Deviation:
+    return Deviation((_hf_align(HEADER, value),))
+
+
+def header_text(text: str) -> Deviation:
+    return Deviation((_hf_text(HEADER, text),))
+
+
+def footer_align(value: str) -> Deviation:
+    return Deviation((_hf_align(FOOTER, value),))
+
+
+def footer_page_west(font: str) -> Deviation:
+    return Deviation((_hf_west(FOOTER, font),))
+
+
+def footer_page_size(pt: float) -> Deviation:
+    return Deviation((_hf_size(FOOTER, pt),))
+
+
+def add_header_reference(index: int) -> Deviation:
+    return Deviation((_add_reference("header", index),))
+
+
+def add_footer_reference(index: int) -> Deviation:
+    return Deviation((_add_reference("footer", index),))
+
+
+def dangling_footer_reference(index: int) -> Deviation:
+    return Deviation((_dangling_reference("footer", index),))
+
+
+def remove_header_reference(index: int) -> Deviation:
+    return Deviation((_remove_reference("header", index),))
+
+
+def remove_footer_reference(index: int) -> Deviation:
+    return Deviation((_remove_reference("footer", index),))
+
+
+def page_number_format(index: int, fmt: str) -> Deviation:
+    return Deviation((_set_page_number_format(index, fmt),))
+
+
+def page_size(index: int) -> Deviation:
+    return Deviation((_set_page_size(index),))
+
+
+def page_margin(index: int, side: str, value: str) -> Deviation:
+    return Deviation((_set_margin(index, side, value),))
+
+
+def remove_section_break(index: int) -> Deviation:
+    return Deviation((_remove_section_break(index),))
+
+
+def auto_numbering(target: str, num_id: int = 5) -> Deviation:
+    return Deviation((_add_auto_numbering(target, num_id),))
 
 
 def combined(deviations: Iterable[Deviation]) -> Deviation:

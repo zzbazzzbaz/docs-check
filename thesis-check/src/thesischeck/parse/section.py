@@ -16,7 +16,7 @@ from lxml import etree
 
 from .document import _inside_txbx, _record_para, iter_paragraphs
 from .effective import Resolver, StyleTable, ThemeFonts, _local_attrs, w
-from .model import Document, HeaderFooter, Para, Section, Story
+from .model import Document, HeaderFooter, Para, Run, Section, Story
 from .package import PART_DOCUMENT, PART_SETTINGS, PART_STYLES, PART_THEME, Package
 
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -47,10 +47,56 @@ def _page_fields(root: etree._Element) -> int:
     )
 
 
+def _fld_char_type(r: etree._Element) -> str | None:
+    fld = r.find(w("fldChar"))
+    return None if fld is None else fld.get(w("fldCharType"))
+
+
+def _is_page_instr(r: etree._Element) -> bool:
+    instr = r.find(w("instrText"))
+    return instr is not None and (instr.text or "").strip().startswith("PAGE")
+
+
+def _page_field_elements(root: etree._Element) -> set[int]:
+    """PAGE 域区间内的 `w:r` / `w:fldSimple` 内的 run 元素 id 集合。
+
+    从含 PAGE `instrText` 的 run 向前找最近的 `begin`、向后找最近的 `end`，区间内的 run
+    全收（缓存的结果 run 也在内）；没有 `separate` / 结果时区间里仍有 `instrText` run。
+    `w:fldSimple` 直接收其内部 run。
+    """
+    ids: set[int] = set()
+    for p in root.iter(w("p")):
+        runs = list(p.iter(w("r")))
+        for i, r in enumerate(runs):
+            if not _is_page_instr(r):
+                continue
+            start = i
+            while start >= 0 and _fld_char_type(runs[start]) != "begin":
+                start -= 1
+            stop = i
+            while stop < len(runs) and _fld_char_type(runs[stop]) != "end":
+                stop += 1
+            for r2 in runs[max(start, 0) : min(stop + 1, len(runs))]:
+                ids.add(id(r2))
+    for simple in root.iter(w("fldSimple")):
+        if (simple.get(w("instr")) or "").strip().startswith("PAGE") and not _inside_txbx(simple, root):
+            ids.update(id(r) for r in simple.iter(w("r")))
+    return ids
+
+
 def _part_content(
-    pkg: Package, part: str, story: Story, resolver: Resolver, cache: dict[str, tuple[tuple[Para, ...], int]]
+    pkg: Package,
+    part: str,
+    story: Story,
+    resolver: Resolver,
+    cache: dict[str, tuple[tuple[Para, ...], int]],
+    page_cache: dict[str, tuple[tuple[Run, ...], tuple[Para, ...]]] | None = None,
 ) -> tuple[tuple[Para, ...], int]:
-    """页眉/页脚部件的段落与 PAGE 域数；同一个部件被多节引用时只构造一次。"""
+    """页眉/页脚部件的段落与 PAGE 域数；同一部件只构造一次。
+
+    `page_cache` 给定时顺带记下 PAGE 域区间内的 run / 段落（复用**同一棵树**，否则元素
+    身份对不上）。
+    """
     cached = cache.get(part)
     if cached is not None:
         return cached
@@ -62,8 +108,19 @@ def _part_content(
             for i, (el, in_table, row_end) in enumerate(iter_paragraphs(root))
         )
         result = (paragraphs, _page_fields(root))
+        if page_cache is not None:
+            page_cache[part] = _page_number_content(paragraphs, _page_field_elements(root))
     cache[part] = result
     return result
+
+
+def _page_number_content(
+    paragraphs: tuple[Para, ...], ids: set[int]
+) -> tuple[tuple[Run, ...], tuple[Para, ...]]:
+    """从已构造的段落里摘出 PAGE 域区间内的 run 与承载它们的段落。"""
+    runs = tuple(run for para in paragraphs for run in para.runs if id(run.xml) in ids)
+    paras = tuple(para for para in paragraphs if any(id(run.xml) in ids for run in para.runs))
+    return runs, paras
 
 
 def parse_sections(pkg: Package, doc: Document) -> tuple[Section, ...]:
@@ -87,6 +144,7 @@ def parse_sections(pkg: Package, doc: Document) -> tuple[Section, ...]:
     even_odd = settings is not None and settings.find(w("evenAndOddHeaders")) is not None
 
     cache: dict[str, tuple[tuple[Para, ...], int]] = {}
+    page_cache: dict[str, tuple[tuple[Run, ...], tuple[Para, ...]]] = {}
     # 各类型页眉/页脚已生效的部件，按节往下传
     carried: dict[tuple[str, str], str | None] = {}
     sections: list[Section] = []
@@ -115,8 +173,11 @@ def parse_sections(pkg: Package, doc: Document) -> tuple[Section, ...]:
                     carried[(kind, ref_type)] = part if part is not None and pkg.has(part) else None
                 part = carried.get((kind, ref_type))
                 paragraphs, page_fields = (
-                    _part_content(pkg, part, story, resolver, cache) if part is not None else ((), 0)
+                    _part_content(pkg, part, story, resolver, cache, page_cache)
+                    if part is not None
+                    else ((), 0)
                 )
+                page_runs, page_paras = page_cache.get(part, ((), ())) if part is not None else ((), ())
                 groups[kind].append(
                     HeaderFooter(
                         kind=kind,
@@ -126,6 +187,8 @@ def parse_sections(pkg: Package, doc: Document) -> tuple[Section, ...]:
                         text="".join(p.text for p in paragraphs),
                         page_fields=page_fields,
                         paragraphs=paragraphs,
+                        page_number_runs=page_runs,
+                        page_number_paragraphs=page_paras,
                     )
                 )
 

@@ -21,7 +21,7 @@ from thesischeck.parse.document import parse_document
 from thesischeck.parse.package import Package
 from thesischeck.rules import REGISTRY, run_rules
 from thesischeck.rules.base import Issue, Verdict
-from thesischeck.semantics.blocks import tag_blocks
+from thesischeck.semantics.blocks import tag_context
 
 
 def issues_for(data: bytes) -> list[Issue]:
@@ -31,7 +31,7 @@ def issues_for(data: bytes) -> list[Issue]:
         path.write_bytes(data)
         with Package.open(path) as pkg:
             document = parse_document(pkg)
-    return run_rules(tag_blocks(document), REGISTRY)
+    return run_rules(tag_context(document), REGISTRY)
 
 
 def CASE(

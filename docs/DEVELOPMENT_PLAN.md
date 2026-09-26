@@ -292,22 +292,55 @@ Outcome:
 
 ### Phase 8: Batch 1 Rules
 
-- [ ] Add the batch 1 rule data for all 197 rules, one line per attribute rule
-  - [ ] Cover: cover page, Chinese abstract, English abstract, table of contents entries,
+- [x] Add the batch 1 rule data for all 197 rules, one line per attribute rule
+  - [x] Cover: cover page, Chinese abstract, English abstract, table of contents entries,
         headings and body text, references, acknowledgements, appendix, and the document-wide rules
-- [ ] Implement the small number of structural rules as code
-  - [ ] Required-object existence, module order, automatic numbering prohibition, page break
+- [x] Implement the small number of structural rules as code
+  - [x] Required-object existence, module order, automatic numbering prohibition, page break
         markers, header and footer applicability, caption positions with respect to figures and
         tables, numbering format and spacing, numbering continuity, reference paragraph integrity
-- [ ] Add one case per rule, asserting that only the expected rule fires
-- [ ] Add the anti-tautology cases: altering an appendix heading's outline level, lower-casing an
+- [x] Add one case per rule, asserting that only the expected rule fires
+- [x] Add the anti-tautology cases: altering an appendix heading's outline level, lower-casing an
       appendix letter, removing a figure cross-reference, adding automatic numbering, and a
       paragraph that does not begin with a number
-- [ ] Write structural tests: margin tolerance handling, blank-paragraph counting, keyword separator
+- [x] Write structural tests: margin tolerance handling, blank-paragraph counting, keyword separator
       counting, and the five-line consistency check on the cover page
-- [ ] Perform a self-review of your code, once you are certain it is 100 percent complete to the
+- [x] Perform a self-review of your code, once you are certain it is 100 percent complete to the
       requirements in this phase mark the task as done.
 - [ ] STOP and wait for human review
+
+Outcome:
+
+- **197 rules** are registered for batch 1 (cover 16, Chinese abstract 24, English abstract 23,
+  table of contents 15, body 46, references 15, acknowledgements 12, appendix 18, document-wide 28).
+  They were delivered in three rounds: round 1 cover + abstracts (63), round 2 table of contents +
+  body (61), round 3 references + acknowledgements + appendix + document-wide (73).
+- **The fully-compliant fixture reports zero problems across all 197 rules**
+  (`issues_for(BASE) == []`). Reaching this needed fixture work: a blank line after the reference /
+  acknowledgement / appendix titles, the acknowledgement body now carries ASCII so the Western-font
+  rule has an object, the appendix sub-headings carry 1.5 line spacing, the header is 黑体 五号,
+  the footer PAGE field runs are 五号, and the page margins are 2.6 cm; the document is split into
+  eight per-module sections so header/footer applicability can be tested in isolation.
+- The **rule-identifier cross-check is now bidirectional and hard**: `ALL_IN_SCOPE_RULES_REGISTERED`
+  is `True`, and the registered set equals the document set minus the six items not built this
+  release (`TXT-50`, `REF-16`–`REF-20`) and the seven deferred to batch 2 (`TXT-36`, `TXT-42`,
+  `TXT-48`, `TXT-49`, `TXT-52`, `REF-14`, `REF-15`). The difference is empty.
+- **Automatic-numbering "step aside"** is a selector filter, not an engine mechanism: the shared
+  selectors `ref_items_no_auto` / `appendix_subs_no_auto` / `h4_no_auto` drop paragraphs whose
+  effective `numPr` is set, so `REF-10`/`REF-11`/`APP-06`/`TXT-19` never see them; `GLB-28` reports
+  them once. `REF-10` and `REF-21` share `matchers.looks_like_number`, so a paragraph that does not
+  begin with a number is reported by `REF-21` only.
+- Document-wide facts reach the rules through a read-only `CheckContext` (the block sequence plus
+  sections, all paragraphs including text boxes, and whether `numbering.xml` exists); it is a tuple
+  subclass, so every existing block selector keeps working unchanged. Page-number runs are extracted
+  in the parser (`HeaderFooter.page_number_runs`), keeping the rules layer free of XML.
+- **Known couplings / literal readings recorded**: `GLB-22`'s case also trips `GLB-14` because
+  removing the table-of-contents-to-body section break merges the two sections (so the contents also
+  gains a page number); `GLB-27`'s verdict is tested directly because reordering modules changes the
+  scope partition itself; `GLB-28`'s report-end summary count belongs to the Phase 11 report layer;
+  `REF-11` counts continuity over numbered items only so an unnumbered item is reported by `REF-21`
+  alone; a section-break paragraph is treated as a structural marker, not a blank line, by the
+  "exactly one blank line after a title" rules.
 
 ### Phase 9: Index Layer and Invariants
 

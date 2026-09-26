@@ -188,6 +188,9 @@ class HeaderFooter:
     `owned` = 本节自己写了 `w:headerReference` / `w:footerReference`；否则 `part` 是从
     上一节继承来的生效部件。`page_fields` 是该部件里的 PAGE 域个数。`ref_type` 取
     `default` / `first` / `even`。
+
+    `page_number_runs` / `page_number_paragraphs` 只对**页脚**有意义：PAGE 域区间内的
+    run（含缓存的结果 run；没有 `separate` 时就退化成 `instrText` run）与承载它的段落。
     """
 
     kind: str
@@ -197,6 +200,8 @@ class HeaderFooter:
     text: str
     page_fields: int
     paragraphs: tuple[Para, ...]
+    page_number_runs: tuple[Run, ...] = ()
+    page_number_paragraphs: tuple[Para, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +238,7 @@ class Document:
     `blocks` 是文件顺序的块序列，`w:p` 与 `w:tbl` 交错（内容控件透传、不下钻文本框）；
     `paragraphs` 是正文故事区的全部段落，含表格单元格内的段落，`id` 连续；
     `fields` 是正文故事区的**真实域**（页眉页脚里的域不算，在 `Section` 里）。
+    `has_numbering_part` 表示包里有 `word/numbering.xml`（自动编号的兜底信号）。
     """
 
     blocks: tuple[Para | Table, ...]
@@ -241,4 +247,5 @@ class Document:
     boxes: tuple[Box, ...]
     fields: tuple[Field, ...]
     sections: tuple[Section, ...]
+    has_numbering_part: bool
     xml: etree._Element

@@ -35,10 +35,10 @@ FOOTER = "word/footer1.xml"
 DOC_RELS = "word/_rels/document.xml.rels"
 CONTENT_TYPES = "[Content_Types].xml"
 
-# A4：11906 x 16838 twips；页边距上下 2.54cm、左右 3.17cm
+# A4：11906 x 16838 twips；页边距上下左右 2.6cm（1474 缇）
 _A4 = '<w:pgSz w:w="11906" w:h="16838"/>'
 _PGMAR = (
-    '<w:pgMar w:top="1440" w:bottom="1440" w:left="1797" w:right="1797"'
+    '<w:pgMar w:top="1474" w:bottom="1474" w:left="1474" w:right="1474"'
     ' w:header="851" w:footer="992" w:gutter="0"/>'
 )
 
@@ -225,7 +225,10 @@ def _three_line_table() -> str:
         [_cell_text("表头一"), _cell_text("表头二")],
         # 「数据一」格带一个上标引用，覆盖表格里的引用标注（TXT-30/31）
         [
-            _cell("数据一" + run("[2]", west="Times New Roman", size=12, va="superscript")),
+            _cell(
+                run("数据一", ea="宋体", west="Times New Roman", size=12)
+                + run("[2]", west="Times New Roman", size=12, va="superscript")
+            ),
             _cell_text("数据二"),
         ],
     ]
@@ -284,13 +287,18 @@ def _references() -> str:
         "[2] 王伟国，刘永萍，王生年，等.B/S模式网上考试系统分析与设计[J]."
         "石河子大学学报：自然科学版，2003，6(2)：145-147.",
     ]
-    return _module_title_line("参考文献") + "".join(_body_line(item, indent=False) for item in items)
+    return (
+        _module_title_line("参考文献")
+        + para()  # 标题后 1 个空段
+        + "".join(_body_line(item, indent=False) for item in items)
+    )
 
 
 def _acknowledgements() -> str:
     return (
         _module_title_line("致    谢")
-        + _body_line("感谢导师与同学在课题研究过程中给予的帮助。")
+        + para()  # 标题后 1 个空段
+        + _body_line("感谢导师与同学在ESP32课题研究中给予的帮助。")
         + _body_line("感谢家人一直以来的支持。")
     )
 
@@ -299,9 +307,18 @@ def _appendix() -> str:
     return "".join(
         [
             _module_title_line("附    录"),
-            para(run("附录A 名词术语及缩略词", ea="黑体", west="Times New Roman", size=14), outline=1),
+            para(),  # 标题后 1 个空段
+            para(
+                run("附录A 名词术语及缩略词", ea="黑体", west="Times New Roman", size=14),
+                outline=1,
+                line=1.5,
+            ),
             _body_line("论文的附录用大写字母 A、B、C 依次编号。"),
-            para(run("附录B 程序代码", ea="黑体", west="Times New Roman", size=14), outline=1),
+            para(
+                run("附录B 程序代码", ea="黑体", west="Times New Roman", size=14),
+                outline=1,
+                line=1.5,
+            ),
             _body_line("此处为程序代码清单。"),
         ]
     )
@@ -324,7 +341,7 @@ def _styles_xml() -> str:
         f'<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="{W}">'
         f"<w:docDefaults><w:rPrDefault><w:rPr>{fonts}</w:rPr></w:rPrDefault></w:docDefaults>"
         f'<w:style w:type="paragraph" w:default="1" w:styleId="Normal">'
-        f'<w:name w:val="正文"/><w:rPr>{fonts}</w:rPr></w:style>'
+        f'<w:name w:val="正文"/><w:pPr><w:jc w:val="both"/></w:pPr><w:rPr>{fonts}</w:rPr></w:style>'
         f"{styles}{toc}</w:styles>"
     )
 
@@ -332,16 +349,20 @@ def _styles_xml() -> str:
 def _header_xml() -> str:
     return (
         f'<?xml version="1.0" encoding="UTF-8"?><w:hdr xmlns:w="{W}">'
-        + para(run("山东石油化工学院本科毕业设计（论文）", ea="宋体", size=9), align="center")
+        + para(run("山东石油化工学院本科毕业设计（论文）", ea="黑体", size=10.5), align="center")
         + "</w:hdr>"
     )
 
 
 def _footer_xml() -> str:
+    # PAGE 域：begin / instrText / separate / 结果 / end，5 个 run 都带五号字号
+    rpr = '<w:rPr><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr>'
     field = (
-        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
-        '<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
-        '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+        f'<w:r>{rpr}<w:fldChar w:fldCharType="begin"/></w:r>'
+        f'<w:r>{rpr}<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
+        f'<w:r>{rpr}<w:fldChar w:fldCharType="separate"/></w:r>'
+        f"<w:r>{rpr}<w:t>1</w:t></w:r>"
+        f'<w:r>{rpr}<w:fldChar w:fldCharType="end"/></w:r>'
     )
     return (
         f'<?xml version="1.0" encoding="UTF-8"?><w:ftr xmlns:w="{W}">'
@@ -351,24 +372,27 @@ def _footer_xml() -> str:
 
 
 def _document_xml() -> str:
-    # 3 节：封面 / 摘要与目录 / 正文到附录。节 3 继承节 2 的页眉，页脚自有。
-    section1 = _sect_break(_A4 + _PGMAR)
-    section2 = _sect_break(_A4 + _PGMAR + '<w:headerReference w:type="default" r:id="rIdH1"/>')
-    section3 = (
-        _A4 + _PGMAR + '<w:footerReference w:type="default" r:id="rIdF1"/><w:pgNumType w:fmt="decimal"/>'
-    )
+    # 8 节，每模块一节：封面 / 中文摘要 / 英文摘要 / 目录 / 正文 / 参考文献 / 致谢 / 附录。
+    # 页眉由节 2 引用，3~8 继承；页脚（PAGE）由节 5 引用，6~8 继承；封面与摘要、目录无页码。
+    _hdr = '<w:headerReference w:type="default" r:id="rIdH1"/>'
+    _ftr = '<w:footerReference w:type="default" r:id="rIdF1"/>'
     body = (
         _cover()
-        + section1
+        + _sect_break(_A4 + _PGMAR)
         + _chinese_abstract()
+        + _sect_break(_A4 + _PGMAR + _hdr)
         + _english_abstract()
+        + _sect_break(_A4 + _PGMAR)
         + _table_of_contents()
-        + section2
+        + _sect_break(_A4 + _PGMAR)
         + _body()
+        + _sect_break(_A4 + _PGMAR + _ftr + '<w:pgNumType w:fmt="decimal"/>')
         + _references()
+        + _sect_break(_A4 + _PGMAR)
         + _acknowledgements()
+        + _sect_break(_A4 + _PGMAR)
         + _appendix()
-        + f"<w:sectPr>{section3}</w:sectPr>"
+        + f"<w:sectPr>{_A4 + _PGMAR}</w:sectPr>"
     )
     return (
         f'<?xml version="1.0" encoding="UTF-8"?>'

@@ -16,12 +16,12 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..errors import RuleError
-from ..semantics.blocks import Block
+from ..semantics.blocks import CheckContext
 from .base import DEFAULT_TOLERANCES, Issue, Rule, Tolerances, Verdict, matches
 
 
 def run_rules(
-    blocks: Sequence[Block],
+    context: CheckContext,
     registry: Sequence[Rule[Any, Any]],
     *,
     tolerances: Tolerances = DEFAULT_TOLERANCES,
@@ -30,7 +30,7 @@ def run_rules(
     issues: list[Issue] = []
     for rule in registry:
         try:
-            for obj in rule.of(blocks):
+            for obj in rule.of(context):
                 got = rule.prop(obj)
                 if got is None:
                     issues.append(Issue(rule.id, Verdict.UNDETERMINED, obj, expect=rule.expect, src=rule.src))

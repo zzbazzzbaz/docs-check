@@ -18,10 +18,14 @@ from typing import Any
 
 from .abstract_c import REGISTRY as _ABSTRACT_C
 from .abstract_e import REGISTRY as _ABSTRACT_E
+from .acknowledgements import REGISTRY as _ACK
+from .appendix import REGISTRY as _APPENDIX
 from .base import Comparison, Issue, Rule, ToleranceKey, Tolerances, Verdict, matches
 from .batch1 import REGISTRY as _BATCH1
 from .cover import REGISTRY as _COVER
+from .document_wide import REGISTRY as _GLOBAL
 from .engine import run_rules
+from .references import REGISTRY as _REFERENCES
 from .text import REGISTRY as _TEXT
 from .toc import REGISTRY as _TOC
 
@@ -32,6 +36,10 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
     *_ABSTRACT_E,
     *_TOC,
     *_TEXT,
+    *_REFERENCES,
+    *_ACK,
+    *_APPENDIX,
+    *_GLOBAL,
 )
 
 __all__ = [
