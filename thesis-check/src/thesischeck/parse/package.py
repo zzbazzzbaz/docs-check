@@ -191,6 +191,7 @@ class Package:
         except RuntimeError as exc:  # 加密条目在读取时才报
             raise BadDocument("文档已加密，无法审核") from exc
         if len(raw) > MAX_ENTRY_BYTES:
+            # 中央目录里的 file_size 是文档自己声明的，可能撒谎；读出来的实际长度再拦一次
             raise BadDocument(f"部件过大（{name}）")
         return raw
 
