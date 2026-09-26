@@ -1,0 +1,24 @@
+# CI：本地与远端都跑同一份门禁，避免"本地过了 CI 不过"
+#
+# 注意：本仓库当前没有远端；等有远端（GitHub / Gitea）后再启用即可，
+# 门禁逻辑只有一份，在 scripts/check.sh。
+
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: thesis-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: ./scripts/check.sh

@@ -1,0 +1,67 @@
+  22061181010_雷家琪_基于Esp32的鱼缸生态调节系统的设 段 1301 逐段 3903/3903 OK
+  2206181032_王姝涵_基于ESP32的老人跌倒风险预警系统的 段  710 逐段 2130/2130 OK
+  2206181071_季超_基于Esp32多维感知的独居智能安防系统 段  959 逐段 2877/2877 OK
+  2206181072_李煜_基于ESP32老人健康检测与预警系统的设 段 1680 逐段 5040/5040 OK
+  2206181200_肖瑶  基于Esp32的室内环境监测预警系统的 段  842 逐段 2526/2526 OK
+  abstract-chinese-keywords-format   段  201 逐段 603/603 OK
+  abstract-chinese-remaining-draft-f 段  201 逐段 603/603 OK
+  abstract-chinese-title-body-format 段  201 逐段 603/603 OK
+  abstract-english-keywords-format   段  201 逐段 603/603 OK
+  abstract-english-title-body-format 段  201 逐段 603/603 OK
+  acknowledgements-body-format       段  202 逐段 606/606 OK
+  acknowledgements-title-format      段  202 逐段 606/606 OK
+  appendix-body-format-windows11-wps 段  201 逐段 603/603 OK
+  appendix-title-format-windows11-wp 段  202 逐段 606/606 OK
+  cover-date-format-windows11-wps    段  201 逐段 603/603 OK
+  cover-info-format-windows11-wps    段  201 逐段 603/603 OK
+  cover-title-format-windows11-wps   段  201 逐段 603/603 OK
+  cover-title-label-format           段  201 逐段 603/603 OK
+  global-footer-page-number-format   段  201 逐段 603/603 OK
+  global-header-format               段  201 逐段 603/603 OK
+  main-text-figure-table-caption-for 段  340 逐段 1020/1020 OK
+  main-text-formula-format           段  207 逐段 621/621 OK
+  main-text-heading-format           段  199 逐段 597/597 OK
+  main-text-paragraph-and-citation-f 段  201 逐段 603/603 OK
+  references-entry-format-windows11- 段  201 逐段 603/603 OK
+  references-entry-numbering-windows 段  201 逐段 603/603 OK
+  references-title-format-windows11- 段  202 逐段 606/606 OK
+  synth-page-setup-variants          段  201 逐段 603/603 OK
+  table-of-contents-clean            段  198 逐段 594/594 OK
+  table-of-contents-entry-first-leve 段  198 逐段 594/594 OK
+  table-of-contents-entry-format     段  198 逐段 594/594 OK
+  table-of-contents-entry-lower-leve 段  198 逐段 594/594 OK
+  table-of-contents-title-format     段  198 逐段 594/594 OK
+  table-of-contents-title-text-and-b 段  197 逐段 591/591 OK
+  基于SpringBoot的电影个性化推荐系统的设计与实现_论文    段 1582 逐段 4746/4746 OK
+  数学论文初稿(测试版)                        段  436 逐段 1308/1308 OK
+  校园便利店饮料补货周期优化研究                    段  462 逐段 1386/1386 OK
+  毕设论文终稿 物联网谢才智                      段  685 逐段 2055/2055 OK
+  论文2206181106_王雨诺_基于RAG技术的智能交互系统的设计 段 1799 逐段 5397/5397 OK
+  论文初稿                               段  436 逐段 1308/1308 OK
+
+===== 汇总（40 篇）=====
+  inline  : 16849/16849 = 100.0000%
+  shape   : 16849/16849 = 100.0000%
+  omath   : 16849/16849 = 100.0000%
+  浮动图形 Shapes 合计 125，映射不到 0（脚本已打印）
+  OMML 段落 52，其中 WPS 文本非空 52（公式文字确实占字符）
+  内嵌图形与文字同段 35（映射一致 35）
+  占位字符规律：
+    XML类型=ole      占位符=\x01       61 段
+    XML类型=pic      占位符=/         346 段
+
+=== 2206181072_李煜_基于ESP32老人健康检测与预警系统的设计与实现 ===
+  段数: WPS=1680 OOXML+行末=1680 OK
+  逐段比对: 5040/5040 = 100.000%
+  内嵌占位: XML类型=pic      占位符=/         17 段  例 p2
+
+=== main-text-formula-format ===
+  段数: WPS=207 OOXML+行末=207 OK
+  逐段比对: 621/621 = 100.000%
+  内嵌占位: XML类型=ole      占位符=\x01       5 段  例 p76
+  内嵌占位: XML类型=pic      占位符=/          1 段  例 p2
+
+=== 论文初稿 ===
+  段数: WPS=436 OOXML+行末=436 OK
+  逐段比对: 1308/1308 = 100.000%
+  内嵌占位: XML类型=pic      占位符=/         14 段  例 p3

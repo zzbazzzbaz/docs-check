@@ -1,0 +1,33 @@
+; 分层架构的强制手段：违反即 CI 红（scripts/check.sh 里跑 lint-imports）
+; 设计说明见 docs/chat/9.26/技术设计.md §2.3
+;
+; 注意：这是 INI 格式，不是 TOML。多个契约用 [importlinter:contract:N] 分段，
+; 写成 [[contracts]] 会报 "section already exists"。
+
+[importlinter]
+root_package = thesischeck
+include_external_packages = True
+
+[importlinter:contract:1]
+name = 分层依赖必须单向（上只能依赖下）
+type = layers
+layers =
+    thesischeck.cli
+    thesischeck.web
+    thesischeck.pipeline
+    thesischeck.report
+    thesischeck.rules
+    thesischeck.index
+    thesischeck.semantics
+    thesischeck.parse
+    thesischeck.errors
+
+[importlinter:contract:2]
+name = 规则层 / 语义层 / 索引层不许碰 XML
+type = forbidden
+source_modules =
+    thesischeck.rules
+    thesischeck.semantics
+    thesischeck.index
+forbidden_modules =
+    lxml

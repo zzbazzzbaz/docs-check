@@ -1,0 +1,24 @@
+name: thesis-format-review
+
+services:
+  wps:
+    image: thesis-format-review/wps:${IMAGE_TAG:-dev}
+    container_name: gqt_thesis_wps
+    platform: linux/amd64
+    restart: unless-stopped
+    build:
+      context: ./wps
+      args:
+        WPS_DEB: ${WPS_DEB:-wps-office_12.1.2.28080_amd64.deb}
+    command: ["sleep", "infinity"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ${WPS_IN_DIR:-./data/in}:/in:ro
+      - ${WPS_OUT_DIR:-./data/out}:/out
+    healthcheck:
+      test: ["CMD-SHELL", 'python3 -c "from pywpsrpc.rpcwpsapi import createWpsRpcInstance; hr, rpc = createWpsRpcInstance(); hr, app = rpc.getWpsApplication(); raise SystemExit(0 if hr == 0 else 1)"']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 60s

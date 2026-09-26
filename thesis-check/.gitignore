@@ -1,0 +1,10 @@
+# 产物（可重新生成）
+out/
+
+# 工具缓存（仓库根 .gitignore 已挡 __pycache__ / .venv）
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# import-linter 缓存
+.import_linter_cache/

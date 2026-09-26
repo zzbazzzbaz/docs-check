@@ -1,0 +1,57 @@
+[project]
+name = "thesischeck"
+version = "0.1.0"
+description = "毕业论文格式自动审核"
+requires-python = ">=3.12"
+dependencies = [
+    "lxml>=5.3",
+    "fastapi[standard]>=0.115",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "mypy>=1.14",
+    "import-linter>=2.1",
+]
+
+[project.scripts]
+thesis-check = "thesischeck.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/thesischeck"]
+
+[tool.uv]
+package = true
+
+# ── 代码规范 ─────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "C4"]
+# RUF001~003 是"易混淆 Unicode"（把全角标点当可疑字符）——中文注释必然触发，对中文项目是反作用
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+# ── 类型 ─────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+mypy_path = "src"
+
+# ── 测试 ─────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "golden: 金标准快照（合成样张，可进 CI）",
+    "real_corpus: 需要真实语料（THESIS_CORPUS_DIR，未设置则跳过）",
+]

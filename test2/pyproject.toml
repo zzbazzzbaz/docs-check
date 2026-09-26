@@ -1,0 +1,12 @@
+[project]
+name = "docx-fmt-compare"
+version = "0.1.0"
+description = "三方对账：自研 OOXML 有效格式 vs aspose-words-foss vs WPS 真值"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "aspose-words-foss",
+    "lxml>=6.0",
+]
+
+[tool.uv]
+package = false
