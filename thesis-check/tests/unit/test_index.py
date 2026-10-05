@@ -100,7 +100,7 @@ def test_base_document_index_collects_every_field(tmp_path: Path) -> None:
     assert index.citations is not None
     assert {citation.no for citation in index.citations} == {1, 2}
     assert [citation.order for citation in index.citations] == [1, 2]
-    assert [entry.level for entry in index.toc_entries] == [1, 2, 3, 1, 1, 1]
+    assert [entry.level for entry in index.toc_entries] == [1, 2, 3, 1, 1, 1, 2]
     assert check_index(document, index) == ()
 
 

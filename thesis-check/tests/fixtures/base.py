@@ -203,7 +203,8 @@ def _field_end() -> str:
 
 
 def _table_of_contents() -> str:
-    # 一级条目（第X章型）编号后空 2 格；二 / 三级条目空 1 格
+    # 一级条目（第X章型）编号后空 2 格；二 / 三级条目空 1 格；
+    # 附录子条目（「附录X…」）是二级条目，但编号与题名之间不判空格（见 8-附录 APP-06）
     entries = [
         ("第一章  绪论", "TOC1"),
         ("1.1 研究背景与意义", "TOC2"),
@@ -211,6 +212,7 @@ def _table_of_contents() -> str:
         ("参考文献", "TOC1"),
         ("致    谢", "TOC1"),
         ("附    录", "TOC1"),
+        ("附录A名词术语及缩略词", "TOC2"),
     ]
     body = "".join(
         para(run(text, ea="宋体", west="Times New Roman", size=12), style=style, line=1.5)
@@ -319,7 +321,7 @@ def _appendix() -> str:
             _module_title_line("附    录"),
             para(),  # 标题后 1 个空段
             para(
-                run("附录A 名词术语及缩略词", ea="黑体", west="Times New Roman", size=14),
+                run("附录A名词术语及缩略词", ea="黑体", west="Times New Roman", size=14),
                 outline=1,
                 line=1.5,
             ),

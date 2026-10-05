@@ -107,7 +107,7 @@ TARGETS: dict[str, Callable[[_El], bool]] = {
     "文献条目2": lambda p: _key(p).startswith("[2]"),
     "致谢正文": lambda p: _key(p).startswith(("感谢导师", "感谢家人")),
     "附录正文": lambda p: _key(p).startswith(("论文的附录", "此处为程序代码")),
-    "附录子标题": lambda p: _key(p).startswith("附录") and _key(p) != "附录",
+    "附录子标题": lambda p: _key(p).startswith("附录") and _key(p) != "附录" and not _is_toc(p),
     "公式段落": lambda p: p.find(f".//{_m('oMath')}") is not None or p.find(f".//{_w('object')}") is not None,
     "空段落": lambda p: _text(p).strip() == "" and p.find(f".//{_w('fldChar')}") is None,
 }

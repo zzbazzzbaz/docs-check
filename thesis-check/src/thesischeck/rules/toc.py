@@ -16,8 +16,8 @@ from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .catalog import text
 from .support import (
     H1_TEXT_SHAPE,
-    H2_TEXT_SHAPE,
     H3_TEXT_SHAPE,
+    TOC_L2_TEXT_SHAPE,
     BlockSel,
     blanks_after,
     cjk_of,
@@ -59,7 +59,7 @@ def toc_l1_chapter(blocks: Sequence[Block]) -> tuple[Block, ...]:
 
 
 _H1_VERDICT = shape_verdict(H1_TEXT_SHAPE)
-_H2_VERDICT = shape_verdict(H2_TEXT_SHAPE)
+_H2_VERDICT = shape_verdict(TOC_L2_TEXT_SHAPE)
 _H3_VERDICT = shape_verdict(H3_TEXT_SHAPE)
 
 
