@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from ..parse.model import Document, Para, Section, Table
 from .roles import Role, assign_role
@@ -53,7 +54,7 @@ class CheckContext(tuple[Block, ...]):
         self.paragraphs = paragraphs
         self.tables = tables
         self.has_numbering_part = has_numbering_part
-        return self
+        return cast(CheckContext, self)
 
 
 def tag_blocks(doc: Document) -> tuple[Block, ...]:

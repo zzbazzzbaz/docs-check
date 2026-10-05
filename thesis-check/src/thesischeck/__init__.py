@@ -2,7 +2,7 @@
 
 分层（只能自上而下依赖，由 `.importlinter` 强制）：
 
-    cli / web → pipeline → report → rules → index → semantics → parse → errors
+    cli → pipeline → report → rules → index → semantics → parse → errors
 
 两条铁律：
 

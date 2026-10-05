@@ -11,7 +11,7 @@
 
 ```bash
 uv sync              # 装依赖（含 dev）
-./scripts/check.sh   # 门禁：ruff + mypy + 分层契约 + pytest
+./scripts/check.sh   # 门禁：ruff + ty + 分层契约 + pytest
 uv run thesis-check --version
 ```
 
@@ -26,7 +26,7 @@ uv run thesis-check 论文.docx -o out/
 只能自上而下依赖，由 [`.importlinter`](./.importlinter) 强制：
 
 ```
-cli / web  →  pipeline  →  report  →  rules  →  index  →  semantics  →  parse  →  errors
+cli  →  pipeline  →  report  →  rules  →  index  →  semantics  →  parse  →  errors
 ```
 
 | 层 | 干什么 | 不许干什么 |

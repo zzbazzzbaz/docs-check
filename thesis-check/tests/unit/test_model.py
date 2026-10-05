@@ -81,7 +81,7 @@ def test_objects_any() -> None:
 
 def test_model_is_frozen() -> None:
     with pytest.raises(dataclasses.FrozenInstanceError):
-        para().text = "changed"  # type: ignore[misc]
+        para().text = "changed"  # type: ignore
 
 
 def test_model_uses_slots() -> None:

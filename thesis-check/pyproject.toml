@@ -2,24 +2,22 @@
 name = "thesischeck"
 version = "0.1.0"
 description = "毕业论文格式自动审核"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "lxml>=5.3",
-    "fastapi[standard]>=0.115",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.3",
     "ruff>=0.8",
-    "mypy>=1.14",
+    "ty>=0.0.18",
     "lxml-stubs>=0.5",
     "import-linter>=2.1",
 ]
 
 [project.scripts]
 thesis-check = "thesischeck.cli:main"
-thesis-check-web = "thesischeck.web.app:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -34,7 +32,7 @@ package = true
 # ── 代码规范 ─────────────────────────────────────────────────────
 [tool.ruff]
 line-length = 110
-target-version = "py312"
+target-version = "py314"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -43,18 +41,13 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "C4"]
 ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 
 # ── 类型 ─────────────────────────────────────────────────────────
-[tool.mypy]
-python_version = "3.12"
-strict = true
-files = ["src", "tests"]
-mypy_path = "src"
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.rules]
+all = "error"
 
 # ── 测试 ─────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
-markers = [
-    "golden: 金标准快照（合成样张，可进 CI）",
-    "real_corpus: 需要真实语料（THESIS_CORPUS_DIR，未设置则跳过）",
-    "slow: 需要真实语料或耗时较长的关卡",
-]

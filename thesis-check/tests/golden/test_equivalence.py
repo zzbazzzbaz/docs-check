@@ -141,8 +141,6 @@ def test_diff_ignores_positional_metadata() -> None:
 # ── 语料关卡 ────────────────────────────────────────────────────
 
 
-@pytest.mark.real_corpus
-@pytest.mark.slow
 @pytest.mark.skipif(not _available(), reason="需要 test2/corpus 与 test2/snapshots")
 @pytest.mark.parametrize("docx", _corpus_docs(), ids=lambda p: p.stem)
 def test_compat_dump_matches_snapshots(docx: Path) -> None:

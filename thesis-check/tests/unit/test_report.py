@@ -259,7 +259,7 @@ def test_unknown_elements_are_counted_and_split_benign() -> None:
 
 
 def test_ruleset_version_prefers_git_describe(monkeypatch: pytest.MonkeyPatch) -> None:
-    """有 git 描述时用它，且结果缓存——一次进程只起一次 git（web 线程池不重复起进程）。"""
+    """有 git 描述时用它，且结果缓存——一次进程只起一次 git。"""
     calls: list[list[str]] = []
 
     def fake_run(cmd: list[str], **_: object) -> Any:

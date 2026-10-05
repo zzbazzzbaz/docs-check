@@ -18,7 +18,7 @@ import zipfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Self
+from typing import Self, cast
 
 from lxml import etree
 
@@ -91,7 +91,7 @@ def parse_relationships(part: str, root: etree._Element | None) -> dict[str, Rel
 
 
 def _new_parser() -> etree.XMLParser:
-    """每次新建：lxml 的解析器实例不保证可并发复用，而 web 层跑在线程池里。"""
+    """每次新建：lxml 的解析器实例不保证可并发复用。"""
     return etree.XMLParser(
         resolve_entities=False,
         load_dtd=False,
@@ -212,4 +212,4 @@ class Package:
             raise ParseError(name, f"XML 无法解析：{exc}") from exc
         if sum(1 for _ in root.iter()) > MAX_ELEMENTS:
             raise BadDocument(f"文档结构过于庞大（{name} 元素数超出上限），无法审核")
-        return root
+        return cast(etree._Element, root)

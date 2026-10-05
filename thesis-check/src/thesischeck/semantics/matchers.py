@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import re
+from typing import cast
 
 ZW = "\u200b"  # 零宽空格：WPS 偶尔插在文本前
 
@@ -101,19 +102,19 @@ def is_appendix_sub(text: str | None) -> bool:
 
 def figure_no(text: str | None) -> tuple[str, str] | None:
     m = _FIGURE.match(key_text(text))
-    return (m.group(1), m.group(2)) if m else None
+    return (cast(str, m.group(1)), cast(str, m.group(2))) if m else None
 
 
 def table_no(text: str | None) -> tuple[str, str] | None:
     """表题编号；`续表` 不算（由 `is_continued_table_caption` 单独认）。"""
     m = _TABLE.match(key_text(text))
-    return (m.group(1), m.group(2)) if m else None
+    return (cast(str, m.group(1)), cast(str, m.group(2))) if m else None
 
 
 def formula_no(text: str | None) -> tuple[str, str] | None:
     """公式编号 `(数字-数字)`；全角 / 半角括号都认。"""
     m = _FORMULA_NO.search(key_text(text))
-    return (m.group(1), m.group(2)) if m else None
+    return (cast(str, m.group(1)), cast(str, m.group(2))) if m else None
 
 
 def is_figure_caption(text: str | None) -> bool:

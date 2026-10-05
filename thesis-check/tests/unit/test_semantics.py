@@ -357,8 +357,6 @@ def _corpus_docs() -> list[Path]:
     return sorted(fallback.glob("*.docx")) if fallback.is_dir() else []
 
 
-@pytest.mark.real_corpus
-@pytest.mark.slow
 @pytest.mark.skipif(not _corpus_docs(), reason="需要真实语料（THESIS_CORPUS_DIR 或 test2/corpus）")
 def test_real_corpus_scopes_and_roles() -> None:
     per_scope: Counter[Scope] = Counter()

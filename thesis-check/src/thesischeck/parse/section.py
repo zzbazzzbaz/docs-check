@@ -12,6 +12,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from lxml import etree
 
 from .document import _inside_txbx, _record_para, iter_paragraphs
@@ -54,7 +56,10 @@ def _fld_char_type(r: etree._Element) -> str | None:
 
 def _is_page_instr(r: etree._Element) -> bool:
     instr = r.find(w("instrText"))
-    return instr is not None and (instr.text or "").strip().startswith("PAGE")
+    if instr is None:
+        return False
+    text = cast(str, instr.text or "")
+    return text.strip().startswith("PAGE")
 
 
 def _page_field_elements(root: etree._Element) -> set[int]:

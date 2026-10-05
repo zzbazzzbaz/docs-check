@@ -11,8 +11,8 @@ uv run --quiet ruff check .
 echo "── ruff（format 检查，不自动改）──"
 uv run --quiet ruff format --check .
 
-echo "── mypy --strict ──"
-uv run --quiet mypy
+echo "── ty（类型检查）──"
+uv run --quiet ty check
 
 echo "── 分层契约（import-linter）──"
 uv run --quiet lint-imports

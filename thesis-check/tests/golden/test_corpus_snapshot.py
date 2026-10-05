@@ -117,8 +117,6 @@ def _available() -> bool:
     return bool(_docs())
 
 
-@pytest.mark.real_corpus
-@pytest.mark.slow
 @pytest.mark.skipif(not _available(), reason="需要 test2/corpus")
 def test_corpus_snapshot_matches_committed() -> None:
     """实跑结果必须与仓库里的快照完全一致；不一致就是回归，必须人工过一遍。"""
@@ -141,8 +139,6 @@ def test_corpus_snapshot_matches_committed() -> None:
     pytest.fail("\n".join(lines[:60]))
 
 
-@pytest.mark.real_corpus
-@pytest.mark.slow
 @pytest.mark.skipif(not _available(), reason="需要 test2/corpus")
 def test_corpus_run_is_reproducible() -> None:
     """同一输入跑两次，结论必须逐字节一致（`NFR-6.1`）。"""

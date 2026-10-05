@@ -44,7 +44,7 @@ def ruleset_version() -> str:
     """规则集版本：优先 `git describe --tags --dirty`（tag + 距 tag 的提交数 + 脏标记）。
 
     取不到（未安装 git / 不在仓库 / 没有 tag）就回退到常量。结果缓存，一次进程只起一次
-    `git`，`lru_cache` 线程安全，web 线程池不会重复起进程。
+    `git`，`lru_cache` 线程安全。
     """
     try:
         described = subprocess.run(
@@ -55,7 +55,7 @@ def ruleset_version() -> str:
             timeout=5,
             check=True,
         ).stdout.strip()
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         described = ""
     return described or RULESET_VERSION
 

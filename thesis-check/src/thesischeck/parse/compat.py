@@ -34,7 +34,7 @@ from .document import (
     wp,
 )
 from .effective import Resolver, StyleTable, ThemeFonts, _Entry, _local_attrs, w
-from .model import Document, HeaderFooter, Para, Section, Story, Table
+from .model import Document, HeaderFooter, Para, Section, Story
 from .package import PART_STYLES, PART_THEME, Package
 from .section import _part_content
 
@@ -633,7 +633,7 @@ def _index_blocks(doc: Document) -> list[dict[str, object]]:
     for block in doc.blocks:
         if isinstance(block, Para):
             blocks.append({"kind": "p", "paras": [block.id]})
-        elif isinstance(block, Table):
+        else:
             paras = [cell_para.id for row in block.rows for cell in row for cell_para in cell.paragraphs]
             blocks.append({"kind": "tbl", "paras": paras, "rows": block.n_rows, "cols": block.n_cols})
     for i, entry in enumerate(blocks):

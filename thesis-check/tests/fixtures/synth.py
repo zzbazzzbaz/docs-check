@@ -38,7 +38,7 @@ def _m(tag: str) -> str:
 
 
 def _text(p: _El) -> str:
-    return "".join(t.text or "" for t in p.iter(_w("t")))
+    return "".join(str(t.text or "") for t in p.iter(_w("t")))
 
 
 def _key(p: _El) -> str:
@@ -315,7 +315,7 @@ def _rename_style(old: str, new: str) -> Change:
 
 
 def _run_text_value(run: _El) -> str:
-    return "".join(t.text or "" for t in run.iter(_w("t")))
+    return "".join(str(t.text or "") for t in run.iter(_w("t")))
 
 
 def _target_runs(root: _El, target: str, prefix: str) -> Iterator[_El]:

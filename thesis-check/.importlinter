@@ -13,7 +13,6 @@ name = 分层依赖必须单向（上只能依赖下）
 type = layers
 layers =
     thesischeck.cli
-    thesischeck.web
     thesischeck.pipeline
     thesischeck.report
     thesischeck.rules

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import replace
+from typing import cast
 
 from lxml import etree
 
@@ -50,7 +51,9 @@ def wp(tag: str) -> str:
 
 
 def _tag(el: etree._Element | None) -> str:
-    return "" if el is None else el.tag.rsplit("}", 1)[-1]
+    if el is None:
+        return ""
+    return cast(str, el.tag).rsplit("}", 1)[-1]
 
 
 def _visible(text: str | None) -> str:

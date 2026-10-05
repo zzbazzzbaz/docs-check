@@ -1,7 +1,6 @@
 """编排：把各层串起来（parse → semantics → index → rules → report）。
 
-放在最上层是有意的：`cli` 与 `web` 都只调这里，不各自拼流程，
-这样两条入口的结论一定一致。
+放在最上层是有意的：`cli` 只调这里，不自己拼流程。
 """
 
 from __future__ import annotations

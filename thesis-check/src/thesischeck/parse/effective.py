@@ -69,7 +69,7 @@ _interpreted: contextvars.ContextVar[set[str] | None] = contextvars.ContextVar("
 
 @contextmanager
 def interpret_elements() -> Iterator[set[str]]:
-    """在块内收集解析器实际查询过的元素局部名；退出后还原，按线程隔离，可用于 web 线程池。"""
+    """在块内收集解析器实际查询过的元素局部名；退出后还原，按线程隔离。"""
     seen: set[str] = set()
     token = _interpreted.set(seen)
     try:

@@ -128,7 +128,7 @@ def _in_header_footer(el: etree._Element) -> bool:
 
 
 def _run_text(el: etree._Element) -> str:
-    return "".join(t.text or "" for t in el.iter(_w("t")))
+    return "".join(str(t.text or "") for t in el.iter(_w("t")))
 
 
 def _para_target(para: Para, ctx: _Ctx) -> _Target | Downgrade:
