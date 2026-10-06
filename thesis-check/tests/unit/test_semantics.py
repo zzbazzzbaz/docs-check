@@ -253,7 +253,7 @@ def test_roles_of_a_full_document(tmp_path: Path) -> None:
     assert role_at(6) is Role.KEYWORDS
     assert role_at(7) is Role.TITLE  # 目    录
     assert role_at(8) is Role.BODY  # 目录条目
-    assert role_at(10) is Role.BODY  # 无标题样式的「第一章 引言」
+    assert role_at(10) is Role.H1  # 文本是「第一章 引言」→ 一级标题（不靠样式）
     assert role_at(13) is Role.EMPTY
     assert role_at(14) is Role.TITLE  # 参考文献
     assert role_at(15) is Role.REF_ITEM
@@ -294,8 +294,8 @@ def test_selectors_pick_the_expected_objects(tmp_path: Path) -> None:
     assert texts(select.toc_entries(blocks)) == ["第一章 引言", "参考文献"]
     assert texts(select.chapters(blocks)) == ["第一章 引言"]
     assert texts(select.h2(blocks)) == ["附录A 名词术语"]
-    assert texts(select.h1(blocks)) == []
-    assert texts(select.body_paragraphs(blocks)) == ["第一章 引言", "1.1 系统概述", "正文内容。"]
+    assert texts(select.h1(blocks)) == ["第一章 引言"]
+    assert texts(select.body_paragraphs(blocks)) == ["1.1 系统概述", "正文内容。"]
     assert texts(select.ref_items(blocks)) == ["[1] 作者. 题名[M]. 出版社."]
     assert texts(select.appendix_subs(blocks)) == ["附录A 名词术语"]
     assert texts(select.empty_blocks(blocks)) == [""]

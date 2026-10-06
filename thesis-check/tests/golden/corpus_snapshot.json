@@ -726,12 +726,12 @@
       "undetermined": 16
     },
     "TXT-25": {
-      "fail": 1402,
+      "fail": 1370,
       "not_run": 0,
       "undetermined": 0
     },
     "TXT-26": {
-      "fail": 324,
+      "fail": 323,
       "not_run": 0,
       "undetermined": 0
     },
@@ -741,12 +741,12 @@
       "undetermined": 0
     },
     "TXT-28": {
-      "fail": 287,
+      "fail": 286,
       "not_run": 0,
-      "undetermined": 278
+      "undetermined": 271
     },
     "TXT-29": {
-      "fail": 282,
+      "fail": 275,
       "not_run": 0,
       "undetermined": 0
     },
@@ -855,7 +855,7 @@
   "parser_version": "0.1.0",
   "per_document": [
     {
-      "fail": 298,
+      "fail": 297,
       "index": 1,
       "not_run": 0,
       "sha256": "146e7756e3116620",
@@ -1159,11 +1159,11 @@
       "unrecognised": 0
     },
     {
-      "fail": 3374,
+      "fail": 3334,
       "index": 39,
       "not_run": 0,
       "sha256": "6035b8bddc927c69",
-      "undetermined": 281,
+      "undetermined": 274,
       "unrecognised": 0
     },
     {
@@ -1178,10 +1178,10 @@
   "ruleset_version": "batch-1+2/207",
   "schema": 1,
   "totals": {
-    "fail": 5997,
+    "fail": 5956,
     "not_run": 0,
-    "problems": 6938,
-    "undetermined": 418,
+    "problems": 6890,
+    "undetermined": 411,
     "unrecognised": 523
   }
 }

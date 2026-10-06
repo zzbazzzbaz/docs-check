@@ -4,8 +4,10 @@
 「未识别结构」，**不是通过**（需求 `FR-4.3`）。粗粒度即可——「题目标签」「附录子标题」
 这类更细的对象交给 `select` + `matchers` 组合，不塞进枚举。
 
-**标题层级只用大纲级别 / 样式名判**（`FR-4.5`），不许用字号或加粗猜。`outline` 是
-`w:outlineLvl` 的 0 起值，`9` 表示"正文级"，不算标题。
+**标题层级主要用大纲级别 / 样式名判**（`FR-4.5`），不许用字号或加粗猜。`outline` 是
+`w:outlineLvl` 的 0 起值，`9` 表示"正文级"，不算标题。**唯一例外**：正文区里可见文本以
+`第…章` 开头的一级标题也认——章标题常只做直接格式（黑体三号居中）而没套样式，见
+`5-正文.md`「对象与识别」。
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from enum import StrEnum
 from ..parse import Para
 from .matchers import (
     heading_style_level,
+    is_chapter,
     is_continued_table_caption,
     is_figure_caption,
     is_keyword_line,
@@ -81,6 +84,11 @@ def assign_role(para: Para, scope: Scope) -> Role:
     level = heading_level(para)
     if level is not None:
         return _HEADING_ROLE[min(level, 4)]
+    if scope is Scope.BODY and is_chapter(para.text):
+        # 章标题常只做直接格式（黑体三号居中）而没套大纲级别 / `heading 1` 样式；
+        # 文本 `第…章` 也是一级标题的识别锚点（与 `select.chapters` 一致），
+        # 否则它会被当成正文，让 TXT-25/27/28 误报。
+        return Role.H1
     key = key_text(para.text)
     if is_figure_caption(key):
         return Role.CAPTION_FIG
