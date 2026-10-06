@@ -330,22 +330,35 @@ def neighbour_flag(sel: BlockSel, *, before: bool, pred: Callable[[Block], bool]
     return pick
 
 
-def figure_position(captions: BlockSel, *, figure: Callable[[Block], bool]) -> _PairSel:
-    """（图题, **最近的图对象是否在它上方**）对。
+def float_position(captions: BlockSel, *, target: Callable[[Block], bool], below: bool) -> _PairSel:
+    """（题注, **最近的目标对象是否在期望的一侧**）对。
 
-    图位 = 含图（`w:drawing`）的块。浮动图（`wp:anchor`）常与图题之间夹着空段或
-    轴标注文字，只按「紧邻上一块」会把合规的图题误判成「题在图上方」；改为比较
-    「上方的最近图」与「下方的最近图」——上方更近（或下方没有图）才算图题在图下方。
+    题注与图 / 表之间常夹着空段或标注文字（样张的「i(t)」、表题与表格之间的空行），
+    只按「紧邻上一块 / 下一块」会误判。这里比较「上方最近的目标」与「下方最近的目
+    标」，距离**只数中间的非空块**（空段落不算间隔）：
+
+    - `below=False`（图题）：目标（图）应在**上方**——上方更近（或下方没有目标）即合规；
+    - `below=True`（表题）：目标（表）应在**下方**——下方更近（或上方没有目标）即合规。
     """
 
     def pick(blocks: Sequence[Block]) -> tuple[tuple[Block, bool], ...]:
-        positions = [i for i, block in enumerate(blocks) if figure(block)]
+        positions = [i for i, block in enumerate(blocks) if target(block)]
+        empty = [block.role is Role.EMPTY for block in blocks]
+
+        def gap(lo: int, hi: int) -> int:
+            return sum(1 for i in range(lo, hi) if not empty[i])
+
         out: list[tuple[Block, bool]] = []
         for block in captions(blocks):
             here = index_of(blocks, block)
             above = max((p for p in positions if p < here), default=None)
-            below = min((p for p in positions if p > here), default=None)
-            joined = above is not None and (below is None or here - above <= below - here)
+            after = min((p for p in positions if p > here), default=None)
+            up = gap(above + 1, here) if above is not None else None
+            down = gap(here + 1, after) if after is not None else None
+            if below:
+                joined = down is not None and (up is None or down <= up)
+            else:
+                joined = up is not None and (down is None or up <= down)
             out.append((block, joined))
         return tuple(out)
 

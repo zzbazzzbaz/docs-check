@@ -1,6 +1,6 @@
 """正文规则 TXT-01 ~ TXT-51（本批 46 条）用例：每条一个命中 + 一个底稿合规。
 
-题注位置（`TXT-38/44`）用删掉图块 / 在表题与表格之间插空段构造命中；公式编号
+题注位置（`TXT-38/44`）用删掉图块 / 把表题挪到表格下方构造命中；公式编号
 （`TXT-32`）用清空编号文本构造，二者都不牵连其它规则。
 """
 
@@ -11,6 +11,7 @@ import pytest
 from tests.fixtures.synth import (
     Deviation,
     alignment,
+    caption_below_table,
     combined,
     delete,
     ea,
@@ -71,7 +72,7 @@ HITS: list[tuple[str, Deviation, list[str]]] = [
     ("TXT-40", ea("图题", "仿宋"), ["TXT-40"]),
     ("TXT-41", run_text("图题", "图", "图1-1系统总体结构"), ["TXT-41"]),
     ("TXT-43", run_text("表题", "表", "表 1-1 主要器件清单"), ["TXT-43"]),
-    ("TXT-44", insert_blank_after("表题"), ["TXT-44"]),
+    ("TXT-44", caption_below_table("表题"), ["TXT-44"]),
     ("TXT-45", alignment("表题", "left"), ["TXT-45"]),
     ("TXT-46", ea("表题", "仿宋"), ["TXT-46"]),
     ("TXT-47", run_text("表题", "表", "表1-1主要器件清单"), ["TXT-47"]),
@@ -112,3 +113,8 @@ def test_text_pass_on_base(rule_id: str) -> None:
 def test_txt38_figure_caption_with_gap_still_below() -> None:
     """图与图题之间夹空段 / 浮动图偏移时，图题仍在图下方 → 不报 `TXT-38`（回归）。"""
     CASE("TXT-38", change=insert_blank_after("图块"), expect_only=[])
+
+
+def test_txt44_table_caption_with_gap_still_above() -> None:
+    """表题与表格之间夹空段时，表题仍在表上方 → 不报 `TXT-44`（回归）。"""
+    CASE("TXT-44", change=insert_blank_after("表题"), expect_only=[])

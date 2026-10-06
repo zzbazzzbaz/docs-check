@@ -29,13 +29,12 @@ from .support import (
     cjk_of,
     context_index,
     count,
-    figure_position,
     first_cjk_font,
     flag,
+    float_position,
     found,
     gap_of,
     index_of,
-    neighbour_flag,
     para_align,
     para_first_line,
     para_line,
@@ -99,12 +98,12 @@ def _body_figure(block: Block) -> bool:
     return block.scope is Scope.BODY and _has_figure_image(block)
 
 
-def _follows_table(block: Block) -> bool:
-    return block.para.in_table
+def _body_table(block: Block) -> bool:
+    return block.scope is Scope.BODY and block.para.in_table
 
 
-FIG_ABOVE = figure_position(BODY_FIGS, figure=_body_figure)
-TAB_BELOW = neighbour_flag(BODY_TABS, before=False, pred=_follows_table)
+FIG_ABOVE = float_position(BODY_FIGS, target=_body_figure, below=False)
+TAB_BELOW = float_position(BODY_TABS, target=_body_table, below=True)
 
 
 # ── 写代码的判定 ────────────────────────────────────────────────

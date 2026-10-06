@@ -305,6 +305,24 @@ def _delete(target: str) -> Change:
     return _edit(DOCUMENT, edit)
 
 
+def _move_below_table(target: str) -> Change:
+    """把目标段落挪到紧随其后的 `w:tbl` 之后（构造「表题在表格下方」）。"""
+
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            parent = p.getparent()
+            if parent is None:
+                continue
+            siblings = list(parent)
+            table = next((s for s in siblings[siblings.index(p) + 1 :] if s.tag == _w("tbl")), None)
+            if table is None:
+                continue
+            parent.remove(p)
+            parent.insert(parent.index(table) + 1, p)
+
+    return _edit(DOCUMENT, edit)
+
+
 def _rename_style(old: str, new: str) -> Change:
     def edit(root: _El) -> None:
         for name in root.iter(_w("name")):
@@ -703,6 +721,11 @@ def insert_blank_after(target: str) -> Deviation:
 
 def delete(target: str) -> Deviation:
     return Deviation((_delete(target),))
+
+
+def caption_below_table(target: str) -> Deviation:
+    """把表题移到表格下方（`TXT-44` 命中）。"""
+    return Deviation((_move_below_table(target),))
 
 
 def rename_style(old: str, new: str) -> Deviation:
