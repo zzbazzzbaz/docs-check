@@ -159,6 +159,10 @@ def test_caption_and_formula_matchers() -> None:
     assert matchers.is_table_caption("表 3-2 字段说明")
     assert matchers.is_continued_table_caption("续表3-2")
     assert not matchers.is_table_caption("续表3-2")
+    # 以 图/表X-Y 开头、但带句末标点的正文叙述句不算题注
+    assert not matchers.is_figure_caption("图3-1为系统架构图，传感层包括了传感器组。")
+    assert not matchers.is_table_caption("表3-2给出了字段说明；详见表3-3。")
+    assert matchers.figure_no("图3-1为系统架构图。") is None
     assert matchers.formula_no("公式（3-1）") == ("3", "1")
 
 

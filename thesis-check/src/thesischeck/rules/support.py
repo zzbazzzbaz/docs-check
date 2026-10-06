@@ -330,6 +330,28 @@ def neighbour_flag(sel: BlockSel, *, before: bool, pred: Callable[[Block], bool]
     return pick
 
 
+def figure_position(captions: BlockSel, *, figure: Callable[[Block], bool]) -> _PairSel:
+    """（图题, **最近的图对象是否在它上方**）对。
+
+    图位 = 含图（`w:drawing`）的块。浮动图（`wp:anchor`）常与图题之间夹着空段或
+    轴标注文字，只按「紧邻上一块」会把合规的图题误判成「题在图上方」；改为比较
+    「上方的最近图」与「下方的最近图」——上方更近（或下方没有图）才算图题在图下方。
+    """
+
+    def pick(blocks: Sequence[Block]) -> tuple[tuple[Block, bool], ...]:
+        positions = [i for i, block in enumerate(blocks) if figure(block)]
+        out: list[tuple[Block, bool]] = []
+        for block in captions(blocks):
+            here = index_of(blocks, block)
+            above = max((p for p in positions if p < here), default=None)
+            below = min((p for p in positions if p > here), default=None)
+            joined = above is not None and (below is None or here - above <= below - here)
+            out.append((block, joined))
+        return tuple(out)
+
+    return pick
+
+
 def flag(pair: tuple[Block, bool]) -> bool:
     return pair[1]
 

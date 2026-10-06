@@ -107,3 +107,8 @@ def test_text_hit(rule_id: str, change: Deviation, expected: list[str]) -> None:
 @pytest.mark.parametrize("rule_id", [row[0] for row in HITS])
 def test_text_pass_on_base(rule_id: str) -> None:
     CASE(rule_id, change=None, expect_only=[])
+
+
+def test_txt38_figure_caption_with_gap_still_below() -> None:
+    """图与图题之间夹空段 / 浮动图偏移时，图题仍在图下方 → 不报 `TXT-38`（回归）。"""
+    CASE("TXT-38", change=insert_blank_after("图块"), expect_only=[])

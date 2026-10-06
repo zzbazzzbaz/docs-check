@@ -6,6 +6,9 @@
 
 `key_text` 是识别锚点的统一预处理：去掉全部空白与零宽空格，这样「第 一 章」与「第一章」
 是同一个锚点。
+
+例外：**题注**（图题 / 表题）不认**句子**——以 `图/表X-Y` 开头的正文叙述句（含句末标点）
+不算题注（见 `_caption_no`）。
 """
 
 from __future__ import annotations
@@ -100,15 +103,29 @@ def is_appendix_sub(text: str | None) -> bool:
     return _APPENDIX_SUB.match(key_text(text)) is not None
 
 
-def figure_no(text: str | None) -> tuple[str, str] | None:
-    m = _FIGURE.match(key_text(text))
+_SENTENCE = re.compile(r"[。；！？]")
+
+
+def _caption_no(pattern: re.Pattern[str], text: str | None) -> tuple[str, str] | None:
+    """题注编号 `章号-序号`；**句子不算题注**。
+
+    正文里「图4-1为系统架构图，……。」「表4-1给出了……」也以 `图/表X-Y` 开头，
+    但它们是叙述句、不是题注；用句末标点（。；！？）把它们挡在识别之外。
+    """
+    key = key_text(text)
+    if _SENTENCE.search(key):
+        return None
+    m = pattern.match(key)
     return (cast(str, m.group(1)), cast(str, m.group(2))) if m else None
+
+
+def figure_no(text: str | None) -> tuple[str, str] | None:
+    return _caption_no(_FIGURE, text)
 
 
 def table_no(text: str | None) -> tuple[str, str] | None:
     """表题编号；`续表` 不算（由 `is_continued_table_caption` 单独认）。"""
-    m = _TABLE.match(key_text(text))
-    return (cast(str, m.group(1)), cast(str, m.group(2))) if m else None
+    return _caption_no(_TABLE, text)
 
 
 def formula_no(text: str | None) -> tuple[str, str] | None:
@@ -126,7 +143,7 @@ def is_table_caption(text: str | None) -> bool:
 
 
 def is_continued_table_caption(text: str | None) -> bool:
-    return _CONT_TABLE.match(key_text(text)) is not None
+    return _caption_no(_CONT_TABLE, text) is not None
 
 
 def looks_like_number(text: str | None) -> bool:

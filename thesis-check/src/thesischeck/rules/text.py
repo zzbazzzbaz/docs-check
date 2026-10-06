@@ -29,6 +29,7 @@ from .support import (
     cjk_of,
     context_index,
     count,
+    figure_position,
     first_cjk_font,
     flag,
     found,
@@ -90,15 +91,19 @@ def formula_number_runs(blocks: Sequence[Block]) -> tuple[Run, ...]:
     )
 
 
-def _caption_below_figure(block: Block) -> bool:
+def _has_figure_image(block: Block) -> bool:
     return bool(block.para.objects.inline_images or block.para.objects.floating_images)
+
+
+def _body_figure(block: Block) -> bool:
+    return block.scope is Scope.BODY and _has_figure_image(block)
 
 
 def _follows_table(block: Block) -> bool:
     return block.para.in_table
 
 
-FIG_ABOVE = neighbour_flag(BODY_FIGS, before=True, pred=_caption_below_figure)
+FIG_ABOVE = figure_position(BODY_FIGS, figure=_body_figure)
 TAB_BELOW = neighbour_flag(BODY_TABS, before=False, pred=_follows_table)
 
 
