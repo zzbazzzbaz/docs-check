@@ -6,13 +6,12 @@
 
 四道闭环（`FR-11.5`）在 `tests/unit/test_annotate.py` 里逐条验证；本模块本身保证：
 
-1. 插标记前核对「计划批的文字 == XML 里那段文字」，不一致就**降级为报告条目**；
+1. 插标记前核对「计划批的文字 == XML 里那段文字」，不一致就**跳过**（不产坏文件）；
 2. 按「段落 / 对象」聚合，同段多条问题合并成一条批注；
 3. 只插标记，正文文字逐字不变；
 4. 批注 `id` 全局唯一、按文档顺序，已有批注时从最大值之后追加。
 
-降级（`FR-11.4.5` / `FR-11.6`）：页眉 / 页脚、页面设置 / 分节、以及找不到安全位置的锚点，
-只进报告并单独计数，不产出坏文件。
+页眉 / 页脚、页面设置 / 分节、以及找不到安全位置的锚点**不批注**（仍留在 `issues.json` 里）。
 """
 
 from __future__ import annotations
@@ -43,7 +42,6 @@ from ..parse import (
 )
 from ..rules import Issue, Verdict, catalog
 from ..semantics import Block
-from .issues import Downgrade
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
@@ -61,10 +59,6 @@ TRUNCATED = "…（详见报告）"
 EMPTY_COMMENTS = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:comments xmlns:w="{W_NS}"/>'
 EMPTY_CONTENT_TYPES = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="{CT_NS}"/>'
 EMPTY_RELS = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="{PKG_REL_NS}"/>'
-
-HEADER_FOOTER_REASON = "位于页眉 / 页脚，无法批注"
-SECTION_REASON = "位于页面设置 / 分节，无法批注"
-ANCHOR_TEXT_REASON = "锚点文字与文档不一致，无法批注"
 
 
 def _w(tag: str) -> str:
@@ -86,10 +80,9 @@ class PlannedComment:
 
 @dataclass(frozen=True, slots=True)
 class Plan:
-    """一次写回的计划：成功锚定的批注 + 降级为报告条目的问题。"""
+    """一次写回的计划：按锚点聚合后的批注。"""
 
     comments: tuple[PlannedComment, ...]
-    downgrades: tuple[Downgrade, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,49 +116,38 @@ def _host_para(para: Para, ctx: _Ctx) -> Para | None:
     return None
 
 
-def _in_header_footer(el: etree._Element) -> bool:
-    node = el.getparent()
-    while node is not None:
-        if node.tag in (_w("hdr"), _w("ftr")):
-            return True
-        node = node.getparent()
-    return False
-
-
 def _run_text(el: etree._Element) -> str:
     return "".join(str(t.text or "") for t in el.iter(_w("t")))
 
 
-def _para_target(para: Para, ctx: _Ctx) -> _Target | Downgrade:
+def _para_target(para: Para, ctx: _Ctx) -> _Target | None:
     if para.story in (Story.HEADER, Story.FOOTER):
-        return Downgrade(None, HEADER_FOOTER_REASON)
+        return None
     if para_text(para.xml) != para.text:
-        return Downgrade(None, ANCHOR_TEXT_REASON)
+        return None
     if para.story is Story.TEXTBOX:
         host = _host_para(para, ctx)
         if host is None:
-            return Downgrade(None, "文本框嵌套过深，无法定位宿主段落")
+            return None
         if para_text(host.xml) != host.text:
-            return Downgrade(None, ANCHOR_TEXT_REASON)
+            return None
         return _Target(host, host.xml, host.text, True)
     return _Target(para, para.xml, para.text, False)
 
 
-def _run_target(run: Run, ctx: _Ctx) -> _Target | Downgrade:
+def _run_target(run: Run, ctx: _Ctx) -> _Target | None:
     if _run_text(run.xml) != run.text:
-        return Downgrade(None, ANCHOR_TEXT_REASON)
+        return None
     node = run.xml.getparent()
     while node is not None and node.tag != _w("p"):
         node = node.getparent()
     para = ctx.by_xml.get(node) if node is not None else None
     if para is None:
-        if _in_header_footer(run.xml):
-            return Downgrade(None, HEADER_FOOTER_REASON)
-        return Downgrade(None, "无法定位到可批注的段落")
+        return None
     return _para_target(para, ctx)
 
 
-def _resolve(anchor: object, ctx: _Ctx) -> _Target | Downgrade | None:
+def _resolve(anchor: object, ctx: _Ctx) -> _Target | None:
     if isinstance(anchor, Block):
         return _para_target(anchor.para, ctx)
     if isinstance(anchor, Para):
@@ -177,23 +159,15 @@ def _resolve(anchor: object, ctx: _Ctx) -> _Target | Downgrade | None:
         return None if para is None else _para_target(para, ctx)
     if isinstance(anchor, Table):
         first = next((p for row in anchor.rows for cell in row for p in cell.paragraphs), None)
-        return Downgrade(None, "表格没有可批注的单元格段落") if first is None else _para_target(first, ctx)
-    if isinstance(anchor, Section):
-        return Downgrade(None, SECTION_REASON)
-    if isinstance(anchor, HeaderFooter):
-        return Downgrade(None, HEADER_FOOTER_REASON)
+        return None if first is None else _para_target(first, ctx)
+    if isinstance(anchor, (Section, HeaderFooter)):
+        return None
     if isinstance(anchor, tuple):
         for item in anchor:
             found = _resolve(item, ctx)
             if found is not None:
                 return found
     return None
-
-
-def _no_anchor_reason(issue: Issue) -> str:
-    if issue.rule == "GLB-26":
-        return "模块缺失，文档中没有可锚定的位置"
-    return "无法定位到可批注的段落"
 
 
 # ── 批注正文（`FR-11.3`）────────────────────────────────────────
@@ -250,7 +224,7 @@ def _body_for(issues: Sequence[Issue], target: _Target) -> str:
 
 
 def plan_comments(doc: Document, issues: Sequence[Issue]) -> Plan:
-    """把问题按其锚点聚合成批注计划；无法锚定的**单独列出**（降级为报告条目）。
+    """把问题按其锚点聚合成批注计划；无法锚定的**跳过**（不批注，但仍在 `issues.json` 里）。
 
     `id` 是**相对编号**（1 起），写入时统一加上已存在批注的最大编号（`FR-11.4.6`）。
     """
@@ -263,14 +237,10 @@ def plan_comments(doc: Document, issues: Sequence[Issue]) -> Plan:
     position = {id(para.xml): index for index, para in enumerate(main)}
 
     groups: dict[int, list[tuple[Issue, _Target]]] = {}
-    downgrades: list[Downgrade] = []
     for issue in issues:
         found = _resolve(issue.where, ctx)
         if isinstance(found, _Target):
             groups.setdefault(id(found.element), []).append((issue, found))
-            continue
-        reason = found.reason if isinstance(found, Downgrade) else _no_anchor_reason(issue)
-        downgrades.append(Downgrade(issue.rule, reason))
 
     ordered = sorted(groups.items(), key=lambda item: position.get(item[0], len(position)))
     comments: list[PlannedComment] = []
@@ -288,7 +258,7 @@ def plan_comments(doc: Document, issues: Sequence[Issue]) -> Plan:
                 rules=tuple(issue.rule for issue in grouped),
             )
         )
-    return Plan(comments=tuple(comments), downgrades=tuple(downgrades))
+    return Plan(comments=tuple(comments))
 
 
 # ── 写入 ────────────────────────────────────────────────────────

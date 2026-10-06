@@ -1,23 +1,20 @@
-"""L5 报告：把 `Issue` 规范化成稳定的 `issues.json`，并渲染单文件 `report.html`。
+"""L5 报告：把 `Issue` 规范化成稳定的 `issues.json`（`summary` / `rules` / `problems`）。
 
 纪律：
 
 - **只呈现，不判定**：结论完全来自 `Issue`，这里不改一个结论。
 - **三态严格分区**：不通过 / 无法判定 / 该规则未执行；未识别结构另列，后三类不许当通过。
-- **顺序稳定**：按（作用域, 段号, run 序号, 规则号, 摘要）排序，快照可直接 diff。
+- **静态信息只写一次**：规则文案集中在 `rules`（一条规则一份），问题只在 `problems` 里带
+  自己的定位与实际值——不逐条重复「这条要求什么」。
+- **顺序稳定**：按（作用域, 段号, 规则号, 摘要）排序，快照可直接 diff。
 - **可复现**：不含时间戳 / 绝对路径 / 耗时。
-- **面向学生**：不出现 XML 名词；定位能给到"搜什么"。
+- **面向学生**：不出现 XML 名词。
 
-定位分两层（需求 `FR-9.1`）：机器层是段号 + run 序号 + 元素路径；人类层是
-作用域 › 章 › 节（含区段内段序）+ 本段摘要 + 问题涉及的字符片段。
-
-按需回溯（技术设计 §4.2）：只对**判不通过**的属性重走一次 `effective` 的级联拿来源，
-取值与来源是同一份实现。
+定位分两层（需求 `FR-9.1`）：机器层是段号；人类层是 作用域 › 章 › 节（含区段内段序）+ 本段摘要。
 """
 
 from __future__ import annotations
 
-import html
 import math
 import subprocess
 from collections.abc import Sequence
@@ -26,24 +23,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from lxml import etree
-
 from ..index import DocumentIndex, FloatRef
-from ..parse import (
-    DIRECT,
-    HeaderFooter,
-    LineRule,
-    Para,
-    Resolver,
-    Run,
-    Section,
-    Table,
-    run_source,
-)
-from ..rules import Issue, Verdict
+from ..parse import HeaderFooter, LineRule, Para, Run, Section, Table
+from ..rules import Issue, Verdict, catalog
 from ..semantics import Block, CheckContext, Role, Scope
 
-SCHEMA_VERSION = 1
 # 规则集版本的**回退值**：有 git 且能取到时优先用 `git describe --tags --dirty`（见下）
 RULESET_VERSION = "batch-1+2/207"
 
@@ -69,31 +53,6 @@ def ruleset_version() -> str:
     return described or RULESET_VERSION
 
 
-# 「解析器未认识元素」里**良性可忽略**的一小份显式名单（`FR-10.4`）：纯标记、兼容容器、
-# 内容控件元数据——它们不承载正文内容，也不改变结构判定。清单之外的一律算"值得关注"，
-# 直接进报告头计数；完整清单由 `--unknown-elements` 打印。名单刻意保持短小、逐条可审。
-BENIGN_ELEMENTS: frozenset[str] = frozenset(
-    {
-        "proofErr",
-        "bookmarkStart",
-        "bookmarkEnd",
-        "lastRenderedPageBreak",
-        "commentRangeStart",
-        "commentRangeEnd",
-        "commentReference",
-        "drawing",
-        "pict",
-        "hyperlink",
-        "sdtPr",
-        "sdtEndPr",
-        "docPartObj",
-        "docPartGallery",
-        "docPartUnique",
-        "tblGrid",
-        "gridCol",
-    }
-)
-
 _SCOPE_NAMES: dict[Scope, str] = {
     Scope.COVER: "封面",
     Scope.ABS_C: "中文摘要",
@@ -106,40 +65,6 @@ _SCOPE_NAMES: dict[Scope, str] = {
 }
 _WHOLE = "全文"
 _SCOPE_ORDER: tuple[str, ...] = (*_SCOPE_NAMES.values(), _WHOLE)
-
-# 本轮未覆盖项声明（需求 §2.4）：不做 ≠ 不提，避免"没报 = 肯定没问题"
-UNCOVERED: tuple[str, ...] = (
-    "分页与页码的实际版面效果：本工具只检查文档结构里的分页标记，最终效果以打印或 PDF 为准。",
-    "目录页码的正确性 / 连续性 / 一致性（需要渲染后的页面结果）。",
-    "跨页表格的续表标注（需要知道表格实际是否跨页）。",
-    "参考文献著录格式的标点校验（本期不做）。",
-)
-
-# 属性名（有效格式）-> 给学生看的说法
-_PROP_LABELS: dict[str, str] = {
-    "ea": "中文字体",
-    "west": "西文和数字字体",
-    "size": "字号",
-    "bold": "加粗",
-    "italic": "斜体",
-    "va": "上下标",
-    "align": "对齐方式",
-    "outline": "大纲级别",
-    "line_multiple": "行距",
-    "line_pt": "行距",
-    "first_line_chars": "首行缩进",
-    "left_chars": "左缩进",
-    "right_chars": "右缩进",
-    "hanging_chars": "悬挂缩进",
-    "space_before_pt": "段前间距",
-    "space_after_pt": "段后间距",
-    "top_pt": "上边距",
-    "bottom_pt": "下边距",
-    "left_pt": "左边距",
-    "right_pt": "右边距",
-    "page_break_before": "段前分页",
-    "keep_with_next": "与下段同页",
-}
 
 _ALIGN: dict[str, str] = {
     "center": "居中",
@@ -172,83 +97,36 @@ _CHAR_PROPS = frozenset({"first_line_chars", "left_chars", "right_chars", "hangi
 
 @dataclass(frozen=True, slots=True)
 class Location:
-    """一条问题的定位（机器层 + 人类层，见 `FR-9.1`）。"""
+    """一条问题的定位：机器层段号 + 人类层 作用域 › 章 › 节（含区段内段序）+ 本段摘要。"""
 
     block_id: int | None
-    run_index: int | None
-    element: str | None
     module: str
     chapter: str | None
     section: str | None
     ordinal: int | None
     excerpt: str
-    span: str | None
-
-    def text(self) -> str:
-        """人类层定位，如 `正文 › 第三章  系统设计 › 3.2 系统架构（该节第 3 段）`。"""
-        parts = [self.module]
-        if self.chapter:
-            parts.append(self.chapter)
-        if self.section:
-            parts.append(self.section)
-        head = " › ".join(parts)
-        if self.section and self.ordinal is not None:
-            return f"{head}（该节第 {self.ordinal} 段）"
-        if self.chapter:
-            return f"{head}（章标题）"
-        return head
-
-    def find(self) -> str:
-        """报告里的"怎么找"：优先搜最具体的标题，其次搜本段摘要。
-
-        章节名若与模块名相同（条目类规则没有小节、定位只落到模块），退回本段摘要，
-        否则"搜「参考文献」"会把学生引到标题而不是出问题的那一段。
-        """
-        if self.section:
-            return self.section
-        if self.chapter and self.chapter != self.module:
-            return self.chapter
-        return self.excerpt or self.chapter or self.module
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "block_id": self.block_id,
-            "run_index": self.run_index,
-            "element": self.element,
             "module": self.module,
             "chapter": self.chapter,
             "section": self.section,
             "ordinal": self.ordinal,
             "excerpt": self.excerpt,
-            "span": self.span,
         }
 
 
 @dataclass(frozen=True, slots=True)
-class Downgrade:
-    """一条**无法写入批注**、退回报告的问题（`FR-11.4.5` / `FR-11.6`）。
-
-    页眉 / 页脚、页面设置 / 分节、以及找不到安全锚点的问题走这里；报告里要注明原因并计数，
-    而不是悄悄消失。
-    """
-
-    rule: str | None
-    reason: str
-
-
-@dataclass(frozen=True, slots=True)
 class Entry:
-    """一条规范化后的报告条目。"""
+    """`problems` 里的一条问题。"""
 
     rule: str | None
     severity: str  # fail / undetermined / not_run / unrecognised
     location: Location
-    property: str | None
     got: str
     expect: str
-    src: str
-    source: str | None  # 按需回溯得到的来源，如"在 run 上直接设置"
-    error: str | None
+    error: str | None = None
 
     def sort_key(self) -> tuple[object, ...]:
         rank = (
@@ -257,128 +135,62 @@ class Entry:
             else len(_SCOPE_ORDER)
         )
         block = self.location.block_id if self.location.block_id is not None else -1
-        run = self.location.run_index if self.location.run_index is not None else -1
-        return (rank, block, run, self.rule or "", self.location.excerpt)
+        return (rank, block, self.rule or "", self.location.excerpt)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "rule": self.rule,
             "severity": self.severity,
-            "location": self.location.to_dict(),
-            "property": self.property,
+            "where": self.location.to_dict(),
             "got": self.got,
             "expect": self.expect,
-            "basis": self.src,
-            "provenance": self.source,
             "error": self.error,
         }
 
 
 @dataclass(frozen=True, slots=True)
 class Report:
-    """一次审核的全部结果，可序列化为 `issues.json` 或渲染为 `report.html`。"""
+    """一次审核的全部结果：静态规则表 + 动态问题清单（+ 摘要）。"""
 
-    parser_version: str
     ruleset_version: str
-    fail: tuple[Entry, ...]
-    undetermined: tuple[Entry, ...]
-    not_run: tuple[Entry, ...]
-    unrecognised: tuple[Entry, ...]
-    uncovered: tuple[str, ...]
-    auto_numbering: int
-    annotation: tuple[Downgrade, ...] = ()
-    unknown_elements: tuple[str, ...] = ()
+    problems: tuple[Entry, ...]
 
-    def problem_count(self) -> int:
-        """需要学生处理的问题数（三态 + 未识别结构）。"""
-        return len(self.fail) + len(self.undetermined) + len(self.not_run) + len(self.unrecognised)
-
-    def unknown_benign(self) -> tuple[str, ...]:
-        """未认识元素里落在良性名单内的部分。"""
-        return tuple(name for name in self.unknown_elements if name in BENIGN_ELEMENTS)
-
-    def unknown_notable(self) -> tuple[str, ...]:
-        """未认识元素里值得关注的部分（良性名单之外）。"""
-        return tuple(name for name in self.unknown_elements if name not in BENIGN_ELEMENTS)
-
-    def all_entries(self) -> tuple[Entry, ...]:
-        return self.fail + self.undetermined + self.not_run + self.unrecognised
+    def counts(self) -> dict[str, int]:
+        """四态计数。"""
+        counts = {"fail": 0, "undetermined": 0, "not_run": 0, "unrecognised": 0}
+        for entry in self.problems:
+            counts[entry.severity] += 1
+        return counts
 
     def by_scope(self) -> dict[str, dict[str, int]]:
-        counts: dict[str, dict[str, int]] = {}
-        for entry in self.all_entries():
-            bucket = counts.setdefault(
+        """按作用域分组的四态计数，顺序固定（`_SCOPE_ORDER`）。"""
+        scopes: dict[str, dict[str, int]] = {}
+        for entry in self.problems:
+            bucket = scopes.setdefault(
                 entry.location.module, {"fail": 0, "undetermined": 0, "not_run": 0, "unrecognised": 0}
             )
             bucket[entry.severity] += 1
-        return {scope: counts[scope] for scope in _SCOPE_ORDER if scope in counts}
+        return {scope: scopes[scope] for scope in _SCOPE_ORDER if scope in scopes}
+
+    def rules(self) -> dict[str, dict[str, str]]:
+        """问题里出现的规则号 → 规则文案（一条规则只写一次，与批注同源 `catalog`）。"""
+        table: dict[str, dict[str, str]] = {}
+        for entry in self.problems:
+            if entry.rule is not None and entry.rule not in table:
+                table[entry.rule] = {"text": catalog.content(entry.rule)}
+        return table
 
     def to_json(self) -> dict[str, Any]:
+        counts = self.counts()
         return {
-            "schema": SCHEMA_VERSION,
-            "parser_version": self.parser_version,
-            "ruleset_version": self.ruleset_version,
             "summary": {
-                "fail": len(self.fail),
-                "undetermined": len(self.undetermined),
-                "not_run": len(self.not_run),
-                "unrecognised": len(self.unrecognised),
+                "ruleset_version": self.ruleset_version,
+                **counts,
                 "by_scope": self.by_scope(),
-                "auto_numbering_paragraphs": self.auto_numbering,
             },
-            "unknown_elements": {
-                "total": len(self.unknown_elements),
-                "benign": len(self.unknown_benign()),
-                "notable": len(self.unknown_notable()),
-            },
-            "fail": [entry.to_dict() for entry in self.fail],
-            "undetermined": [entry.to_dict() for entry in self.undetermined],
-            "not_run": [entry.to_dict() for entry in self.not_run],
-            "unrecognised": [entry.to_dict() for entry in self.unrecognised],
-            "uncovered": list(self.uncovered),
-            "annotation": {
-                "not_annotated": len(self.annotation),
-                "items": [{"rule": item.rule, "reason": item.reason} for item in self.annotation],
-            },
+            "rules": self.rules(),
+            "problems": [entry.to_dict() for entry in self.problems],
         }
-
-    def to_html(self) -> str:
-        counts = {
-            name: len(getattr(self, name)) for name in ("fail", "undetermined", "not_run", "unrecognised")
-        }
-        sections = (
-            ("不通过", self.fail, "fail"),
-            ("无法判定", self.undetermined, "undetermined"),
-            ("该规则未执行", self.not_run, "not_run"),
-            ("未识别结构", self.unrecognised, "unrecognised"),
-        )
-        body: list[str] = []
-        for title, entries, kind in sections:
-            body.append(f'<section class="group {kind}">')
-            body.append(f"<h2>{html.escape(title)}（{len(entries)} 条）</h2>")
-            if not entries:
-                body.append('<p class="ok">无</p>')
-            for entry in entries:
-                body.append(_entry_html(entry))
-            body.append("</section>")
-        uncovered = "".join(f"<li>{html.escape(item)}</li>" for item in self.uncovered)
-        summary = _summary_html(self.by_scope(), counts)
-        notable = self.unknown_notable()
-        unknown = (
-            f'<div class="meta">解析器未认识元素：{len(notable)} 种值得关注'
-            f"（另有 {len(self.unknown_benign())} 种良性标记）</div>"
-        )
-        return _PAGE.format(
-            parser=html.escape(self.parser_version),
-            ruleset=html.escape(self.ruleset_version),
-            summary=summary,
-            groups="\n".join(body),
-            annotation=_annotation_html(self.annotation),
-            uncovered=uncovered,
-            unknown=unknown,
-            auto_numbering=self.auto_numbering,
-            total=self.problem_count(),
-        )
 
 
 # ── 定位 ────────────────────────────────────────────────────────
@@ -430,23 +242,7 @@ def _excerpt(text: str, limit: int = 40) -> str:
     return trimmed if len(trimmed) <= limit else trimmed[: limit - 1] + "…"
 
 
-def _element_path(el: etree._Element) -> str:
-    """稳定、相对的 XML 元素路径（不起自文件系统的绝对路径）。"""
-    parts: list[str] = []
-    node: etree._Element | None = el
-    while node is not None:
-        tag = node.tag.rsplit("}", 1)[-1]
-        parent = node.getparent()
-        if parent is None:
-            parts.append(tag)
-        else:
-            siblings = [child for child in parent if child.tag == node.tag]
-            parts.append(f"{tag}[{siblings.index(node) + 1}]")
-        node = parent
-    return "/".join(reversed(parts))
-
-
-def _header_footer_kind(el: etree._Element) -> str | None:
+def _header_footer_kind(el: Any) -> str | None:
     """元素是否落在页眉 / 页脚部件里（页码类 run 定位用）。"""
     node = el.getparent()
     while node is not None:
@@ -468,33 +264,19 @@ def _locate(
     pos_by_id: dict[int, int],
 ) -> Location:
     if block is not None:
-        return _block_location(anchor, block, index=index, blocks=blocks, pos_by_id=pos_by_id)
+        return _block_location(block, index=index, blocks=blocks, pos_by_id=pos_by_id)
     if isinstance(anchor, Section):
-        return Location(
-            None, None, _element_path(anchor.xml), _WHOLE, None, None, None, f"第 {anchor.index} 节", None
-        )
+        return Location(None, _WHOLE, None, None, None, f"第 {anchor.index} 节")
     if isinstance(anchor, HeaderFooter):
-        kind = "页眉" if anchor.kind == "header" else "页脚"
-        return Location(None, None, None, _WHOLE, None, None, None, kind, None)
+        return Location(None, _WHOLE, None, None, None, "页眉" if anchor.kind == "header" else "页脚")
     if isinstance(anchor, Run):
-        hf_kind = _header_footer_kind(anchor.xml)
-        if hf_kind is not None:
-            return Location(
-                None,
-                anchor.index,
-                _element_path(anchor.xml),
-                _WHOLE,
-                None,
-                None,
-                None,
-                hf_kind,
-                _excerpt(anchor.text),
-            )
-    return Location(None, None, None, _WHOLE, None, None, None, "整篇文档", None)
+        kind = _header_footer_kind(anchor.xml)
+        if kind is not None:
+            return Location(None, _WHOLE, None, None, None, _excerpt(anchor.text) or kind)
+    return Location(None, _WHOLE, None, None, None, "整篇文档")
 
 
 def _block_location(
-    anchor: object,
     block: Block,
     *,
     index: DocumentIndex,
@@ -519,18 +301,13 @@ def _block_location(
         chapter_text = _excerpt(blocks[chapter.start].para.text, 60)
     else:
         chapter_text = None
-    span = _excerpt(anchor.text) if isinstance(anchor, Run) else None
-    element = _element_path(anchor.xml) if isinstance(anchor, Run) else _element_path(block.para.xml)
     return Location(
         block_id=block.para.id,
-        run_index=anchor.index if isinstance(anchor, Run) else None,
-        element=element,
         module=_SCOPE_NAMES.get(block.scope, _WHOLE),
         chapter=chapter_text,
         section=section,
         ordinal=ordinal,
         excerpt=_excerpt(block.para.text),
-        span=span,
     )
 
 
@@ -590,71 +367,6 @@ def _format_value(value: object, *, prop: str | None, para: Para | None) -> str:
     return str(value)
 
 
-def _source_text(label: str | None, anchor: object) -> str | None:
-    if label is None:
-        return None
-    if label == DIRECT:
-        return "在 run 上直接设置" if isinstance(anchor, Run) else "在段落上直接设置"
-    if label.startswith("字符样式:"):
-        return f"来自字符样式「{label.split(':', 1)[1]}」"
-    if label.startswith("样式:"):
-        return f"来自样式「{label.split(':', 1)[1]}」"
-    if label == "默认段落样式":
-        return "来自默认段落样式"
-    if label == "docDefaults":
-        return "来自文档默认设置"
-    return label
-
-
-# ── 人话：实际值 / 期望值 / 依据（报告与批注共用）──────────────
-#
-# 早期模板固定写成「现在为「X」，应为「Y」」+「【规则；依据：规范原文：…】」，两条毛病：
-# ① 判定型规则（`REF-10` 一类）的期望值就是「合规」，等于"应该没问题"，同义反复；
-# ② `src` 自带「规范原文：」前缀，再接「依据：」就叠成「依据：规范原文：…」。
-
-# 判定型规则的期望值哨兵：`got` 本身就是问题描述，期望「合规」无信息量，渲染时省掉
-_VERDICT = "合规"
-# `src` 自带的来源前缀：并进「依据 X：」，不重复「依据：」
-_SRC_KINDS = ("规范原文：", "规范样张：", "用户确认：")
-
-
-def basis_text(src: str) -> str:
-    """依据的人话：`规范原文：X` → `依据规范原文：X`；其他 → `依据：X`。空串返回空串。"""
-    if not src:
-        return ""
-    for kind in _SRC_KINDS:
-        if src.startswith(kind):
-            return f"依据{kind}{src[len(kind) :]}"
-    return f"依据：{src}"
-
-
-def detail_text(got: str, expect: str, prop: str | None) -> str:
-    """把「实际值 / 期望值」写成一句人话（判不通过时）。"""
-    if expect == _VERDICT:
-        # 判定型规则：`got` 已是问题描述（如"未以编号开头"），直接陈述
-        return f"{got}。"
-    if prop:
-        return f"{prop}应为「{expect}」，现在是「{got}」。"
-    return f"应为「{expect}」，现在是「{got}」。"
-
-
-def undetermined_text(got: str, expect: str, prop: str | None) -> str:
-    """无法判定时的人话：说明要人工确认，而不是拿「合规」充期望值。"""
-    if expect == _VERDICT:
-        return "无法判定是否符合要求，请人工确认。"
-    subject = prop or "该项"
-    return f"无法判定{subject}是否符合要求（应为「{expect}」），请人工确认。"
-
-
-def _provenance(
-    prop: str | None, anchor: object, block: Block | None, resolver: Resolver | None
-) -> str | None:
-    """判不通过时，对判的那个属性重走一次级联，拿来源。"""
-    if resolver is None or prop is None or block is None or not isinstance(anchor, Run):
-        return None
-    return _source_text(run_source(resolver, anchor, block.para.style_id, prop), anchor)
-
-
 # ── 组装 ────────────────────────────────────────────────────────
 
 
@@ -663,180 +375,44 @@ def build_report(
     index: DocumentIndex,
     issues: Sequence[Issue],
     *,
-    parser_version: str,
     ruleset_version: str,
-    resolver: Resolver | None = None,
-    annotation: Sequence[Downgrade] = (),
-    unknown_elements: tuple[str, ...] = (),
 ) -> Report:
-    """把引擎产出的 `Issue` 规范化、分区、定位，组装成 `Report`。"""
+    """把引擎产出的 `Issue` 规范化、定位，组装成 `Report`。"""
     blocks = tuple(context)
     pos_by_id = {block.para.id: i for i, block in enumerate(blocks)}
     by_id = {block.para.id: block for block in blocks}
     by_xml = {block.para.xml: block for block in blocks}
 
-    fail: list[Entry] = []
-    undetermined: list[Entry] = []
-    not_run: list[Entry] = []
+    problems: list[Entry] = []
     for issue in issues:
         anchor = _anchor(issue.where)
         block = _primary_block(anchor, by_id, by_xml)
         location = _locate(anchor, block, index=index, blocks=blocks, pos_by_id=pos_by_id)
+        if issue.error is not None:
+            problems.append(Entry(issue.rule, "not_run", location, "", "", issue.error.detail))
+            continue
         prop = issue.prop
         para = _para_of(anchor, block)
-        if issue.error is not None:
-            entry = Entry(issue.rule, "not_run", location, None, "", "", issue.src, None, issue.error.detail)
-            not_run.append(entry)
-            continue
-        entry = Entry(
-            rule=issue.rule,
-            severity="fail" if issue.verdict is Verdict.FAIL else "undetermined",
-            location=location,
-            property=_PROP_LABELS.get(prop, prop) if prop is not None else None,
-            got=_format_value(issue.got, prop=prop, para=para),
-            expect=_format_value(issue.expect, prop=prop, para=para),
-            src=issue.src,
-            source=_provenance(prop, anchor, block, resolver) if issue.verdict is Verdict.FAIL else None,
-            error=None,
+        problems.append(
+            Entry(
+                rule=issue.rule,
+                severity="fail" if issue.verdict is Verdict.FAIL else "undetermined",
+                location=location,
+                got=_format_value(issue.got, prop=prop, para=para),
+                expect=_format_value(issue.expect, prop=prop, para=para),
+            )
         )
-        (fail if issue.verdict is Verdict.FAIL else undetermined).append(entry)
-
-    unrecognised = [
+    problems.extend(
         Entry(
             rule=None,
             severity="unrecognised",
-            location=_locate(block, block, index=index, blocks=blocks, pos_by_id=pos_by_id),
-            property=None,
+            location=_block_location(block, index=index, blocks=blocks, pos_by_id=pos_by_id),
             got="该段落未能识别结构",
             expect="应能判断它属于论文的哪个模块（封面 / 摘要 / 目录 / 正文 / 参考文献 / 致谢 / 附录）",
-            src="",
-            source=None,
-            error=None,
         )
         for block in blocks
         if block.role is Role.UNKNOWN
-    ]
-
-    fail.sort(key=Entry.sort_key)
-    undetermined.sort(key=Entry.sort_key)
-    not_run.sort(key=Entry.sort_key)
-    unrecognised.sort(key=Entry.sort_key)
-    return Report(
-        parser_version=parser_version,
-        ruleset_version=ruleset_version,
-        fail=tuple(fail),
-        undetermined=tuple(undetermined),
-        not_run=tuple(not_run),
-        unrecognised=tuple(unrecognised),
-        uncovered=UNCOVERED,
-        auto_numbering=sum(1 for para in context.paragraphs if para.numbering is not None),
-        annotation=tuple(annotation),
-        unknown_elements=unknown_elements,
     )
 
-
-# ── HTML ────────────────────────────────────────────────────────
-
-_PAGE = """<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>毕业论文格式审核报告</title>
-<style>
-:root {{ --fail:#b00020; --undet:#8a5300; --notrun:#5b3a86; --unknown:#555; --line:#e3e3e3; }}
-* {{ box-sizing: border-box; }}
-body {{ margin:0; padding:0 1rem 3rem; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-  color:#222; line-height:1.6; }}
-header {{ padding:1.4rem 0 0.6rem; border-bottom:2px solid #222; }}
-h1 {{ margin:0 0 .3rem; font-size:1.4rem; }}
-.meta {{ color:#666; font-size:.85rem; }}
-main {{ max-width:52rem; margin:0 auto; }}
-section.group {{ margin-top:1.6rem; }}
-section.group h2 {{ font-size:1.1rem; border-left:5px solid #999; padding-left:.5rem; }}
-section.group.fail h2 {{ border-color:var(--fail); }}
-section.group.undetermined h2 {{ border-color:var(--undet); }}
-section.group.not_run h2 {{ border-color:var(--notrun); }}
-section.group.unrecognised h2 {{ border-color:var(--unknown); }}
-.entry {{ border:1px solid var(--line); border-radius:6px; padding:.7rem .9rem; margin:.6rem 0; }}
-.entry .title {{ font-weight:600; }}
-.entry .loc {{ color:#444; font-weight:400; }}
-.entry .detail {{ margin:.4rem 0 .2rem; }}
-.entry .basis, .entry .find {{ margin:.1rem 0; color:#555; font-size:.9rem; }}
-.ok {{ color:#2e7d32; }}
-table.summary {{ border-collapse:collapse; margin-top:.8rem; font-size:.9rem; }}
-table.summary th, table.summary td {{ border:1px solid var(--line); padding:.25rem .6rem; text-align:right; }}
-table.summary th:first-child, table.summary td:first-child {{ text-align:left; }}
-footer {{ margin-top:2rem; padding-top:.8rem; border-top:1px solid var(--line); color:#444; }}
-</style>
-</head>
-<body>
-<header>
-  <h1>毕业论文格式审核报告</h1>
-  <div class="meta">解析器版本：{parser} · 规则集版本：{ruleset} · 共 {total} 条待处理</div>
-  {unknown}
-</header>
-<main>
-{summary}
-{groups}
-{annotation}
-<section class="group"><h2>本轮未覆盖项</h2><ul>{uncovered}</ul></section>
-</main>
-<footer>共 {auto_numbering} 段使用了自动编号。</footer>
-</body>
-</html>
-"""
-
-
-def _summary_html(by_scope: dict[str, dict[str, int]], counts: dict[str, int]) -> str:
-    rows = "".join(
-        f"<tr><td>{html.escape(scope)}</td><td>{bucket['fail']}</td><td>{bucket['undetermined']}</td>"
-        f"<td>{bucket['not_run']}</td><td>{bucket['unrecognised']}</td></tr>"
-        for scope, bucket in by_scope.items()
-    )
-    return (
-        '<table class="summary"><thead><tr><th>作用域</th><th>不通过</th><th>无法判定</th>'
-        f"<th>未执行</th><th>未识别</th></tr></thead><tbody>{rows}</tbody></table>"
-        f"<p>合计：不通过 {counts['fail']} · 无法判定 {counts['undetermined']} · 未执行 {counts['not_run']}"
-        f" · 未识别结构 {counts['unrecognised']}</p>"
-    )
-
-
-def _annotation_html(items: tuple[Downgrade, ...]) -> str:
-    if not items:
-        return ""
-    rows = "".join(
-        f"<li>{html.escape(item.reason)}"
-        + (f"（规则 {html.escape(item.rule)}）" if item.rule else "")
-        + "</li>"
-        for item in items
-    )
-    return (
-        f'<section class="group"><h2>无法写入批注的问题（{len(items)} 条）</h2>'
-        "<p>下列问题位于页眉 / 页脚、页面设置等无法批注的位置，请对照上面的清单处理：</p>"
-        f"<ul>{rows}</ul></section>"
-    )
-
-
-def _entry_html(entry: Entry) -> str:
-    rule = f"【{html.escape(entry.rule)}】" if entry.rule else "【未识别结构】"
-    if entry.severity == "not_run":
-        detail = f"该规则本次未能执行：{html.escape(entry.error or '')}"
-    elif entry.severity == "unrecognised":
-        detail = f"{html.escape(entry.got)}；{html.escape(entry.expect)}"
-    else:
-        if entry.severity == "undetermined":
-            sentence = undetermined_text(entry.got, entry.expect, entry.property)
-        else:
-            sentence = detail_text(entry.got, entry.expect, entry.property)
-            if entry.source:
-                sentence += f"（{entry.source}）"
-        detail = html.escape(sentence)
-    basis = f'<p class="basis">{html.escape(basis_text(entry.src))}</p>' if entry.src else ""
-    find = f'<p class="find">怎么找：在文档里搜「{html.escape(entry.location.find())}」</p>'
-    span = f'<p class="find">片段：{html.escape(entry.location.span)}</p>' if entry.location.span else ""
-    return (
-        '<article class="entry">'
-        f'<div class="title">{rule}<span class="loc">{html.escape(entry.location.text())}</span></div>'
-        f'<p class="detail">{detail}</p>{basis}{span}{find}</article>'
-    )
+    problems.sort(key=Entry.sort_key)
+    return Report(ruleset_version=ruleset_version, problems=tuple(problems))

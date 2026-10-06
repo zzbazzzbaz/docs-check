@@ -60,7 +60,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"无法审核：{exc}", file=sys.stderr)
         return 2
     print(f"问题清单：{result.issues_json}")
-    print(f"审核报告：{result.report_html}")
     print(f"标注版文档：{result.marked_docx}")
     return 0
 

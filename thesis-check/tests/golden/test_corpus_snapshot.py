@@ -26,7 +26,7 @@ import pytest
 
 from thesischeck import __version__
 from thesischeck.index import build_index
-from thesischeck.parse.document import parse_document, resolver_for
+from thesischeck.parse.document import parse_document
 from thesischeck.parse.package import Package
 from thesischeck.report import RULESET_VERSION, build_report
 from thesischeck.rules import REGISTRY, run_rules
@@ -49,14 +49,7 @@ def _run_one(path: Path) -> dict[str, Any]:
         context = tag_context(document)
         issues = run_rules(context, REGISTRY)
         index = build_index(document, context)
-        report = build_report(
-            context,
-            index,
-            issues,
-            parser_version=__version__,
-            ruleset_version=RULESET_VERSION,
-            resolver=resolver_for(pkg),
-        )
+        report = build_report(context, index, issues, ruleset_version=RULESET_VERSION)
     by_rule: dict[str, dict[str, int]] = {}
     for issue in issues:
         bucket = by_rule.setdefault(issue.rule, {"fail": 0, "undetermined": 0, "not_run": 0})
@@ -64,13 +57,7 @@ def _run_one(path: Path) -> dict[str, Any]:
             bucket["not_run"] += 1
         else:
             bucket["fail" if issue.verdict.value == "fail" else "undetermined"] += 1
-    return {
-        "fail": len(report.fail),
-        "undetermined": len(report.undetermined),
-        "not_run": len(report.not_run),
-        "unrecognised": len(report.unrecognised),
-        "by_rule": by_rule,
-    }
+    return {**report.counts(), "by_rule": by_rule}
 
 
 def build_snapshot() -> dict[str, Any]:

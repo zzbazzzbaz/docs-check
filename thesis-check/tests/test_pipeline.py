@@ -1,6 +1,6 @@
 """端到端：`pipeline.review` 串起 parse → semantics → index → rules → report。
 
-底稿必须零问题；偏差变体必须出现对应条目，且带期望值 / 实际值 / 依据。
+底稿必须零问题；偏差变体必须出现对应条目，且带定位 / 实际值 / 期望值 / 规则文案。
 """
 
 from __future__ import annotations
@@ -17,39 +17,34 @@ from thesischeck.parse.package import PART_COMMENTS, Package
 from thesischeck.pipeline import review
 
 
-def _run(tmp_path: Path, data: bytes) -> tuple[Path, Path, dict[str, Any]]:
+def _run(tmp_path: Path, data: bytes) -> tuple[Path, dict[str, Any]]:
     docx = tmp_path / "case.docx"
     docx.write_bytes(data)
     result = review(docx, tmp_path / "out")
     payload = json.loads(result.issues_json.read_text(encoding="utf-8"))
-    return result.issues_json, result.report_html, payload
+    return result.issues_json, payload
 
 
-def test_review_writes_both_products_for_compliant_base(tmp_path: Path) -> None:
-    issues_json, report_html, payload = _run(tmp_path, BASE)
+def test_review_writes_products_for_compliant_base(tmp_path: Path) -> None:
+    issues_json, payload = _run(tmp_path, BASE)
     assert issues_json.is_file()
-    assert report_html.is_file()
-    assert payload["summary"] == {
-        "fail": 0,
-        "undetermined": 0,
-        "not_run": 0,
-        "unrecognised": 0,
-        "by_scope": {},
-        "auto_numbering_paragraphs": 0,
-    }
-    assert payload["uncovered"]
+    assert set(payload) == {"summary", "rules", "problems"}
+    assert payload["summary"]["fail"] == 0
+    assert payload["summary"]["undetermined"] == 0
+    assert payload["problems"] == []
+    assert payload["rules"] == {}
 
 
 def test_review_reports_deviation_with_values_and_basis(tmp_path: Path) -> None:
-    _, _, payload = _run(tmp_path, ea("中文摘要标题", "仿宋").apply(BASE))
-    hits = [entry for entry in payload["fail"] if entry["rule"] == "ABS-C-02"]
+    _, payload = _run(tmp_path, ea("中文摘要标题", "仿宋").apply(BASE))
+    hits = [entry for entry in payload["problems"] if entry["rule"] == "ABS-C-02"]
     assert hits, "中文摘要标题字体偏差没有被报出"
     entry = hits[0]
+    assert entry["severity"] == "fail"
     assert entry["got"] == "仿宋"
     assert entry["expect"] == "黑体"
-    assert entry["basis"]
-    assert entry["location"]["module"] == "中文摘要"
-    assert entry["provenance"] == "在 run 上直接设置"
+    assert entry["where"]["module"] == "中文摘要"
+    assert payload["rules"]["ABS-C-02"]["text"], "规则文案应随 rules 表给出"
 
 
 def test_cli_runs_review_and_writes_products(tmp_path: Path) -> None:
@@ -58,12 +53,11 @@ def test_cli_runs_review_and_writes_products(tmp_path: Path) -> None:
     outdir = tmp_path / "cli-out"
     assert cli.main([str(docx), "-o", str(outdir)]) == 0
     assert (outdir / "issues.json").is_file()
-    assert (outdir / "report.html").is_file()
     assert (outdir / "case.marked.docx").is_file()
 
 
 def test_review_writes_marked_document_with_comments(tmp_path: Path) -> None:
-    """第三件产物：标注版 docx（批注回写），且不破坏正文。"""
+    """第二件产物：标注版 docx（批注回写），且不破坏正文。"""
     docx = tmp_path / "case.docx"
     docx.write_bytes(ea("中文摘要标题", "仿宋").apply(BASE))
     result = review(docx, tmp_path / "out")

@@ -1,12 +1,12 @@
-"""批注回写：四道闭环自检 + 降级 + 坏锚点 + 追加（需求 `FR-11`）。
+"""批注回写：四道闭环自检 + 无法批注的跳过 + 坏锚点 + 追加（需求 `FR-11`）。
 
 四道闭环（`FR-11.5`）：
 1. 文字核对：插标记前「计划批的文字」== XML 里那段文字；
-2. 数量核对：批注数 == 聚合后的问题数，降级项单独计数；
+2. 数量核对：批注覆盖的问题数 == 计划里的问题数（无法批注的跳过）；
 3. 内容不变：写回后重新解析，正文文字逐字一致；
 4. 锚点回读：重新解析标注版，每条批注锚定的文字 == 该对象文字。
 
-另有：页眉 / 页脚、页面设置、文本框、模块缺失四类降级；坏锚点不产坏文件；已带批注追加。
+另有：页眉 / 页脚、页面设置、文本框、模块缺失无法批注（跳过）；坏锚点不产坏文件；已带批注追加。
 """
 
 from __future__ import annotations
@@ -23,7 +23,6 @@ from lxml import etree
 from tests.fixtures.base import BASE
 from tests.fixtures.synth import alignment, combined, delete, ea, header_ea, page_margin, table_border
 
-from thesischeck.index import build_index
 from thesischeck.parse.document import para_text, parse_document
 from thesischeck.parse.model import Document
 from thesischeck.parse.package import (
@@ -32,7 +31,6 @@ from thesischeck.parse.package import (
     PART_DOCUMENT,
     Package,
 )
-from thesischeck.report import build_report
 from thesischeck.report.annotate import Plan, annotate, plan_comments, write_marked
 from thesischeck.rules import REGISTRY, Issue, Verdict, run_rules
 from thesischeck.semantics.blocks import tag_context
@@ -170,8 +168,8 @@ def test_closed_loop_text_identity_count_and_readback() -> None:
     assert len(issues) == 2
     assert len(plan.comments) == 1
     assert plan.comments[0].problems == 2
-    # 闭环 2：聚合后的问题数 == 批注数（降级项单列）
-    assert sum(comment.problems for comment in plan.comments) + len(plan.downgrades) == len(issues)
+    # 闭环 2：聚合后的问题数 == 批注覆盖的问题数（无法批注的跳过）
+    assert sum(comment.problems for comment in plan.comments) == len(issues)
     assert len(_comments(marked)) == len(plan.comments)
     # 闭环 4：重新解析，锚定的文字 == 该问题所在对象的文字
     ranges = _ranges(marked)
@@ -245,34 +243,30 @@ def test_comment_is_rule_id_plus_rule_content() -> None:
     assert "依据" not in body
 
 
-# ── 降级：页眉 / 页脚、页面设置、模块缺失 ──────────────────────
+# ── 无法批注：页眉 / 页脚、页面设置、模块缺失 ──────────────────
 
 
-def test_header_footer_and_page_setup_downgrade() -> None:
+def test_header_footer_and_page_setup_are_not_annotated() -> None:
     cases = [
-        (header_ea("仿宋").apply(BASE), "GLB-02", "页眉"),
-        (page_margin(1, "top", "2000").apply(BASE), "GLB-16", "页面设置"),
+        (header_ea("仿宋").apply(BASE), "GLB-02"),
+        (page_margin(1, "top", "2000").apply(BASE), "GLB-16"),
     ]
-    for data, rule, needle in cases:
+    for data, rule in cases:
         with _case(data) as (pkg, doc, issues):
             plan = plan_comments(doc, issues)
             marked = write_marked(pkg, doc, plan)
-        reasons = {item.rule: item.reason for item in plan.downgrades}
-        assert rule in reasons, f"{rule} 未降级"
-        assert needle in reasons[rule]
-        # 降级项不写入批注，也不丢（计数在 plan 里）
+        assert rule in {issue.rule for issue in issues}, f"{rule} 没有被报出"
+        # 页眉 / 页面设置无法批注：不写入批注（问题仍在 issues.json 里），文件仍可打开
         assert rule not in {name for comment in plan.comments for name in comment.rules}
         assert len(_comments(marked)) == len(plan.comments)
-        _reparse(marked)  # 文件仍可打开
+        _reparse(marked)
 
 
-def test_missing_module_downgrades_to_report() -> None:
+def test_missing_module_is_not_annotated() -> None:
     with _case(delete("附录标题").apply(BASE)) as (pkg, doc, issues):
         plan = plan_comments(doc, issues)
         marked = write_marked(pkg, doc, plan)
-    reasons = {item.rule: item.reason for item in plan.downgrades}
-    assert "GLB-26" in reasons
-    assert "模块缺失" in reasons["GLB-26"]
+    assert "GLB-26" not in {name for comment in plan.comments for name in comment.rules}
     _reparse(marked)
 
 
@@ -308,7 +302,7 @@ def test_textbox_problem_anchors_host_paragraph() -> None:
 # ── 坏锚点不产坏文件 ────────────────────────────────────────────
 
 
-def test_bad_anchors_downgrade_and_file_still_opens() -> None:
+def test_bad_anchors_are_skipped_and_file_still_opens() -> None:
     with _case(BASE) as (pkg, doc, _):
         real = doc.paragraphs[1]
         mismatch = dataclasses.replace(real, text=real.text + "XYZ")
@@ -321,12 +315,9 @@ def test_bad_anchors_downgrade_and_file_still_opens() -> None:
         plan = plan_comments(doc, broken)
         marked = write_marked(pkg, doc, plan)
 
-    reasons = {item.rule: item.reason for item in plan.downgrades}
-    assert "无法定位到可批注的段落" in reasons["TST-NONE"]
-    assert "锚点文字与文档不一致" in reasons["TST-MISMATCH"]
     assert [comment.rules for comment in plan.comments] == [("TST-OK",)]
     assert len(plan.comments) == 1
-    # 降级的问题没有变成坏标记，文件仍能被重新解析
+    # 无法定位 / 锚点文字不一致的问题没有变成坏标记，文件仍能被重新解析
     assert _ranges(marked) == {1: ""}
     _reparse(marked)
 
@@ -353,26 +344,7 @@ def test_append_to_document_that_already_has_comments() -> None:
     _reparse(second)
 
 
-# ── 报告兜底：降级项在报告里注明并计数 ──────────────────────────
-
-
-def test_report_lists_problems_that_cannot_be_annotated() -> None:
-    with _case(header_ea("仿宋").apply(BASE)) as (_, doc, issues):
-        plan = plan_comments(doc, issues)
-        context = tag_context(doc)
-        report = build_report(
-            context,
-            build_index(doc, context),
-            issues,
-            parser_version="test",
-            ruleset_version="test",
-            annotation=plan.downgrades,
-        )
-
-    payload = report.to_json()
-    assert payload["annotation"]["not_annotated"] == len(plan.downgrades) >= 1
-    assert "无法写入批注" in report.to_html()
-    assert "页眉" in report.to_html()
+# ── 无问题不引入批注部件 ────────────────────────────────────────
 
 
 def test_no_comments_means_no_comments_part() -> None:
