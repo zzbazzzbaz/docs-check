@@ -15,6 +15,7 @@ from collections.abc import Callable, Sequence
 from ..parse import Run
 from .blocks import Block
 from .matchers import (
+    formula_no,
     has_ascii_alnum,
     has_cjk,
     is_appendix_sub,
@@ -105,8 +106,45 @@ def continued_table_captions(blocks: BlockSeq) -> tuple[Block, ...]:
     return tuple(b for b in by_role(blocks, Role.CAPTION_TAB) if is_continued_table_caption(b.para.text))
 
 
+def is_formula_paragraph(block: Block) -> bool:
+    """**独占一行**的公式对象：段落里除公式对象外没有中文正文。
+
+    行内公式、或整段「式中…」说明（文字全裹在对象里）属**正文**，不算公式段落；
+    `TXT-32/33` 只判真正的公式，不把它们当成「缺编号的公式」。
+    """
+    return block.role is Role.FORMULA and not has_cjk(block.para.text)
+
+
 def formula_paragraphs(blocks: BlockSeq) -> tuple[Block, ...]:
-    return by_role(blocks, Role.FORMULA)
+    return tuple(b for b in blocks if is_formula_paragraph(b))
+
+
+def formula_groups(blocks: BlockSeq) -> tuple[tuple[Block, ...], ...]:
+    """把正文里**相邻的**公式段落合并成一个「公式单元」。
+
+    一个公式常被拆成多段对象：跨行公式，或「公式 + 式中说明」共用 1 个编号。
+    编号与对齐按单元判，续行 / 说明不会各自被当成独立公式。
+    """
+    groups: list[list[Block]] = []
+    current: list[Block] = []
+    for block in blocks:
+        if block.scope is Scope.BODY and is_formula_paragraph(block):
+            current.append(block)
+        elif current:
+            groups.append(current)
+            current = []
+    if current:
+        groups.append(current)
+    return tuple(tuple(group) for group in groups)
+
+
+def formula_align_targets(blocks: BlockSeq) -> tuple[Block, ...]:
+    """`TXT-33` 判哪些段落：单元里**带编号**的段都要居中；整单元没编号则判首段。"""
+    targets: list[Block] = []
+    for group in formula_groups(blocks):
+        numbered = [b for b in group if formula_no(b.para.text) is not None]
+        targets.extend(numbered or group[:1])
+    return tuple(targets)
 
 
 def ref_items(blocks: BlockSeq) -> tuple[Block, ...]:

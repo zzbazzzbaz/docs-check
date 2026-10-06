@@ -292,6 +292,9 @@ def _chapter(number: int, title: str, *, with_objects: bool) -> str:
                 + run("(1-1)", ea="宋体", west="Times New Roman", size=10.5),
                 align="center",
             ),
+            # 「式中…」说明：也是个公式对象，但与上面的公式**共用 1 个编号**，
+            # 合并成一个公式单元后不得被 TXT-32（缺编号）/ TXT-33（对齐）误报
+            para("<w:r><m:oMath><m:r><m:t>z</m:t></m:r></m:oMath></w:r>"),
         ]
     return "".join(parts)
 

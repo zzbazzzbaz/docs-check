@@ -95,8 +95,8 @@ def test_base_document_index_collects_every_field(tmp_path: Path) -> None:
     assert all(chapter.is_heading1 for chapter in index.chapters)
     assert [ref.no for ref in index.floats.figures] == ["1-1"]
     assert [ref.no for ref in index.floats.tables] == ["1-1"]
-    assert [ref.no for ref in index.floats.formulas] == ["1-1"]
-    assert index.floats.formula_objects == 1
+    assert [ref.no for ref in index.floats.formulas] == ["1-1", None]
+    assert index.floats.formula_objects == 2
     assert index.citations is not None
     assert {citation.no for citation in index.citations} == {1, 2}
     assert [citation.order for citation in index.citations] == [1, 2]

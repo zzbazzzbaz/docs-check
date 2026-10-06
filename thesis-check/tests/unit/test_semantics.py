@@ -57,6 +57,13 @@ def para(text: str = "", *, style: str | None = None, numbering: int | None = No
     return f"<w:p>{prefix}{run}</w:p>"
 
 
+def formula_para(text: str = "", *, align: str | None = None) -> str:
+    """含 `w:object` 的段落：对象 run 在前，编号 / 文字 run 在后。"""
+    ppr = f'<w:pPr><w:jc w:val="{align}"/></w:pPr>' if align is not None else ""
+    run = f"<w:r><w:t>{text}</w:t></w:r>" if text else ""
+    return f"<w:p>{ppr}<w:r><w:object/></w:r>{run}</w:p>"
+
+
 def load(tmp_path: Path, body: str) -> Document:
     document = (
         '<?xml version="1.0" encoding="UTF-8"?>'
@@ -303,6 +310,20 @@ def test_continued_table_caption_is_not_an_ordinary_table_caption(tmp_path: Path
     blocks = tag_blocks(load(tmp_path, body))
     assert texts(select.captions_tab(blocks)) == ["表1-1 器件清单"]
     assert texts(select.continued_table_captions(blocks)) == ["续表1-1"]
+
+
+def test_formula_recognition_skips_inline_math_and_groups_continuations(tmp_path: Path) -> None:
+    """独占一行的对象才算公式；相邻对象合并成单元；带中文的行内公式不算公式。"""
+    body = (
+        para("第一章 引言", style="H1")
+        + formula_para("       (1-1)", align="center")  # 公式 + 编号
+        + formula_para()  # 相邻对象：跨行公式 / 式中说明
+        + formula_para("其中，n 为样本数。")  # 含中文 → 行内公式，属正文
+    )
+    blocks = tag_blocks(load(tmp_path, body))
+    assert texts(select.formula_paragraphs(blocks)) == ["       (1-1)", ""]
+    assert [texts(group) for group in select.formula_groups(blocks)] == [["       (1-1)", ""]]
+    assert texts(select.formula_align_targets(blocks)) == ["       (1-1)"]
 
 
 def test_appendix_recognition_is_independent_of_level_and_case(tmp_path: Path) -> None:

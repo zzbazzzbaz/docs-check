@@ -126,9 +126,12 @@ def chapter_page_breaks(blocks: Sequence[Block]) -> tuple[tuple[Block, bool], ..
     return tuple(out)
 
 
-def formula_number_verdict(block: Block) -> str:
-    """TXT-32：公式段落必须带半角圆括号、半角 `-` 的 `(章号-序号)`。"""
-    return "合规" if _FORMULA_NO.search(block.para.text) else "公式缺编号"
+def formula_number_verdict(group: tuple[Block, ...]) -> str:
+    """TXT-32：一个公式**单元**里必须有半角圆括号、半角 `-` 的 `(章号-序号)`。
+
+    单元 = 相邻的公式对象段（跨行公式 / 「公式 + 式中说明」只算一个公式）。
+    """
+    return "合规" if any(_FORMULA_NO.search(block.para.text) for block in group) else "公式缺编号"
 
 
 # ── 第二批（FR-8）：三线表 / 公式编号 / 必须有引用 ─────────────
@@ -520,14 +523,14 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
     ),
     Rule(
         id="TXT-32",
-        of=BODY_FORMULAS,
+        of=select.formula_groups,
         prop=formula_number_verdict,
         expect="合规",
         src=text("TXT-32"),
     ),
     Rule(
         id="TXT-33",
-        of=BODY_FORMULAS,
+        of=select.formula_align_targets,
         prop=para_align,
         expect="center",
         src=text("TXT-33"),
