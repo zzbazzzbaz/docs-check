@@ -323,6 +323,29 @@ def _move_below_table(target: str) -> Change:
     return _edit(DOCUMENT, edit)
 
 
+def _display_math(target: str) -> Change:
+    """把目标段落里的 OMML 提成段级 `m:oMathPara`（独占一行公式），并去掉段落 `w:jc`。
+
+    模拟 Word 的显示公式：对齐交给 `m:jc`（此处缺省 → 居中），段落 `w:jc` 不再起作用。
+    """
+
+    def edit(root: _El) -> None:
+        for p in _targets(root, target):
+            omath = p.find(f".//{_m('oMath')}")
+            if omath is None:
+                continue
+            run = omath.getparent()
+            if run is not None:
+                run.remove(omath)
+            etree.SubElement(p, _m("oMathPara")).append(omath)
+            ppr = p.find(_w("pPr"))
+            if ppr is not None:
+                for jc in ppr.findall(_w("jc")):
+                    ppr.remove(jc)
+
+    return _edit(DOCUMENT, edit)
+
+
 def _rename_style(old: str, new: str) -> Change:
     def edit(root: _El) -> None:
         for name in root.iter(_w("name")):
@@ -726,6 +749,11 @@ def delete(target: str) -> Deviation:
 def caption_below_table(target: str) -> Deviation:
     """把表题移到表格下方（`TXT-44` 命中）。"""
     return Deviation((_move_below_table(target),))
+
+
+def display_math(target: str) -> Deviation:
+    """把目标段落改成「独占一行公式」（`m:oMathPara`，对齐缺省居中）。"""
+    return Deviation((_display_math(target),))
 
 
 def rename_style(old: str, new: str) -> Deviation:

@@ -189,6 +189,19 @@ def para_align(block: Block) -> str | None:
     return block.para.align
 
 
+_CENTER_JUSTIFY = frozenset({"center", "centerGroup"})
+
+
+def formula_align(block: Block) -> str | None:
+    """公式段落的对齐：**独占一行公式**（`m:oMathPara`）看它自己的 `m:jc`（缺省居中），
+    否则看段落对齐。显示公式的居中归 `m:jc` 管，段落 `w:jc` 对它不起作用（`TXT-33`）。
+    """
+    justify = block.para.objects.omath_para_align
+    if justify is None:
+        return block.para.align
+    return "center" if justify in _CENTER_JUSTIFY else justify
+
+
 def para_line(block: Block) -> float | None:
     """行距倍率；**非倍率行距**（`exact` / `atLeast`）返回 `NOT_MULTIPLE` 直接判不合格。
 

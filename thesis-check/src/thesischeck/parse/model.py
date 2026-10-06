@@ -47,12 +47,18 @@ class NumPr:
 
 @dataclass(frozen=True, slots=True)
 class Objects:
-    """段落里内嵌的对象计数。`mc:Fallback` 里的重复写法不算。"""
+    """段落里内嵌的对象计数。`mc:Fallback` 里的重复写法不算。
+
+    `omath_para_align` 是**独占一行公式**（`m:oMathPara`）自身的对齐（`m:jc`，缺省按
+    规范记 `centerGroup`）；inline 公式 / 无显示公式时为 `None`。显示公式的居中由它决定，
+    段落 `w:jc` 不起作用。
+    """
 
     inline_images: int = 0
     floating_images: int = 0
     ole: int = 0
     omath: int = 0
+    omath_para_align: str | None = None
 
     @property
     def any(self) -> bool:

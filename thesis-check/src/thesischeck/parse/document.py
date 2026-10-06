@@ -137,9 +137,11 @@ def para_text(p: etree._Element) -> str:
 def object_counts(p: etree._Element) -> Objects:
     """段落里的对象计数（文本框内、`mc:Fallback` 里的不算）。
 
-    公式：`m:oMathPara` 只是 `m:oMath` 的容器，只数 `m:oMath`，否则会重复。
+    公式：`m:oMathPara` 只是 `m:oMath` 的容器，只数 `m:oMath`，否则会重复。`m:oMathPara`
+    的对齐（`m:jc`，缺省按规范记 `centerGroup`）单独记进 `omath_para_align`。
     """
     inline = floating = ole = omath = 0
+    omath_para_align: str | None = None
     for el in p.iter():
         if not isinstance(el.tag, str) or _inside_txbx(el, p) or _in_fallback(el, p):
             continue
@@ -151,7 +153,16 @@ def object_counts(p: etree._Element) -> Objects:
             ole += 1
         elif el.tag == m("oMath"):
             omath += 1
-    return Objects(inline_images=inline, floating_images=floating, ole=ole, omath=omath)
+        elif el.tag == m("oMathPara"):
+            jc = el.find(f"{m('oMathParaPr')}/{m('jc')}")
+            omath_para_align = (jc.get(m("val")) if jc is not None else None) or "centerGroup"
+    return Objects(
+        inline_images=inline,
+        floating_images=floating,
+        ole=ole,
+        omath=omath,
+        omath_para_align=omath_para_align,
+    )
 
 
 def _edge(el: etree._Element | None) -> bool | None:

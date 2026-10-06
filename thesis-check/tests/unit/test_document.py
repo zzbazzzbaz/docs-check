@@ -264,6 +264,24 @@ def test_formula_counts_objects_and_omml_without_double_counting(tmp_path: Path)
     assert (objects.ole, objects.omath) == (1, 2)
 
 
+def test_display_equation_justification_defaults_to_center_group(tmp_path: Path) -> None:
+    body = "<w:p><m:oMathPara><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></m:oMathPara></w:p>"
+    assert load(tmp_path, body).paragraphs[0].objects.omath_para_align == "centerGroup"
+
+
+def test_display_equation_justification_reads_jc(tmp_path: Path) -> None:
+    body = (
+        '<w:p><m:oMathPara><m:oMathParaPr><m:jc m:val="left"/></m:oMathParaPr>'
+        "<m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></m:oMathPara></w:p>"
+    )
+    assert load(tmp_path, body).paragraphs[0].objects.omath_para_align == "left"
+
+
+def test_inline_math_has_no_display_justification(tmp_path: Path) -> None:
+    body = "<w:p><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></w:p>"
+    assert load(tmp_path, body).paragraphs[0].objects.omath_para_align is None
+
+
 def test_fallback_objects_are_not_double_counted(tmp_path: Path) -> None:
     body = (
         '<w:p><w:r><mc:AlternateContent><mc:Choice Requires="wps">'

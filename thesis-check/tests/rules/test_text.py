@@ -14,6 +14,7 @@ from tests.fixtures.synth import (
     caption_below_table,
     combined,
     delete,
+    display_math,
     ea,
     first_line,
     insert_blank_after,
@@ -118,3 +119,8 @@ def test_txt38_figure_caption_with_gap_still_below() -> None:
 def test_txt44_table_caption_with_gap_still_above() -> None:
     """表题与表格之间夹空段时，表题仍在表上方 → 不报 `TXT-44`（回归）。"""
     CASE("TXT-44", change=insert_blank_after("表题"), expect_only=[])
+
+
+def test_txt33_display_equation_centered_by_math_paragraph() -> None:
+    """独占一行公式（`m:oMathPara`）的对齐由 `m:jc` 缺省居中，段落对齐不管用 → 不报 `TXT-33`。"""
+    CASE("TXT-33", change=display_math("公式段落"), expect_only=[])

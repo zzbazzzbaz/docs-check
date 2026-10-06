@@ -766,7 +766,7 @@
       "undetermined": 0
     },
     "TXT-33": {
-      "fail": 25,
+      "fail": 1,
       "not_run": 0,
       "undetermined": 0
     },
@@ -1135,7 +1135,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 447,
+      "fail": 435,
       "index": 36,
       "not_run": 0,
       "sha256": "a32f6bd186505b18",
@@ -1167,7 +1167,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 447,
+      "fail": 435,
       "index": 40,
       "not_run": 0,
       "sha256": "a32f6bd186505b18",
@@ -1178,9 +1178,9 @@
   "ruleset_version": "batch-1+2/207",
   "schema": 1,
   "totals": {
-    "fail": 5956,
+    "fail": 5932,
     "not_run": 0,
-    "problems": 6890,
+    "problems": 6866,
     "undetermined": 411,
     "unrecognised": 523
   }

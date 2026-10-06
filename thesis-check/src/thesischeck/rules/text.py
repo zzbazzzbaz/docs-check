@@ -32,6 +32,7 @@ from .support import (
     first_cjk_font,
     flag,
     float_position,
+    formula_align,
     found,
     gap_of,
     index_of,
@@ -535,7 +536,7 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
     Rule(
         id="TXT-33",
         of=select.formula_align_targets,
-        prop=para_align,
+        prop=formula_align,
         expect="center",
         src=text("TXT-33"),
     ),
