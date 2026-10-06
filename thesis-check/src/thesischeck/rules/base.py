@@ -24,7 +24,7 @@ from enum import StrEnum
 from typing import Any
 
 from ..errors import RuleError
-from ..semantics.blocks import CheckContext
+from ..semantics import CheckContext
 
 
 class AttrGetter:

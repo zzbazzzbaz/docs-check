@@ -11,10 +11,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..index import MODULE_ORDER, detected_modules, module_spans
-from ..parse.model import HeaderFooter, Run, Section
-from ..semantics import select
-from ..semantics.blocks import Block, CheckContext, Scope
-from ..semantics.matchers import has_cjk
+from ..parse import HeaderFooter, Run, Section
+from ..semantics import Block, CheckContext, Scope, has_cjk, select
 from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .catalog import text
 from .support import BlockSel, last_of, neighbour_flag

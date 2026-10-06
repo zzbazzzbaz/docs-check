@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ..parse.model import Para
+from ..parse import Para
 from .matchers import is_appendix_title, is_chapter, is_toc_entry_style, key_text
 
 

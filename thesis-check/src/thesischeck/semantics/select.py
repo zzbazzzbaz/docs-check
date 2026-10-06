@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 
-from ..parse.model import Run
+from ..parse import Run
 from .blocks import Block
 from .matchers import (
     has_ascii_alnum,

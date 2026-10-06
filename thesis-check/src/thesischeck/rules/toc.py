@@ -10,9 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from ..semantics import select
-from ..semantics.blocks import Block, Scope
-from ..semantics.matchers import is_chapter, toc_style_level
+from ..semantics import Block, Scope, is_chapter, select, toc_style_level
 from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .catalog import text
 from .support import (

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from itertools import pairwise
 
-from ..parse.model import Document, Para
+from ..parse import Document, Para
 from .document_index import DocumentIndex, ModuleSpan, matches_module
 
 

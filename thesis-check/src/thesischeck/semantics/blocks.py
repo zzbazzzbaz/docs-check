@@ -3,8 +3,9 @@
 `Para` 是 frozen 且属于 `parse` 层，**不能**把 scope / role 塞进去——那会让 parse 反向依赖
 semantics，分层契约会红。所以用 `Block(para, scope, role)` 承载。
 
-`Scope` / `Role` 的**定义**在 `scope.py` / `roles.py`（避免与 blocks 循环依赖），这里统一
-re-export，作为 L2 的单一入口。文本框与页眉页脚里的段落不属于这 8 个文档流作用域，不在此包装。
+`Scope` / `Role` 的**定义**在 `scope.py` / `roles.py`（避免与 blocks 循环依赖），这里只借用、
+不再转手 re-export；对层外的统一入口是 `thesischeck.semantics` 门面。文本框与页眉页脚里的段落
+不属于这 8 个文档流作用域，不在此包装。
 
 `CheckContext` 是给规则引擎的**只读上下文**：它本身就是块序列（所以既有的
 `Callable[[Sequence[Block]], ...]` 选择器原样可用），另外挂上整篇级事实——分节、全部段落
@@ -18,11 +19,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from ..parse.model import Document, Para, Section, Table
+from ..parse import Document, Para, Section, Table
 from .roles import Role, assign_role
 from .scope import Scope, scope_map
 
-__all__ = ["Block", "CheckContext", "Role", "Scope", "tag_blocks", "tag_context"]
+__all__ = ["Block", "CheckContext", "tag_blocks", "tag_context"]
 
 
 @dataclass(frozen=True, slots=True)

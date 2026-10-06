@@ -29,10 +29,19 @@ from typing import Any
 from lxml import etree
 
 from ..index import DocumentIndex, FloatRef
-from ..parse.effective import DIRECT, Resolver, run_source
-from ..parse.model import HeaderFooter, LineRule, Para, Run, Section, Table
+from ..parse import (
+    DIRECT,
+    HeaderFooter,
+    LineRule,
+    Para,
+    Resolver,
+    Run,
+    Section,
+    Table,
+    run_source,
+)
 from ..rules import Issue, Verdict
-from ..semantics.blocks import Block, CheckContext, Role, Scope
+from ..semantics import Block, CheckContext, Role, Scope
 
 SCHEMA_VERSION = 1
 # 规则集版本的**回退值**：有 git 且能取到时优先用 `git describe --tags --dirty`（见下）

@@ -11,9 +11,7 @@ from pathlib import Path
 
 from . import __version__
 from .errors import ThesisCheckError
-from .parse import compat
-from .parse.document import parse_document
-from .parse.package import Package
+from .parse import Package, compat, parse_document
 from .pipeline import review
 
 SUITES = ("own", "ownpages", "ownborders", "owntextbox", "ownindex")

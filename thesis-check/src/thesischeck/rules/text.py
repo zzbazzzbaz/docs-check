@@ -16,10 +16,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..index import Chapter, FloatRef
-from ..parse.model import Cell, Run, Table
-from ..semantics import select
-from ..semantics.blocks import Block, CheckContext, Scope
-from ..semantics.matchers import chapter_no, is_citation
+from ..parse import Cell, Run, Table
+from ..semantics import Block, CheckContext, Scope, chapter_no, is_citation, select
 from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .catalog import text
 from .support import (

@@ -7,4 +7,56 @@
 
 **禁止**：出现任何判定逻辑（形如 `if 字体 != "宋体"`）。
 取不到值一律给 `None`——`None` 是"无法判定"，不是"不符合"。
+
+本包是 L1 对外的**唯一门面**：别的层只准 `from thesischeck.parse import X`，
+不许 import 其中的子模块（`.importlinter` 有契约强制）。这里只导出别的层实际要用的符号，
+是**有意挑选的契约**而非子模块镜像——新增跨层符号时在这里补一行。
 """
+
+from __future__ import annotations
+
+from . import compat
+from .document import para_text, parse_document, resolver_for
+from .effective import DIRECT, Resolver, run_source
+from .model import (
+    Cell,
+    Document,
+    HeaderFooter,
+    LineRule,
+    Para,
+    Run,
+    Section,
+    Story,
+    Table,
+)
+from .package import (
+    PART_COMMENTS,
+    PART_CONTENT_TYPES,
+    PART_DOCUMENT,
+    Package,
+    rels_part_name,
+)
+
+__all__ = [
+    "DIRECT",
+    "PART_COMMENTS",
+    "PART_CONTENT_TYPES",
+    "PART_DOCUMENT",
+    "Cell",
+    "Document",
+    "HeaderFooter",
+    "LineRule",
+    "Package",
+    "Para",
+    "Resolver",
+    "Run",
+    "Section",
+    "Story",
+    "Table",
+    "compat",
+    "para_text",
+    "parse_document",
+    "rels_part_name",
+    "resolver_for",
+    "run_source",
+]

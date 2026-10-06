@@ -10,12 +10,16 @@
 
 结果三态：`FAIL` / `UNDETERMINED`（`PASS` 不进报告）。
 有自动编号的段落要让开下游编号类规则——用选择器过滤实现，不做"抑制机制"。
+
+本包是 L4 对外的**唯一门面**：别的层只准 `from thesischeck.rules import X`。
+`catalog` 是规则内容表，按命名空间整体放行。
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from . import catalog
 from .abstract_c import REGISTRY as _ABSTRACT_C
 from .abstract_e import REGISTRY as _ABSTRACT_E
 from .acknowledgements import REGISTRY as _ACK
@@ -61,6 +65,7 @@ __all__ = [
     "Tolerances",
     "Verdict",
     "attrgetter",
+    "catalog",
     "matches",
     "run_rules",
     "trace_prop",

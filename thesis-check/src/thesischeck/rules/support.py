@@ -11,9 +11,8 @@ import re
 from collections.abc import Callable, Sequence
 
 from ..index import DocumentIndex, index_from
-from ..parse.model import LineRule, Para, Run, Story
-from ..semantics.blocks import Block, CheckContext, Role
-from ..semantics.matchers import has_ascii_alnum, has_cjk
+from ..parse import LineRule, Para, Run, Story
+from ..semantics import Block, CheckContext, Role, has_ascii_alnum, has_cjk
 
 BlockSel = Callable[[Sequence[Block]], tuple[Block, ...]]
 RunSel = Callable[[Sequence[Block]], tuple[Run, ...]]

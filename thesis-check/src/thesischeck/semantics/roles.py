@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from ..parse.model import Para
+from ..parse import Para
 from .matchers import (
     heading_style_level,
     is_continued_table_caption,

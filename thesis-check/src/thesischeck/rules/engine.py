@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..errors import RuleError
-from ..semantics.blocks import CheckContext
+from ..semantics import CheckContext
 from .base import DEFAULT_TOLERANCES, Issue, Rule, Tolerances, Verdict, matches, trace_prop
 
 

@@ -23,9 +23,9 @@ import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from ..parse.model import Document, Para
-from ..semantics.blocks import Block
-from ..semantics.matchers import (
+from ..parse import Document, Para
+from ..semantics import (
+    Block,
     chapter_no,
     citation_numbers,
     figure_no,

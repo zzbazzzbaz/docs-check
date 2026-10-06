@@ -26,18 +26,23 @@ from datetime import UTC, datetime
 from lxml import etree
 
 from ..index import FloatRef
-from ..parse.document import para_text
-from ..parse.model import Document, HeaderFooter, Para, Run, Section, Story, Table
-from ..parse.package import (
+from ..parse import (
     PART_COMMENTS,
     PART_CONTENT_TYPES,
     PART_DOCUMENT,
+    Document,
+    HeaderFooter,
     Package,
+    Para,
+    Run,
+    Section,
+    Story,
+    Table,
+    para_text,
     rels_part_name,
 )
-from ..rules import Issue, Verdict
-from ..rules.catalog import content as rule_content
-from ..semantics.blocks import Block
+from ..rules import Issue, Verdict, catalog
+from ..semantics import Block
 from .issues import Downgrade
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -222,7 +227,7 @@ def _describe(issue: Issue) -> str:
     """
     if issue.error is not None:
         return f"【{issue.rule}】本次未能执行，详见报告"
-    content = rule_content(issue.rule)
+    content = catalog.content(issue.rule)
     head = f"【{issue.rule}】{content}" if content else f"【{issue.rule}】"
     if issue.verdict is Verdict.FAIL:
         return head

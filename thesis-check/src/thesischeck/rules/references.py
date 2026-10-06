@@ -15,9 +15,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..index import Citation
-from ..semantics import select
-from ..semantics.blocks import Block, CheckContext, Scope
-from ..semantics.matchers import looks_like_number
+from ..semantics import Block, CheckContext, Scope, looks_like_number, select
 from .base import Comparison, Rule, ToleranceKey, attrgetter
 from .catalog import text
 from .support import (

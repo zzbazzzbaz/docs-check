@@ -33,3 +33,98 @@ forbidden_modules =
 ; 这三层必须消费 parse 的冻结模型（`parse.model` 自身 import lxml，是合法的叶子依赖），
 ; 所以要禁的是**直接** import lxml——间接链 rules/semantics/index -> parse.model -> lxml 必须放行。
 allow_indirect_imports = true
+
+; ── 层门面：层外只能 import 包本身，不许 deep import 子模块 ──────────────
+; 每个包是它那一层的唯一出口；门面里显式 re-export 的符号才是公共契约，其余子模块是
+; 层内实现。这样"上只能依赖下"之外，还多了"层内封装"——上层重构子模块内部不应惊动别层。
+;
+; 实现要点：forbidden 契约的 source 用**层包**（as_packages 默认展开到其子模块），
+; forbidden 用**子模块**。同层内部互相 import 不在 source 里，故不受限。
+; allow_indirect_imports=true 只查直接边：rules -> parse（门面）-> parse.model 这条
+; 间接链必须放行，否则门面就没意义了。tests 不在 root_package 内，天然豁免（白盒）。
+
+; parse：唯一定义处 → 门面。compat 作为调试命名空间整体放行。
+[importlinter:contract:3]
+name = parse 子模块是 L1 内部，层外只能走 thesischeck.parse 门面
+type = forbidden
+source_modules =
+    thesischeck.cli
+    thesischeck.pipeline
+    thesischeck.report
+    thesischeck.rules
+    thesischeck.index
+    thesischeck.semantics
+forbidden_modules =
+    thesischeck.parse.document
+    thesischeck.parse.effective
+    thesischeck.parse.fields
+    thesischeck.parse.model
+    thesischeck.parse.package
+    thesischeck.parse.section
+allow_indirect_imports = true
+
+; semantics：select 是选择器工具箱命名空间，整体放行；其余子模块只能走门面。
+[importlinter:contract:4]
+name = semantics 子模块是 L2 内部，层外只能走 thesischeck.semantics 门面
+type = forbidden
+source_modules =
+    thesischeck.cli
+    thesischeck.pipeline
+    thesischeck.report
+    thesischeck.rules
+    thesischeck.index
+forbidden_modules =
+    thesischeck.semantics.blocks
+    thesischeck.semantics.matchers
+    thesischeck.semantics.roles
+    thesischeck.semantics.scope
+allow_indirect_imports = true
+
+[importlinter:contract:5]
+name = index 子模块是 L3 内部，层外只能走 thesischeck.index 门面
+type = forbidden
+source_modules =
+    thesischeck.cli
+    thesischeck.pipeline
+    thesischeck.report
+    thesischeck.rules
+forbidden_modules =
+    thesischeck.index.checks
+    thesischeck.index.document_index
+allow_indirect_imports = true
+
+; rules：catalog 是规则内容表命名空间，整体放行；其余子模块只能走门面。
+[importlinter:contract:6]
+name = rules 子模块是 L4 内部，层外只能走 thesischeck.rules 门面
+type = forbidden
+source_modules =
+    thesischeck.cli
+    thesischeck.pipeline
+    thesischeck.report
+forbidden_modules =
+    thesischeck.rules.abstract_c
+    thesischeck.rules.abstract_e
+    thesischeck.rules.acknowledgements
+    thesischeck.rules.appendix
+    thesischeck.rules.base
+    thesischeck.rules.batch1
+    thesischeck.rules.cover
+    thesischeck.rules.document_wide
+    thesischeck.rules.engine
+    thesischeck.rules.references
+    thesischeck.rules.support
+    thesischeck.rules.text
+    thesischeck.rules.toc
+allow_indirect_imports = true
+
+[importlinter:contract:7]
+name = report 子模块是 L5 内部，层外只能走 thesischeck.report 门面
+type = forbidden
+source_modules =
+    thesischeck.cli
+    thesischeck.pipeline
+forbidden_modules =
+    thesischeck.report.annotate
+    thesischeck.report.issues
+allow_indirect_imports = true
+
