@@ -20,6 +20,7 @@ from .matchers import (
     is_appendix_sub,
     is_chapter,
     is_citation,
+    is_continued_table_caption,
     is_toc_entry_style,
 )
 from .roles import Role
@@ -91,7 +92,17 @@ def captions_fig(blocks: BlockSeq) -> tuple[Block, ...]:
 
 
 def captions_tab(blocks: BlockSeq) -> tuple[Block, ...]:
-    return by_role(blocks, Role.CAPTION_TAB)
+    """**普通**表题（`^表\\d+-\\d+`）。`续表` 是独立对象，不套用普通表题规则。
+
+    续表由 `TXT-50` 判（需分页信息，本期不做）；这里排除它，避免 `assign_role`
+    把「续表X-Y」也当成表题后，被 `TXT-43/45/47` 误报。
+    """
+    return tuple(b for b in by_role(blocks, Role.CAPTION_TAB) if not is_continued_table_caption(b.para.text))
+
+
+def continued_table_captions(blocks: BlockSeq) -> tuple[Block, ...]:
+    """续表题（`^续表\\d+-\\d+`）；本期无规则使用（`TXT-50` 不做），仅为识别留存。"""
+    return tuple(b for b in by_role(blocks, Role.CAPTION_TAB) if is_continued_table_caption(b.para.text))
 
 
 def formula_paragraphs(blocks: BlockSeq) -> tuple[Block, ...]:

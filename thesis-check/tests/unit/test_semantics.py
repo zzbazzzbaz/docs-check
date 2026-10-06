@@ -291,6 +291,20 @@ def test_selectors_pick_the_expected_objects(tmp_path: Path) -> None:
     assert select.unknown_blocks(blocks) == ()
 
 
+def test_continued_table_caption_is_not_an_ordinary_table_caption(tmp_path: Path) -> None:
+    body = (
+        para("第一章 引言", style="H1")
+        + para("表1-1 器件清单")
+        + "<w:tbl><w:tr><w:tc>"
+        + para("数据")
+        + "</w:tc></w:tr></w:tbl>"
+        + para("续表1-1")
+    )
+    blocks = tag_blocks(load(tmp_path, body))
+    assert texts(select.captions_tab(blocks)) == ["表1-1 器件清单"]
+    assert texts(select.continued_table_captions(blocks)) == ["续表1-1"]
+
+
 def test_appendix_recognition_is_independent_of_level_and_case(tmp_path: Path) -> None:
     body = para("附 录") + para("附录a名词术语", style="H3") + para("正文说明内容。")
     blocks = tag_blocks(load(tmp_path, body))

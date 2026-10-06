@@ -285,6 +285,8 @@ def _chapter(number: int, title: str, *, with_objects: bool) -> str:
             para(run("图1-1 系统总体结构", ea="宋体", size=10.5), align="center"),
             para(run("表1-1 主要器件清单", ea="宋体", size=10.5), align="center"),
             _three_line_table(),
+            # 续表：独立对象，本期由 `TXT-50` 判（不做）；不得被普通表题规则 TXT-43/45/47 误报
+            para(run("续表1-1", ea="宋体", west="Times New Roman", size=10.5), align="right", line=1.5),
             para(
                 "<w:r><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></w:r>"
                 + run("(1-1)", ea="宋体", west="Times New Roman", size=10.5),

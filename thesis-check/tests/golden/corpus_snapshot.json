@@ -806,29 +806,29 @@
       "undetermined": 0
     },
     "TXT-43": {
-      "fail": 74,
+      "fail": 24,
       "not_run": 0,
       "undetermined": 0
     },
     "TXT-44": {
-      "fail": 32,
+      "fail": 29,
       "not_run": 0,
       "undetermined": 0
     },
     "TXT-45": {
-      "fail": 77,
+      "fail": 28,
       "not_run": 0,
       "undetermined": 0
     },
     "TXT-46": {
-      "fail": 39,
+      "fail": 34,
       "not_run": 0,
       "undetermined": 0
     },
     "TXT-47": {
       "fail": 49,
       "not_run": 0,
-      "undetermined": 50
+      "undetermined": 0
     },
     "TXT-48": {
       "fail": 64,
@@ -855,19 +855,19 @@
   "parser_version": "0.1.0",
   "per_document": [
     {
-      "fail": 302,
+      "fail": 299,
       "index": 1,
       "not_run": 0,
       "sha256": "146e7756e3116620",
-      "undetermined": 23,
+      "undetermined": 22,
       "unrecognised": 0
     },
     {
-      "fail": 119,
+      "fail": 113,
       "index": 2,
       "not_run": 0,
       "sha256": "1dabab9671f7cdef",
-      "undetermined": 4,
+      "undetermined": 1,
       "unrecognised": 0
     },
     {
@@ -879,259 +879,259 @@
       "unrecognised": 523
     },
     {
-      "fail": 296,
+      "fail": 276,
       "index": 4,
       "not_run": 0,
       "sha256": "300adc5c2fee1afa",
-      "undetermined": 34,
+      "undetermined": 24,
       "unrecognised": 0
     },
     {
-      "fail": 213,
+      "fail": 209,
       "index": 5,
       "not_run": 0,
       "sha256": "a7213eb02dd4b8a9",
-      "undetermined": 4,
+      "undetermined": 2,
       "unrecognised": 0
     },
     {
-      "fail": 22,
+      "fail": 20,
       "index": 6,
       "not_run": 0,
       "sha256": "a047a5baaf5fd531",
-      "undetermined": 1,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
-      "fail": 22,
+      "fail": 20,
       "index": 7,
       "not_run": 0,
       "sha256": "3328fa2afd67c50c",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 25,
-      "index": 8,
-      "not_run": 0,
-      "sha256": "6b588bc5035dd06e",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 24,
-      "index": 9,
-      "not_run": 0,
-      "sha256": "b6e15e5544aed7aa",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 33,
-      "index": 10,
-      "not_run": 0,
-      "sha256": "50c5742582ba0f2b",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 22,
-      "index": 11,
-      "not_run": 0,
-      "sha256": "1320c0cfed34d786",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 21,
-      "index": 12,
-      "not_run": 0,
-      "sha256": "b5e00a9ba3168da4",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 22,
-      "index": 13,
-      "not_run": 0,
-      "sha256": "c06fa98e32a5fda9",
-      "undetermined": 1,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
       "fail": 23,
-      "index": 14,
+      "index": 8,
       "not_run": 0,
-      "sha256": "9a63cddbb6d37d4f",
-      "undetermined": 1,
+      "sha256": "6b588bc5035dd06e",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 22,
+      "index": 9,
+      "not_run": 0,
+      "sha256": "b6e15e5544aed7aa",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 31,
+      "index": 10,
+      "not_run": 0,
+      "sha256": "50c5742582ba0f2b",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 20,
+      "index": 11,
+      "not_run": 0,
+      "sha256": "1320c0cfed34d786",
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
       "fail": 19,
-      "index": 15,
+      "index": 12,
       "not_run": 0,
-      "sha256": "4440d9a1d88be39a",
-      "undetermined": 1,
+      "sha256": "b5e00a9ba3168da4",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 20,
+      "index": 13,
+      "not_run": 0,
+      "sha256": "c06fa98e32a5fda9",
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
       "fail": 21,
+      "index": 14,
+      "not_run": 0,
+      "sha256": "9a63cddbb6d37d4f",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 17,
+      "index": 15,
+      "not_run": 0,
+      "sha256": "4440d9a1d88be39a",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 19,
       "index": 16,
       "not_run": 0,
       "sha256": "ed1d71bf930f0f09",
-      "undetermined": 1,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
-      "fail": 18,
+      "fail": 16,
       "index": 17,
       "not_run": 0,
       "sha256": "b44b32f2524215b1",
-      "undetermined": 1,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
-      "fail": 18,
+      "fail": 16,
       "index": 18,
       "not_run": 0,
       "sha256": "56379cbe3913cf2a",
-      "undetermined": 1,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
-      "fail": 27,
+      "fail": 25,
       "index": 19,
       "not_run": 0,
       "sha256": "0f8f018170d604d3",
-      "undetermined": 1,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
-      "fail": 18,
+      "fail": 16,
       "index": 20,
       "not_run": 0,
       "sha256": "c15a22338dee4940",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 35,
-      "index": 21,
-      "not_run": 0,
-      "sha256": "2dd4fd41f4ae97df",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 22,
-      "index": 22,
-      "not_run": 0,
-      "sha256": "5d788b08beb92800",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 40,
-      "index": 23,
-      "not_run": 0,
-      "sha256": "50ca4d35b22d751a",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 23,
-      "index": 24,
-      "not_run": 0,
-      "sha256": "3a843307d2f0b87e",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 94,
-      "index": 25,
-      "not_run": 0,
-      "sha256": "33365f9a09d9a798",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 18,
-      "index": 26,
-      "not_run": 0,
-      "sha256": "9901b10ed59c5a6c",
-      "undetermined": 1,
-      "unrecognised": 0
-    },
-    {
-      "fail": 12,
-      "index": 27,
-      "not_run": 0,
-      "sha256": "acf10a5f6fbb913e",
-      "undetermined": 13,
-      "unrecognised": 0
-    },
-    {
-      "fail": 30,
-      "index": 28,
-      "not_run": 0,
-      "sha256": "6ada04c9385ce788",
-      "undetermined": 4,
-      "unrecognised": 0
-    },
-    {
-      "fail": 29,
-      "index": 29,
-      "not_run": 0,
-      "sha256": "94bcc177fbda108e",
-      "undetermined": 9,
-      "unrecognised": 0
-    },
-    {
-      "fail": 29,
-      "index": 30,
-      "not_run": 0,
-      "sha256": "dba3a26e53b22c56",
-      "undetermined": 9,
+      "undetermined": 0,
       "unrecognised": 0
     },
     {
       "fail": 33,
+      "index": 21,
+      "not_run": 0,
+      "sha256": "2dd4fd41f4ae97df",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 20,
+      "index": 22,
+      "not_run": 0,
+      "sha256": "5d788b08beb92800",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 38,
+      "index": 23,
+      "not_run": 0,
+      "sha256": "50ca4d35b22d751a",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 21,
+      "index": 24,
+      "not_run": 0,
+      "sha256": "3a843307d2f0b87e",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 92,
+      "index": 25,
+      "not_run": 0,
+      "sha256": "33365f9a09d9a798",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 16,
+      "index": 26,
+      "not_run": 0,
+      "sha256": "9901b10ed59c5a6c",
+      "undetermined": 0,
+      "unrecognised": 0
+    },
+    {
+      "fail": 10,
+      "index": 27,
+      "not_run": 0,
+      "sha256": "acf10a5f6fbb913e",
+      "undetermined": 12,
+      "unrecognised": 0
+    },
+    {
+      "fail": 28,
+      "index": 28,
+      "not_run": 0,
+      "sha256": "6ada04c9385ce788",
+      "undetermined": 3,
+      "unrecognised": 0
+    },
+    {
+      "fail": 27,
+      "index": 29,
+      "not_run": 0,
+      "sha256": "94bcc177fbda108e",
+      "undetermined": 8,
+      "unrecognised": 0
+    },
+    {
+      "fail": 27,
+      "index": 30,
+      "not_run": 0,
+      "sha256": "dba3a26e53b22c56",
+      "undetermined": 8,
+      "unrecognised": 0
+    },
+    {
+      "fail": 31,
       "index": 31,
       "not_run": 0,
       "sha256": "6d4f846fc6ef51fd",
-      "undetermined": 9,
+      "undetermined": 8,
       "unrecognised": 0
     },
     {
-      "fail": 29,
+      "fail": 27,
       "index": 32,
       "not_run": 0,
       "sha256": "4a740a290d3f3eb3",
-      "undetermined": 9,
+      "undetermined": 8,
       "unrecognised": 0
     },
     {
-      "fail": 29,
+      "fail": 27,
       "index": 33,
       "not_run": 0,
       "sha256": "6885207506bf7cfd",
-      "undetermined": 9,
+      "undetermined": 8,
       "unrecognised": 0
     },
     {
-      "fail": 29,
+      "fail": 27,
       "index": 34,
       "not_run": 0,
       "sha256": "55f194cec3b6bc7b",
-      "undetermined": 9,
+      "undetermined": 8,
       "unrecognised": 0
     },
     {
-      "fail": 53,
+      "fail": 49,
       "index": 35,
       "not_run": 0,
       "sha256": "9a95f721e659a451",
-      "undetermined": 3,
+      "undetermined": 1,
       "unrecognised": 0
     },
     {
@@ -1159,11 +1159,11 @@
       "unrecognised": 0
     },
     {
-      "fail": 3382,
+      "fail": 3370,
       "index": 39,
       "not_run": 0,
       "sha256": "6035b8bddc927c69",
-      "undetermined": 283,
+      "undetermined": 280,
       "unrecognised": 0
     },
     {
@@ -1178,10 +1178,10 @@
   "ruleset_version": "batch-1+2/207",
   "schema": 1,
   "totals": {
-    "fail": 6326,
+    "fail": 6219,
     "not_run": 0,
-    "problems": 7316,
-    "undetermined": 467,
+    "problems": 7159,
+    "undetermined": 417,
     "unrecognised": 523
   }
 }
