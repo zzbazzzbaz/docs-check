@@ -1,7 +1,8 @@
-"""目录规则 TOC-01 ~ TOC-15。
+"""目录规则 TOC-01 ~ TOC-18。
 
 层级**只用样式名** `toc 1/2/3` 判（不是 styleId、不是编号形态）；编号后空格与文本
-形状写代码（`shape_verdict`），其余都是一行数据。字体 / 加粗只判非空白字符。
+形状写代码（`shape_verdict`），层级缩进读 `w:ind`，其余都是一行数据。字体 / 加粗只判
+非空白字符。
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from .support import (
     found,
     para_align,
     para_bold_verdict,
+    para_first_line_or_zero,
     para_line,
     para_text,
     present,
@@ -176,5 +178,32 @@ REGISTRY: tuple[Rule[Any, Any], ...] = (
         prop=_H3_VERDICT,
         expect="合规",
         src=text("TOC-14"),
+    ),
+    Rule(
+        id="TOC-16",
+        of=TOC_L1,
+        prop=para_first_line_or_zero,
+        expect=0.0,
+        cmp=Comparison.APPROX,
+        tol=ToleranceKey.INDENT_CHARS,
+        src=text("TOC-16"),
+    ),
+    Rule(
+        id="TOC-17",
+        of=TOC_L2,
+        prop=para_first_line_or_zero,
+        expect=2.0,
+        cmp=Comparison.APPROX,
+        tol=ToleranceKey.INDENT_CHARS,
+        src=text("TOC-17"),
+    ),
+    Rule(
+        id="TOC-18",
+        of=TOC_L3,
+        prop=para_first_line_or_zero,
+        expect=4.0,
+        cmp=Comparison.APPROX,
+        tol=ToleranceKey.INDENT_CHARS,
+        src=text("TOC-18"),
     ),
 )

@@ -36,7 +36,7 @@ from ..semantics.blocks import Block, CheckContext, Role, Scope
 
 SCHEMA_VERSION = 1
 # 规则集版本的**回退值**：有 git 且能取到时优先用 `git describe --tags --dirty`（见下）
-RULESET_VERSION = "batch-1+2/204"
+RULESET_VERSION = "batch-1+2/207"
 
 
 @lru_cache(maxsize=1)

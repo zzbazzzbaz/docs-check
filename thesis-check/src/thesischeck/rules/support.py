@@ -222,6 +222,12 @@ def para_first_line(block: Block) -> float | None:
     return block.para.first_line_chars
 
 
+def para_first_line_or_zero(block: Block) -> float:
+    """首行缩进字符数；**未声明缩进按 0 计**（目录条目「不能有空格」用）。"""
+    value = block.para.first_line_chars
+    return 0.0 if value is None else value
+
+
 def empty_run_after(blocks: Sequence[Block], block: Block) -> int:
     """`block` 之后**紧接着**的空段落个数。
 

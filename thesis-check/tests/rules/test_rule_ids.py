@@ -39,7 +39,7 @@ def registered_ids() -> set[str]:
 
 def test_documents_define_the_expected_rule_set() -> None:
     ids = documented_ids()
-    assert len(ids) == 210, f"规则文档应定义 210 条，实际 {len(ids)} 条"
+    assert len(ids) == 213, f"规则文档应定义 213 条，实际 {len(ids)} 条"
     assert ids & EXCLUDED == EXCLUDED
 
 

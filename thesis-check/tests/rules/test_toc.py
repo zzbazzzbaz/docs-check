@@ -1,4 +1,4 @@
-"""目录规则 TOC-01 ~ TOC-15 用例：每条一个命中 + 一个底稿合规。
+"""目录规则 TOC-01 ~ TOC-18 用例：每条一个命中 + 一个底稿合规。
 
 `TOC-15`（必须有目录条目）用「把 `toc 2/3` 样式改名 + 删掉一级条目」构造命中：
 不依赖条目、TOC 域仍在，只有本规则报出。
@@ -14,6 +14,7 @@ from tests.fixtures.synth import (
     combined,
     delete,
     ea,
+    first_line,
     insert_blank_after,
     line_spacing,
     rename_style,
@@ -39,6 +40,9 @@ HITS: list[tuple[str, Deviation, list[str]]] = [
     ("TOC-12", run_text("目录一级条目", "第一章", "第一章 绪论"), ["TOC-12"]),
     ("TOC-13", run_text("目录二级条目", "1.1", "1.1研究背景与意义"), ["TOC-13"]),
     ("TOC-14", run_text("目录三级条目", "1.1.1", "1.1.1国内研究现状"), ["TOC-14"]),
+    ("TOC-16", first_line("目录一级条目", 2), ["TOC-16"]),
+    ("TOC-17", first_line("目录二级条目", 1), ["TOC-17"]),
+    ("TOC-18", first_line("目录三级条目", 2), ["TOC-18"]),
     (
         "TOC-15",
         combined(

@@ -620,6 +620,21 @@
       "not_run": 0,
       "undetermined": 0
     },
+    "TOC-16": {
+      "fail": 1,
+      "not_run": 0,
+      "undetermined": 0
+    },
+    "TOC-17": {
+      "fail": 71,
+      "not_run": 0,
+      "undetermined": 0
+    },
+    "TOC-18": {
+      "fail": 95,
+      "not_run": 0,
+      "undetermined": 0
+    },
     "TXT-01": {
       "fail": 61,
       "not_run": 0,
@@ -848,7 +863,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 33,
+      "fail": 119,
       "index": 2,
       "not_run": 0,
       "sha256": "1dabab9671f7cdef",
@@ -856,7 +871,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 99,
+      "fail": 100,
       "index": 3,
       "not_run": 0,
       "sha256": "5cd024d9d997ba7e",
@@ -1120,7 +1135,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 427,
+      "fail": 467,
       "index": 36,
       "not_run": 0,
       "sha256": "a32f6bd186505b18",
@@ -1152,7 +1167,7 @@
       "unrecognised": 0
     },
     {
-      "fail": 427,
+      "fail": 467,
       "index": 40,
       "not_run": 0,
       "sha256": "a32f6bd186505b18",
@@ -1160,12 +1175,12 @@
       "unrecognised": 0
     }
   ],
-  "ruleset_version": "batch-1+2/204",
+  "ruleset_version": "batch-1+2/207",
   "schema": 1,
   "totals": {
-    "fail": 6159,
+    "fail": 6326,
     "not_run": 0,
-    "problems": 7149,
+    "problems": 7316,
     "undetermined": 467,
     "unrecognised": 523
   }

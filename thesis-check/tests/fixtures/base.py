@@ -204,19 +204,25 @@ def _field_end() -> str:
 
 def _table_of_contents() -> str:
     # 一级条目（第X章型）编号后空 2 格；二 / 三级条目空 1 格；
-    # 附录子条目（「附录X…」）是二级条目，但编号与题名之间不判空格（见 8-附录 APP-06）
+    # 附录子条目（「附录X…」）是二级条目，但编号与题名之间不判空格（见 8-附录 APP-06）。
+    # 层级缩进（TOC-16/17/18）：一级 0 字符、二级 2 字符、三级 4 字符
     entries = [
-        ("第一章  绪论", "TOC1"),
-        ("1.1 研究背景与意义", "TOC2"),
-        ("1.1.1 国内研究现状", "TOC3"),
-        ("参考文献", "TOC1"),
-        ("致    谢", "TOC1"),
-        ("附    录", "TOC1"),
-        ("附录A名词术语及缩略词", "TOC2"),
+        ("第一章  绪论", "TOC1", None),
+        ("1.1 研究背景与意义", "TOC2", 2),
+        ("1.1.1 国内研究现状", "TOC3", 4),
+        ("参考文献", "TOC1", None),
+        ("致    谢", "TOC1", None),
+        ("附    录", "TOC1", None),
+        ("附录A名词术语及缩略词", "TOC2", 2),
     ]
     body = "".join(
-        para(run(text, ea="宋体", west="Times New Roman", size=12), style=style, line=1.5)
-        for text, style in entries
+        para(
+            run(text, ea="宋体", west="Times New Roman", size=12),
+            style=style,
+            line=1.5,
+            first_line_chars=indent,
+        )
+        for text, style, indent in entries
     )
     return _module_title_line("目    录") + _field_begin('TOC \\o "1-3" \\h \\z \\u') + body + _field_end()
 
