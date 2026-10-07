@@ -27,8 +27,8 @@ uv run thesis-check 论文.docx -o out/
 from thesischeck.pipeline import review_bytes
 
 payload = review_bytes(uploaded_bytes)  # 字节进、内存出，不写磁盘
-payload.report.to_json()                # 问题清单（同 issues.json 的形状）
-payload.marked_docx                     # 标注版 docx 字节（供下载）
+payload.report.to_json()  # 问题清单（同 issues.json 的形状）
+payload.marked_docx  # 标注版 docx 字节（供下载）
 ```
 
 部署态（安装后的包没有 `.git`）用环境变量 `THESISCHECK_RULESET_VERSION` 注入规则集版本。

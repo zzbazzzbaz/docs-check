@@ -1,10 +1,10 @@
-"""Phase 5 等价性关卡：新解析器逐字段对齐 `test2` 快照。
+"""Phase 5 等价性关卡：新解析器逐字段对齐 `调研/test2` 快照。
 
 比对口径是**逐字段严格相等**：字段缺失、类型不同（`None` 与 `0`、`bool` 与 `int`）、
 浮点精度、列表长度都算差异。只有快照里的 `path` / `tool` 两个位置性元数据不参与比对
-（快照的 `path` 相对 `test2/`，与本地绝对路径无可比性）。
+（快照的 `path` 相对 `调研/test2/`，与本地绝对路径无可比性）。
 
-`test2/corpus` 或 `test2/snapshots` 不在本地时整组跳过（标 `real_corpus` + `slow`）。
+`调研/test2/corpus` 或 `调研/test2/snapshots` 不在本地时整组跳过（标 `real_corpus` + `slow`）。
 
 无法对齐的字段必须进 `ACCEPTED` 允许清单（字段名 + 篇名 + 条数 + 原因），清单为空是
 最好的结果；**不允许静默忽略**。
@@ -27,12 +27,12 @@ from thesischeck.parse.package import Package
 
 # ── 语料与快照位置 ──────────────────────────────────────────────
 _REPO = Path(__file__).resolve().parents[2]
-_TEST2 = _REPO.parent / "test2"
+_TEST2 = _REPO.parent / "调研" / "test2"
 CORPUS = _TEST2 / "corpus"
 SNAPSHOTS = _TEST2 / "snapshots"
 SUITES = ("own", "ownpages", "ownborders", "owntextbox", "ownindex")
 
-# 快照里相对 test2/ 的路径与工具标记，不参与解析事实比对
+# 快照里相对 调研/test2/ 的路径与工具标记，不参与解析事实比对
 IGNORED_KEYS = frozenset({"path", "tool"})
 
 
@@ -141,7 +141,7 @@ def test_diff_ignores_positional_metadata() -> None:
 # ── 语料关卡 ────────────────────────────────────────────────────
 
 
-@pytest.mark.skipif(not _available(), reason="需要 test2/corpus 与 test2/snapshots")
+@pytest.mark.skipif(not _available(), reason="需要 调研/test2/corpus 与 调研/test2/snapshots")
 @pytest.mark.parametrize("docx", _corpus_docs(), ids=lambda p: p.stem)
 def test_compat_dump_matches_snapshots(docx: Path) -> None:
     with Package.open(docx) as pkg:

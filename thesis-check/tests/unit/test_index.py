@@ -7,7 +7,7 @@
 - **取不到就显式无法判定**：定位不到正文区时 `citations is None`，不是空集合。
 
 不变量既在底稿上全过，也被证明"报得出来"（人为破坏索引后能报出对应违规）。
-真实语料沿用与解析层相同的定位：`THESIS_CORPUS_DIR` 或 `test2/corpus`，都没有则跳过。
+真实语料沿用与解析层相同的定位：`THESIS_CORPUS_DIR` 或 `调研/test2/corpus`，都没有则跳过。
 """
 
 from __future__ import annotations
@@ -221,11 +221,11 @@ def _corpus_docs() -> list[Path]:
     if env and Path(env).is_dir():
         return sorted(Path(env).glob("*.docx"))
     repo = Path(__file__).resolve().parents[2]
-    fallback = repo.parent / "test2" / "corpus"
+    fallback = repo.parent / "调研" / "test2" / "corpus"
     return sorted(fallback.glob("*.docx")) if fallback.is_dir() else []
 
 
-@pytest.mark.skipif(not _corpus_docs(), reason="需要真实语料（THESIS_CORPUS_DIR 或 test2/corpus）")
+@pytest.mark.skipif(not _corpus_docs(), reason="需要真实语料（THESIS_CORPUS_DIR 或 调研/test2/corpus）")
 def test_real_corpus_index_invariants() -> None:
     docs = _corpus_docs()
     warnings = 0

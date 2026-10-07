@@ -9,7 +9,7 @@
 - 同一次语料跑两次，结果必须**逐字节一致**（`NFR-6.1` 可复现）；
 - 结果必须与提交在仓库里的快照**完全一致**（防"改一处坏一处"）。
 
-语料在仓库外（`../test2/corpus`），不在本地时整组跳过（`real_corpus` + `slow`）。
+语料在仓库外（`../调研/test2/corpus`），不在本地时整组跳过（`real_corpus` + `slow`）。
 重建快照：`uv run python tests/golden/test_corpus_snapshot.py --write`。
 """
 
@@ -33,7 +33,7 @@ from thesischeck.rules import REGISTRY, run_rules
 from thesischeck.semantics.blocks import tag_context
 
 _REPO = Path(__file__).resolve().parents[2]
-CORPUS = _REPO.parent / "test2" / "corpus"
+CORPUS = _REPO.parent / "调研" / "test2" / "corpus"
 SNAPSHOT = Path(__file__).with_name("corpus_snapshot.json")
 SCHEMA = 1
 
@@ -104,7 +104,7 @@ def _available() -> bool:
     return bool(_docs())
 
 
-@pytest.mark.skipif(not _available(), reason="需要 test2/corpus")
+@pytest.mark.skipif(not _available(), reason="需要 调研/test2/corpus")
 def test_corpus_snapshot_matches_committed() -> None:
     """实跑结果必须与仓库里的快照完全一致；不一致就是回归，必须人工过一遍。"""
     expected = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
@@ -126,7 +126,7 @@ def test_corpus_snapshot_matches_committed() -> None:
     pytest.fail("\n".join(lines[:60]))
 
 
-@pytest.mark.skipif(not _available(), reason="需要 test2/corpus")
+@pytest.mark.skipif(not _available(), reason="需要 调研/test2/corpus")
 def test_corpus_run_is_reproducible() -> None:
     """同一输入跑两次，结论必须逐字节一致（`NFR-6.1`）。"""
     first = _dump(build_snapshot())

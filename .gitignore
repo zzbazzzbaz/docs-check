@@ -14,10 +14,10 @@ __pycache__/
 .idea/
 
 # 对账产物（可重新生成）
-test2/out/
+调研/test2/out/
 
-# WPS 官方 deb 缓存（约 545MB，用 deploy/wps/build.sh 重新下）
-deploy/wps/cache/
+# WPS 官方 deb 缓存（约 545MB，用 调研/deploy/wps/build.sh 重新下）
+调研/deploy/wps/cache/
 
 # deploy 的本地运行数据（挂载到 /in 与 /out）
-deploy/data/
+调研/deploy/data/
