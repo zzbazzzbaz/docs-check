@@ -24,7 +24,7 @@ test("管理端：建号/编辑/禁用/重置/教师提示/仪表盘", async ({ 
   await page.getByRole("button", { name: "新建教师" }).click();
   let dialog = page.getByRole("dialog");
   const teacherUsername = `t${Date.now().toString(36)}`;
-  await dialog.getByLabel("工号").fill(teacherUsername);
+  await dialog.getByLabel("账号").fill(teacherUsername);
   await dialog.getByLabel("姓名").fill("界面教师");
   await dialog.getByRole("button", { name: "保存" }).click();
   await expect(page.getByText("账号已创建，初始密码 123456")).toBeVisible();
@@ -40,11 +40,11 @@ test("管理端：建号/编辑/禁用/重置/教师提示/仪表盘", async ({ 
   await page.getByRole("button", { name: "新建学生" }).click();
   dialog = page.getByRole("dialog");
   const studentUsername = `s${Date.now().toString(36)}`;
-  await dialog.getByLabel("学号").fill(studentUsername);
+  await dialog.getByLabel("账号").fill(studentUsername);
   await dialog.getByLabel("姓名").fill("界面学生");
   await dialog.getByLabel("专业（可空）").fill("网络工程");
   await dialog.getByLabel("指导教师（可空）").click();
-  await page.getByPlaceholder("搜索姓名 / 工号").fill(teacherUsername);
+  await page.getByPlaceholder("搜索姓名 / 账号").fill(teacherUsername);
   await page.getByRole("button", { name: new RegExp(teacherUsername) }).click();
   await dialog.getByRole("button", { name: "保存" }).click();
   await expect(page.getByText("账号已创建，初始密码 123456")).toBeVisible();

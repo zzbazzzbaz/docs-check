@@ -29,7 +29,7 @@ export function StudentsTable({ items }: { items: StudentListItem[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>学号</TableHead>
+          <TableHead>账号</TableHead>
           <TableHead>姓名</TableHead>
           <TableHead>专业</TableHead>
           <TableHead>提交次数</TableHead>

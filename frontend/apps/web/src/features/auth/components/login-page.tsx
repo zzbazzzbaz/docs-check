@@ -57,7 +57,7 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>登录</CardTitle>
-          <CardDescription>论文格式审核系统 —— 使用学号 / 工号登录</CardDescription>
+          <CardDescription>论文格式审核系统 —— 使用账号登录</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

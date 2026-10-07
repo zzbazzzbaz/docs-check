@@ -16,11 +16,11 @@ export const NONE_TEACHER = "none";
 interface TeacherComboboxProps {
   value: string;
   onChange: (value: string) => void;
-  /** 当前值的兜底显示文案（编辑回显；打开列表后优先显示「姓名（工号）」）。 */
+  /** 当前值的兜底显示文案（编辑回显；打开列表后优先显示「姓名（账号）」）。 */
   selectedLabel?: string;
 }
 
-/** 指导教师选择：可搜索（姓名/工号，300ms 防抖，服务端模糊匹配）+ 下拉列表。 */
+/** 指导教师选择：可搜索（姓名/账号，300ms 防抖，服务端模糊匹配）+ 下拉列表。 */
 export function TeacherCombobox({ value, onChange, selectedLabel }: TeacherComboboxProps) {
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -32,7 +32,7 @@ export function TeacherCombobox({ value, onChange, selectedLabel }: TeacherCombo
     enabled: open,
   });
 
-  // 缓存见过的「id → 姓名（工号）」，避免搜索后当前选中项失去显示名
+  // 缓存见过的「id → 姓名（账号）」，避免搜索后当前选中项失去显示名
   useEffect(() => {
     if (!data) {
       return;
@@ -83,7 +83,7 @@ export function TeacherCombobox({ value, onChange, selectedLabel }: TeacherCombo
         <div className="border-b p-2">
           <Input
             autoFocus
-            placeholder="搜索姓名 / 工号"
+            placeholder="搜索姓名 / 账号"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />

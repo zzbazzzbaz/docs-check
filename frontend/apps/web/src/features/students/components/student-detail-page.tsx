@@ -76,11 +76,11 @@ export function StudentDetailPage({ studentId }: { studentId: number }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{student.data.name}</CardTitle>
-          <CardDescription>学号 {student.data.username}</CardDescription>
+          <CardDescription>账号 {student.data.username}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <Field label="姓名" value={student.data.name} />
-          <Field label="学号" value={student.data.username} />
+          <Field label="账号" value={student.data.username} />
           <Field label="专业" value={student.data.major ?? "—"} />
           <Field label="指导教师" value={me.name || me.username} />
         </CardContent>

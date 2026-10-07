@@ -40,7 +40,7 @@ export function UsersTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{role === "student" ? "学号" : "工号"}</TableHead>
+          <TableHead>账号</TableHead>
           <TableHead>姓名</TableHead>
           {role === "student" ? (
             <>

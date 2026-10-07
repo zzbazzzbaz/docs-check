@@ -28,7 +28,7 @@ export function StudentsPage() {
         <h1 className="text-xl font-semibold">我的学生</h1>
         <Input
           className="w-64"
-          placeholder="搜索学号 / 姓名"
+          placeholder="搜索账号 / 姓名"
           value={keyword}
           onChange={(event) => {
             setKeyword(event.target.value);

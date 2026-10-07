@@ -122,7 +122,7 @@ export function UserFormDialog({ open, onOpenChange, role, user }: UserFormDialo
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{role === "student" ? "学号" : "工号"}</FormLabel>
+                    <FormLabel>账号</FormLabel>
                     <FormControl>
                       <Input autoComplete="off" {...field} />
                     </FormControl>
