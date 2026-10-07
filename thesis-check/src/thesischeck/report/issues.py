@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import math
+import os
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -28,17 +29,24 @@ from ..parse import HeaderFooter, LineRule, Para, Run, Section, Table
 from ..rules import Issue, Verdict, catalog
 from ..semantics import Block, CheckContext, Role, Scope
 
-# 规则集版本的**回退值**：有 git 且能取到时优先用 `git describe --tags --dirty`（见下）
+# 规则集版本的**回退值**：优先环境变量与 git 描述（见下）
 RULESET_VERSION = "batch-1+2/207"
+
+# 部署态注入：安装后的包没有 .git，`git describe` 取不到真实版本
+RULESET_VERSION_ENV = "THESISCHECK_RULESET_VERSION"
 
 
 @lru_cache(maxsize=1)
 def ruleset_version() -> str:
-    """规则集版本：优先 `git describe --tags --dirty`（tag + 距 tag 的提交数 + 脏标记）。
+    """规则集版本，按优先级：环境变量 `THESISCHECK_RULESET_VERSION` → git describe → 常量。
 
-    取不到（未安装 git / 不在仓库 / 没有 tag）就回退到常量。结果缓存，一次进程只起一次
-    `git`，`lru_cache` 线程安全。
+    环境变量用于部署态（安装后的包没有 .git）；`git describe --tags --dirty` 用于开发态，
+    给出 tag + 距 tag 的提交数 + 脏标记；都取不到才回退到常量。结果缓存，一次进程只取
+    一次，`lru_cache` 线程安全。
     """
+    override = os.environ.get(RULESET_VERSION_ENV, "").strip()
+    if override:
+        return override
     try:
         described = subprocess.run(
             ["git", "describe", "--tags", "--dirty"],

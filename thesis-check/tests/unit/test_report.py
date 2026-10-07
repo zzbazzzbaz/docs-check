@@ -189,6 +189,32 @@ def test_a_rule_that_raises_is_not_run_and_others_continue() -> None:
 # ── 规则集版本（NFR-6）──────────────────────────────────────────
 
 
+def test_ruleset_version_prefers_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    """部署态（安装包没有 .git）用环境变量注入版本；优先于 git 与常量。"""
+
+    def boom(*_: object, **__: object) -> Any:
+        raise FileNotFoundError("git not found")
+
+    monkeypatch.setattr(subprocess, "run", boom)
+    monkeypatch.setenv("THESISCHECK_RULESET_VERSION", "thesis-check/v1.2.3")
+    report_issues.ruleset_version.cache_clear()
+    try:
+        assert report_issues.ruleset_version() == "thesis-check/v1.2.3"
+    finally:
+        report_issues.ruleset_version.cache_clear()
+
+
+def test_ruleset_version_ignores_blank_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """空串 / 纯空白的环境变量不算注入，继续走 git。"""
+    monkeypatch.setenv("THESISCHECK_RULESET_VERSION", "   ")
+    monkeypatch.setattr(subprocess, "run", lambda *_, **__: type("Result", (), {"stdout": "v9\n"})())
+    report_issues.ruleset_version.cache_clear()
+    try:
+        assert report_issues.ruleset_version() == "v9"
+    finally:
+        report_issues.ruleset_version.cache_clear()
+
+
 def test_ruleset_version_prefers_git_describe(monkeypatch: pytest.MonkeyPatch) -> None:
     """有 git 描述时用它，且结果缓存——一次进程只起一次 git。"""
     calls: list[list[str]] = []
@@ -197,6 +223,7 @@ def test_ruleset_version_prefers_git_describe(monkeypatch: pytest.MonkeyPatch) -
         calls.append(cmd)
         return type("Result", (), {"stdout": "v1.2.3-4-gabc-dirty\n"})()
 
+    monkeypatch.delenv("THESISCHECK_RULESET_VERSION", raising=False)
     monkeypatch.setattr(subprocess, "run", fake_run)
     report_issues.ruleset_version.cache_clear()
     try:
@@ -211,6 +238,7 @@ def test_ruleset_version_falls_back_without_git(monkeypatch: pytest.MonkeyPatch)
     def boom(*_: object, **__: object) -> Any:
         raise FileNotFoundError("git not found")
 
+    monkeypatch.delenv("THESISCHECK_RULESET_VERSION", raising=False)
     monkeypatch.setattr(subprocess, "run", boom)
     report_issues.ruleset_version.cache_clear()
     try:
