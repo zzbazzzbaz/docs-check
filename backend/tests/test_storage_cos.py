@@ -17,7 +17,7 @@ from app.infrastructure.storage.cos import CosStorage
 REGION = "ap-beijing"
 BUCKET = "docx-check-1327210567"
 KEY = f"tmp/{'a' * 32}.docx"
-STORAGE_DIR = f"submissions/{'b' * 32}"
+SUBMISSIONS_DIR = f"submissions/{'b' * 32}"
 
 
 def _service_error(status_code: int) -> CosServiceError:
@@ -103,24 +103,26 @@ def test_presigned_download_url_utf8_disposition(cos):
     storage, stub = cos
     stub.head_response = {"Content-Length": "1234"}
 
-    url = storage.presigned_download_url(STORAGE_DIR, "original", filename="论文初稿.docx")
+    url = storage.presigned_download_url(SUBMISSIONS_DIR, "original", filename="论文初稿.docx")
 
     assert url is not None
     assert url.startswith(
-        f"https://{BUCKET}.cos.{REGION}.myqcloud.com/{STORAGE_DIR}/original.docx?"
+        f"https://{BUCKET}.cos.{REGION}.myqcloud.com/{SUBMISSIONS_DIR}/original.docx?"
     )
     assert "attachment%3B+filename%2A%3DUTF-8%27%27" in url
     assert urlquote(urlquote("论文初稿.docx")) in url
     assert stub.calls[0] == (
         "head_object",
-        {"Bucket": BUCKET, "Key": f"{STORAGE_DIR}/original.docx"},
+        {"Bucket": BUCKET, "Key": f"{SUBMISSIONS_DIR}/original.docx"},
     )
 
 
 def test_presigned_download_url_returns_none_when_missing(cos):
     storage, _ = cos
 
-    assert storage.presigned_download_url(STORAGE_DIR, "marked", filename="x.marked.docx") is None
+    assert (
+        storage.presigned_download_url(SUBMISSIONS_DIR, "marked", filename="x.marked.docx") is None
+    )
 
 
 def test_staged_size_returns_none_on_404_and_reraises_others(cos):
@@ -139,14 +141,14 @@ def test_staged_size_returns_none_on_404_and_reraises_others(cos):
 def test_adopt_staged_copies_then_cleans_tmp(cos):
     storage, stub = cos
 
-    storage.adopt_staged(KEY, STORAGE_DIR)
+    storage.adopt_staged(KEY, SUBMISSIONS_DIR)
 
     assert stub.calls == [
         (
             "copy_object",
             {
                 "Bucket": BUCKET,
-                "Key": f"{STORAGE_DIR}/original.docx",
+                "Key": f"{SUBMISSIONS_DIR}/original.docx",
                 "CopySource": {"Bucket": BUCKET, "Key": KEY, "Region": REGION},
             },
         ),
@@ -158,21 +160,21 @@ def test_adopt_staged_tolerates_cleanup_failure(cos):
     storage, stub = cos
     stub.fail_delete_keys = {KEY}
 
-    storage.adopt_staged(KEY, STORAGE_DIR)  # 不抛：copy 成功即可，残留由生命周期兜底
+    storage.adopt_staged(KEY, SUBMISSIONS_DIR)  # 不抛：copy 成功即可，残留由生命周期兜底
 
     assert [name for name, _ in stub.calls] == ["copy_object", "delete_object"]
 
 
 def test_remove_is_best_effort_over_three_objects(cos):
     storage, stub = cos
-    stub.fail_delete_keys = {f"{STORAGE_DIR}/marked.docx"}
+    stub.fail_delete_keys = {f"{SUBMISSIONS_DIR}/marked.docx"}
 
-    storage.remove(STORAGE_DIR)  # marked 删除失败不影响其余，也不抛
+    storage.remove(SUBMISSIONS_DIR)  # marked 删除失败不影响其余，也不抛
 
     assert stub.call_keys("delete_object") == [
-        f"{STORAGE_DIR}/original.docx",
-        f"{STORAGE_DIR}/marked.docx",
-        f"{STORAGE_DIR}/issues.json",
+        f"{SUBMISSIONS_DIR}/original.docx",
+        f"{SUBMISSIONS_DIR}/marked.docx",
+        f"{SUBMISSIONS_DIR}/issues.json",
     ]
 
 
@@ -180,20 +182,20 @@ def test_read_bytes_and_rejects_unknown_name(cos):
     storage, stub = cos
     stub.object_body = b"PK\x03\x04content"
 
-    assert storage.read_bytes(STORAGE_DIR, "original") == b"PK\x03\x04content"
-    assert stub.call_keys("get_object") == [f"{STORAGE_DIR}/original.docx"]
+    assert storage.read_bytes(SUBMISSIONS_DIR, "original") == b"PK\x03\x04content"
+    assert stub.call_keys("get_object") == [f"{SUBMISSIONS_DIR}/original.docx"]
 
     with pytest.raises(ValueError):
-        storage.read_bytes(STORAGE_DIR, "password")
+        storage.read_bytes(SUBMISSIONS_DIR, "password")
 
 
 def test_save_review_writes_marked_and_issues(cos):
     storage, stub = cos
 
-    storage.save_review(STORAGE_DIR, marked=b"m", issues_json=b"{}")
+    storage.save_review(SUBMISSIONS_DIR, marked=b"m", issues_json=b"{}")
 
     puts = [(kwargs["Key"], kwargs["Body"]) for name, kwargs in stub.calls if name == "put_object"]
     assert puts == [
-        (f"{STORAGE_DIR}/marked.docx", b"m"),
-        (f"{STORAGE_DIR}/issues.json", b"{}"),
+        (f"{SUBMISSIONS_DIR}/marked.docx", b"m"),
+        (f"{SUBMISSIONS_DIR}/issues.json", b"{}"),
     ]
