@@ -6,4 +6,5 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .ty_cache/
-storage/
+# 数据目录（锚定到 backend 根；勿写成 storage/，会误伤 app/infrastructure/storage/）
+/storage/
