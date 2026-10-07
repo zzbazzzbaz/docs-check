@@ -2,7 +2,7 @@ import { Button } from "@repo/ui/components/button";
 import { ThemeToggle } from "@repo/ui/components/theme-toggle";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, Users } from "lucide-react";
+import { KeyRound, LayoutDashboard, LogOut, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { clearToken } from "@/features/auth/token";
@@ -10,6 +10,7 @@ import { clearToken } from "@/features/auth/token";
 const navItems = [
   { to: "/", label: "仪表盘", icon: LayoutDashboard, exact: true },
   { to: "/users", label: "用户管理", icon: Users, exact: false },
+  { to: "/change-password", label: "修改密码", icon: KeyRound, exact: false },
 ] as const;
 
 export function AppLayout({ username, children }: { username: string; children: ReactNode }) {

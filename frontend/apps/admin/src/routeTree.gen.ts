@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as AuthChangePasswordRouteImport } from './routes/_auth/change-password'
 import { Route as AuthUsersRouteImport } from './routes/_auth/users'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
@@ -28,6 +29,11 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthChangePasswordRoute = AuthChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthUsersRoute = AuthUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -37,10 +43,12 @@ const AuthUsersRoute = AuthUsersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
+  '/change-password': typeof AuthChangePasswordRoute
   '/users': typeof AuthUsersRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/change-password': typeof AuthChangePasswordRoute
   '/users': typeof AuthUsersRoute
   '/': typeof AuthIndexRoute
 }
@@ -48,15 +56,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_auth/change-password': typeof AuthChangePasswordRoute
   '/_auth/users': typeof AuthUsersRoute
   '/_auth/': typeof AuthIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/users'
+  fullPaths: '/' | '/login' | '/change-password' | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/users' | '/'
-  id: '__root__' | '/_auth' | '/login' | '/_auth/users' | '/_auth/'
+  to: '/login' | '/change-password' | '/users' | '/'
+  id:
+    | '__root__'
+    | '/_auth'
+    | '/login'
+    | '/_auth/change-password'
+    | '/_auth/users'
+    | '/_auth/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -87,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/change-password': {
+      id: '/_auth/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof AuthChangePasswordRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/users': {
       id: '/_auth/users'
       path: '/users'
@@ -98,11 +120,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteRouteChildren {
+  AuthChangePasswordRoute: typeof AuthChangePasswordRoute
   AuthUsersRoute: typeof AuthUsersRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthChangePasswordRoute: AuthChangePasswordRoute,
   AuthUsersRoute: AuthUsersRoute,
   AuthIndexRoute: AuthIndexRoute,
 }

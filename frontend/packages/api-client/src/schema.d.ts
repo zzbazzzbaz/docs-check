@@ -4,23 +4,6 @@
  */
 
 export interface paths {
-    "/api/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register */
-        post: operations["register_api_v1_auth_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -55,15 +38,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users": {
+    "/api/v1/users/me/password": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List All Users */
-        get: operations["list_all_users_api_v1_users_get"];
+        get?: never;
+        put?: never;
+        /** Change Password */
+        post: operations["change_password_api_v1_users_me_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Submissions */
+        get: operations["list_my_submissions_api_v1_submissions_get"];
+        put?: never;
+        /** Create Submission */
+        post: operations["create_submission_api_v1_submissions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/submissions/{submission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Submission */
+        get: operations["get_submission_api_v1_submissions__submission_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -72,7 +90,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users/{user_id}/role": {
+    "/api/v1/submissions/{submission_id}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Original */
+        get: operations["download_original_api_v1_submissions__submission_id__original_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/submissions/{submission_id}/marked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Marked */
+        get: operations["download_marked_api_v1_submissions__submission_id__marked_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Students */
+        get: operations["list_students_api_v1_students_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Student */
+        get: operations["get_student_api_v1_students__student_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Student Submissions */
+        get: operations["list_student_submissions_api_v1_students__student_id__submissions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Stats */
+        get: operations["get_stats_api_v1_admin_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        /** Create User */
+        post: operations["create_user_api_v1_admin_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -85,8 +223,59 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Change User Role */
-        patch: operations["change_user_role_api_v1_users__user_id__role_patch"];
+        /** Update User */
+        patch: operations["update_user_api_v1_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set User Status */
+        patch: operations["set_user_status_api_v1_admin_users__user_id__status_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset User Password */
+        post: operations["reset_user_password_api_v1_admin_users__user_id__reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/teachers/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Teacher Options */
+        get: operations["teacher_options_api_v1_admin_teachers_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/health": {
@@ -110,6 +299,112 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AdminStats
+         * @description 仪表盘概览：启用学生数 / 启用教师数 / 全部提交数。
+         */
+        AdminStats: {
+            /** Student Count */
+            student_count: number;
+            /** Teacher Count */
+            teacher_count: number;
+            /** Submission Count */
+            submission_count: number;
+        };
+        /** AdminUserCreate */
+        AdminUserCreate: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "student" | "teacher";
+            /** Username */
+            username: string;
+            /** Name */
+            name: string;
+            /** Major */
+            major?: string | null;
+            /** Teacher Id */
+            teacher_id?: number | null;
+        };
+        /** AdminUserItem */
+        AdminUserItem: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "student" | "teacher";
+            /** Major */
+            major?: string | null;
+            teacher?: components["schemas"]["TeacherBrief"] | null;
+            /**
+             * Student Count
+             * @default 0
+             */
+            student_count: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminUserStatusUpdate */
+        AdminUserStatusUpdate: {
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** AdminUserUpdate */
+        AdminUserUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Major */
+            major?: string | null;
+            /** Teacher Id */
+            teacher_id?: number | null;
+        };
+        /** Body_create_submission_api_v1_submissions_post */
+        Body_create_submission_api_v1_submissions_post: {
+            /** File */
+            file: string;
+        };
+        /** ChangePasswordRequest */
+        ChangePasswordRequest: {
+            /** Old Password */
+            old_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /** Counts */
+        Counts: {
+            /**
+             * Fail
+             * @default 0
+             */
+            fail: number;
+            /**
+             * Undetermined
+             * @default 0
+             */
+            undetermined: number;
+            /**
+             * Not Run
+             * @default 0
+             */
+            not_run: number;
+            /**
+             * Unrecognised
+             * @default 0
+             */
+            unrecognised: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -122,31 +417,151 @@ export interface components {
             /** Password */
             password: string;
         };
-        /** Page[UserResponse] */
-        Page_UserResponse_: {
+        /** MeResponse */
+        MeResponse: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "student" | "teacher" | "admin";
+            /** Major */
+            major?: string | null;
+            teacher?: components["schemas"]["TeacherBrief"] | null;
+            /** Must Change Password */
+            must_change_password: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** Page[AdminUserItem] */
+        Page_AdminUserItem_: {
             /** Total */
             total: number;
             /** Items */
-            items: components["schemas"]["UserResponse"][];
+            items: components["schemas"]["AdminUserItem"][];
             /** Offset */
             offset: number;
             /** Limit */
             limit: number;
         };
-        /** RegisterRequest */
-        RegisterRequest: {
+        /** Page[StudentListItem] */
+        Page_StudentListItem_: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["StudentListItem"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** Page[SubmissionListItem] */
+        Page_SubmissionListItem_: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["SubmissionListItem"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** StudentDetail */
+        StudentDetail: {
+            /** Id */
+            id: number;
             /** Username */
             username: string;
-            /** Password */
-            password: string;
+            /** Name */
+            name: string;
+            /** Major */
+            major?: string | null;
         };
-        /** RoleUpdateRequest */
-        RoleUpdateRequest: {
+        /** StudentListItem */
+        StudentListItem: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+            /** Name */
+            name: string;
+            /** Major */
+            major?: string | null;
+            /** Success Count */
+            success_count: number;
+            /** Latest Submitted At */
+            latest_submitted_at?: string | null;
+            latest_counts?: components["schemas"]["Counts"] | null;
+        };
+        /** SubmissionDetail */
+        SubmissionDetail: {
+            /** Id */
+            id: number;
             /**
-             * Role
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Original Filename */
+            original_filename: string;
+            /**
+             * Status
              * @enum {string}
              */
-            role: "user" | "admin";
+            status: "pending" | "processing" | "success" | "failed";
+            counts: components["schemas"]["Counts"];
+            /** Error Message */
+            error_message?: string | null;
+            /** By Scope */
+            by_scope?: {
+                [key: string]: components["schemas"]["Counts"];
+            } | null;
+            /** Ruleset Version */
+            ruleset_version?: string | null;
+            /** Sequence */
+            sequence: number;
+        };
+        /** SubmissionListItem */
+        SubmissionListItem: {
+            /** Id */
+            id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Original Filename */
+            original_filename: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "processing" | "success" | "failed";
+            counts: components["schemas"]["Counts"];
+        };
+        /** TeacherBrief */
+        TeacherBrief: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /** TeacherOption */
+        TeacherOption: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+            /** Name */
+            name: string;
         };
         /** TokenResponse */
         TokenResponse: {
@@ -157,23 +572,6 @@ export interface components {
              * @default bearer
              */
             token_type: string;
-        };
-        /** UserResponse */
-        UserResponse: {
-            /** Id */
-            id: number;
-            /** Username */
-            username: string;
-            /**
-             * Role
-             * @enum {string}
-             */
-            role: "user" | "admin";
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -197,39 +595,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    register_api_v1_auth_register_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -278,12 +643,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
         };
     };
-    list_all_users_api_v1_users_get: {
+    change_password_api_v1_users_me_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_submissions_api_v1_submissions_get: {
         parameters: {
             query?: {
                 offset?: number;
@@ -301,7 +697,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_UserResponse_"];
+                    "application/json": components["schemas"]["Page_SubmissionListItem_"];
                 };
             };
             /** @description Validation Error */
@@ -315,7 +711,319 @@ export interface operations {
             };
         };
     };
-    change_user_role_api_v1_users__user_id__role_patch: {
+    create_submission_api_v1_submissions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_submission_api_v1_submissions_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_submission_api_v1_submissions__submission_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_original_api_v1_submissions__submission_id__original_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_marked_api_v1_submissions__submission_id__marked_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_students_api_v1_students_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_StudentListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_student_api_v1_students__student_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_student_submissions_api_v1_students__student_id__submissions_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_SubmissionListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stats_api_v1_admin_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminStats"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                role?: ("student" | "teacher") | null;
+                is_active?: boolean | null;
+                q?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AdminUserItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_api_v1_admin_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_admin_users__user_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -326,7 +1034,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RoleUpdateRequest"];
+                "application/json": components["schemas"]["AdminUserUpdate"];
             };
         };
         responses: {
@@ -336,7 +1044,102 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["AdminUserItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_user_status_api_v1_admin_users__user_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_user_password_api_v1_admin_users__user_id__reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teacher_options_api_v1_admin_teachers_options_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherOption"][];
                 };
             };
             /** @description Validation Error */

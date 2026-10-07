@@ -11,8 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as AuthTeacherRouteRouteImport } from './routes/_auth/_teacher/route'
+import { Route as AuthChangePasswordRouteImport } from './routes/_auth/change-password'
+import { Route as AuthProfileRouteImport } from './routes/_auth/profile'
+import { Route as AuthTeacherStudentsIndexRouteImport } from './routes/_auth/_teacher/students/index'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
@@ -23,46 +26,75 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthTeacherRouteRoute = AuthTeacherRouteRouteImport.update({
+  id: '/_teacher',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthChangePasswordRoute = AuthChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthProfileRoute = AuthProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthTeacherStudentsIndexRoute =
+  AuthTeacherStudentsIndexRouteImport.update({
+    id: '/students/',
+    path: '/students/',
+    getParentRoute: () => AuthTeacherRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
+  '/change-password': typeof AuthChangePasswordRoute
+  '/profile': typeof AuthProfileRoute
+  '/students/': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/': typeof AuthIndexRoute
+  '/change-password': typeof AuthChangePasswordRoute
+  '/profile': typeof AuthProfileRoute
+  '/students': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
+  '/_auth/_teacher': typeof AuthTeacherRouteRouteWithChildren
+  '/_auth/change-password': typeof AuthChangePasswordRoute
+  '/_auth/profile': typeof AuthProfileRoute
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/_teacher/students/': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register'
+  fullPaths: '/' | '/login' | '/change-password' | '/profile' | '/students/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/register' | '/'
-  id: '__root__' | '/_auth' | '/login' | '/register' | '/_auth/'
+  to: '/login' | '/' | '/change-password' | '/profile' | '/students'
+  id:
+    | '__root__'
+    | '/_auth'
+    | '/login'
+    | '/_auth/_teacher'
+    | '/_auth/change-password'
+    | '/_auth/profile'
+    | '/_auth/'
+    | '/_auth/_teacher/students/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -81,13 +113,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_auth/': {
       id: '/_auth/'
       path: '/'
@@ -95,14 +120,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/_teacher': {
+      id: '/_auth/_teacher'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthTeacherRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/change-password': {
+      id: '/_auth/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof AuthChangePasswordRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/profile': {
+      id: '/_auth/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthProfileRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/_teacher/students/': {
+      id: '/_auth/_teacher/students/'
+      path: '/students'
+      fullPath: '/students/'
+      preLoaderRoute: typeof AuthTeacherStudentsIndexRouteImport
+      parentRoute: typeof AuthTeacherRouteRoute
+    }
   }
 }
 
+interface AuthTeacherRouteRouteChildren {
+  AuthTeacherStudentsIndexRoute: typeof AuthTeacherStudentsIndexRoute
+}
+
+const AuthTeacherRouteRouteChildren: AuthTeacherRouteRouteChildren = {
+  AuthTeacherStudentsIndexRoute: AuthTeacherStudentsIndexRoute,
+}
+
+const AuthTeacherRouteRouteWithChildren =
+  AuthTeacherRouteRoute._addFileChildren(AuthTeacherRouteRouteChildren)
+
 interface AuthRouteRouteChildren {
+  AuthTeacherRouteRoute: typeof AuthTeacherRouteRouteWithChildren
+  AuthChangePasswordRoute: typeof AuthChangePasswordRoute
+  AuthProfileRoute: typeof AuthProfileRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthTeacherRouteRoute: AuthTeacherRouteRouteWithChildren,
+  AuthChangePasswordRoute: AuthChangePasswordRoute,
+  AuthProfileRoute: AuthProfileRoute,
   AuthIndexRoute: AuthIndexRoute,
 }
 
@@ -113,7 +183,6 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthRouteRoute: AuthRouteRouteWithChildren,
   LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

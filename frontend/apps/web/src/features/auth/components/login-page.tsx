@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
@@ -18,7 +17,7 @@ import {
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -58,7 +57,7 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>登录</CardTitle>
-          <CardDescription>欢迎回来</CardDescription>
+          <CardDescription>论文格式审核系统 —— 使用学号 / 工号登录</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -68,7 +67,7 @@ export function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>用户名</FormLabel>
+                    <FormLabel>账号</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
@@ -95,12 +94,6 @@ export function LoginPage() {
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="justify-center text-sm text-muted-foreground">
-          还没有账号？
-          <Link to="/register" className="text-foreground underline underline-offset-4">
-            去注册
-          </Link>
-        </CardFooter>
       </Card>
     </div>
   );

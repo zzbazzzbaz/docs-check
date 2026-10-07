@@ -11,6 +11,10 @@ export function login(username: string, password: string) {
   return unwrap(api.POST("/api/v1/auth/login", { body: { username, password } }));
 }
 
-export function register(username: string, password: string) {
-  return unwrap(api.POST("/api/v1/auth/register", { body: { username, password } }));
+export function changePassword(oldPassword: string, newPassword: string) {
+  return unwrap(
+    api.POST("/api/v1/users/me/password", {
+      body: { old_password: oldPassword, new_password: newPassword },
+    }),
+  );
 }

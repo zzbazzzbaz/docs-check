@@ -57,7 +57,7 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>登录管理后台</CardTitle>
-          <CardDescription>需要管理员账号</CardDescription>
+          <CardDescription>论文格式审核系统 —— 仅限管理员</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -67,7 +67,7 @@ export function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>用户名</FormLabel>
+                    <FormLabel>账号</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
