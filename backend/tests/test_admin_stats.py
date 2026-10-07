@@ -1,12 +1,9 @@
 """管理端仪表盘统计：口径（启用学生/教师、全部提交）与权限。"""
 
-from tests.factories import minimal_docx_bytes
-from tests.helpers import auth_headers, make_user
-
-DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+from tests.helpers import auth_headers, make_user, upload_docx
 
 
-async def test_stats_counts_and_access(client, session):
+async def test_stats_counts_and_access(client, session, storage):
     await make_user(session, "admin910", role="admin")
     t1 = await make_user(session, "t7101", role="teacher", name="李老师")
     await make_user(session, "t7102", role="teacher", name="王老师", is_active=False)
@@ -25,9 +22,7 @@ async def test_stats_counts_and_access(client, session):
 
     # 一条提交（不论状态）都计入
     student_headers = await auth_headers(client, "2209100101")
-    files = {"file": ("论文初稿.docx", minimal_docx_bytes(), DOCX_MIME)}
-    r = await client.post("/api/v1/submissions", files=files, headers=student_headers)
-    assert r.status_code == 202, r.text
+    await upload_docx(client, storage, student_headers, filename="论文初稿.docx")
 
     r = await client.get("/api/v1/admin/stats", headers=admin_headers)
     assert r.json()["submission_count"] == 1

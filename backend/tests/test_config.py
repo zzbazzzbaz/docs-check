@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -18,12 +17,16 @@ FULL_VALUES: dict[str, Any] = {
     "db_max_overflow": 10,
     "db_pool_timeout": 30,
     "db_pool_recycle": 1800,
-    "storage_dir": "storage",
     "review_concurrency": 4,
     "upload_max_bytes": 50 * 1024 * 1024,
     "task_poll_interval_seconds": 1.0,
     "task_max_attempts": 3,
     "task_stale_seconds": 600,
+    "cos_region": "ap-beijing",
+    "cos_secret_id": "AKIDfake",
+    "cos_secret_key": "fake-secret",
+    "cos_bucket": "examplebucket-1250000000",
+    "presign_expire_seconds": 600,
 }
 
 
@@ -47,7 +50,9 @@ def test_jwt_secret_rejects_placeholder():
 def test_valid_settings_pass():
     settings = _settings()
     assert settings.jwt_secret == VALID_SECRET
-    assert settings.storage_dir == Path("storage")
+    assert settings.cos_region == "ap-beijing"
+    assert settings.cos_bucket == "examplebucket-1250000000"
+    assert settings.presign_expire_seconds == 600
     assert settings.review_concurrency == 4
     assert settings.upload_max_bytes == 50 * 1024 * 1024
     assert settings.task_poll_interval_seconds == 1.0
@@ -73,6 +78,7 @@ def test_every_setting_is_required(field: str):
         ("task_poll_interval_seconds", 0),
         ("task_max_attempts", 0),
         ("task_stale_seconds", 59),
+        ("presign_expire_seconds", 0),
     ],
 )
 def test_new_settings_reject_out_of_range(field: str, value: Any):

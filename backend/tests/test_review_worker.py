@@ -6,10 +6,7 @@ from app.core.config import get_settings
 from app.infrastructure.db.models.submission import Submission
 from app.infrastructure.review.runner import ReviewRunner
 from app.services.tasks.review_worker import GENERIC_FAILED_MESSAGE, ReviewWorker
-from tests.factories import minimal_docx_bytes
-from tests.helpers import auth_headers, make_user
-
-DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+from tests.helpers import auth_headers, make_user, upload_docx
 
 
 class _FailingRunner:
@@ -34,21 +31,11 @@ async def _fresh_submission(session, submission_id: int) -> Submission:
     return submission
 
 
-async def _upload(client, headers) -> int:
-    r = await client.post(
-        "/api/v1/submissions",
-        files={"file": ("论文.docx", minimal_docx_bytes(), DOCX_MIME)},
-        headers=headers,
-    )
-    assert r.status_code == 202, r.text
-    return r.json()["id"]
-
-
-async def test_process_next_processes_each_submission_once(client, session, worker):
+async def test_process_next_processes_each_submission_once(client, session, worker, storage):
     await make_user(session, "many")
     headers = await auth_headers(client, "many")
-    await _upload(client, headers)
-    await _upload(client, headers)
+    await upload_docx(client, storage, headers)
+    await upload_docx(client, storage, headers)
 
     assert await worker.process_next() is True
     assert await worker.process_next() is True
@@ -58,7 +45,7 @@ async def test_process_next_processes_each_submission_once(client, session, work
 async def test_infra_error_retries_then_fails(client, session, session_factory, storage):
     await make_user(session, "retry")
     headers = await auth_headers(client, "retry")
-    submission_id = await _upload(client, headers)
+    submission_id = await upload_docx(client, storage, headers)
 
     runner = _FailingRunner(RuntimeError("boom"))
     worker = _make_worker(session_factory, storage, runner, task_poll_interval_seconds=0.01)
@@ -80,7 +67,8 @@ async def test_infra_error_retries_then_fails(client, session, session_factory, 
     assert submission.error_message == GENERIC_FAILED_MESSAGE
     assert submission.task_error == "RuntimeError: boom"
     assert submission.finished_at is not None
-    assert not storage.submission_dir(submission_id).exists()
+    assert submission.storage_dir is not None
+    assert storage.keys_under(submission.storage_dir) == []
 
 
 async def test_recover_stuck_resets_processing(session, session_factory, storage):

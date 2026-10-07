@@ -19,7 +19,7 @@ from app.infrastructure.db.models.submission import Submission
 from app.infrastructure.db.session import SessionFactory
 from app.infrastructure.review.engine import ReviewOutcome, ReviewRejected
 from app.infrastructure.review.runner import ReviewRunner
-from app.infrastructure.storage.local import LocalStorage
+from app.infrastructure.storage.base import Storage
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class ReviewWorker:
         *,
         session_factory: SessionFactory,
         runner: ReviewRunner,
-        storage: LocalStorage,
+        storage: Storage,
         settings: Settings,
     ) -> None:
         self._session_factory = session_factory
@@ -110,14 +110,14 @@ class ReviewWorker:
     async def _process(self, submission_id: int) -> None:
         storage_dir = await self._load_storage_dir(submission_id)
         if storage_dir is None:
-            await self._finish_failed(submission_id, GENERIC_FAILED_MESSAGE, remove_files=False)
+            await self._finish_failed(submission_id, GENERIC_FAILED_MESSAGE, storage_dir=None)
             return
 
         try:
             data = await asyncio.to_thread(self._storage.read_bytes, storage_dir, "original")
             outcome = await self._runner.run(data)
         except ReviewRejected as exc:
-            await self._finish_failed(submission_id, str(exc), remove_files=True)
+            await self._finish_failed(submission_id, str(exc), storage_dir=storage_dir)
             return
         except asyncio.CancelledError:
             raise
@@ -131,7 +131,7 @@ class ReviewWorker:
             )
             await asyncio.to_thread(
                 self._storage.save_review,
-                submission_id,
+                storage_dir,
                 marked=outcome.marked_docx,
                 issues_json=issues_bytes,
             )
@@ -167,10 +167,12 @@ class ReviewWorker:
                 session.add(submission)
             await session.commit()
 
-    async def _finish_failed(self, submission_id: int, message: str, *, remove_files: bool) -> None:
-        """终态失败（坏文档 / 数据缺失）：清零统计、落 finished_at；可选清理文件。"""
-        if remove_files:
-            await asyncio.to_thread(self._storage.remove, submission_id)
+    async def _finish_failed(
+        self, submission_id: int, message: str, *, storage_dir: str | None
+    ) -> None:
+        """终态失败（坏文档 / 数据缺失）：清零统计、落 finished_at；有 storage_dir 则清理文件。"""
+        if storage_dir is not None:
+            await asyncio.to_thread(self._storage.remove, storage_dir)
         async with self._session_factory() as session:
             submission = await session.get(Submission, submission_id)
             if submission is not None:
@@ -199,6 +201,7 @@ class ReviewWorker:
             submission = await session.get(Submission, submission_id)
             if submission is None:
                 return
+            storage_dir = submission.storage_dir
             submission.task_error = f"{type(exc).__name__}: {exc}"[:_ERROR_MAX_CHARS]
             if submission.attempts >= self._settings.task_max_attempts:
                 submission.status = "failed"
@@ -206,7 +209,8 @@ class ReviewWorker:
                 submission.finished_at = datetime.now(UTC)
                 session.add(submission)
                 await session.commit()
-                await asyncio.to_thread(self._storage.remove, submission_id)
+                if storage_dir is not None:
+                    await asyncio.to_thread(self._storage.remove, storage_dir)
                 return
             submission.status = "pending"
             submission.started_at = None

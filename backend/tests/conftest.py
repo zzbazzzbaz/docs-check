@@ -13,9 +13,9 @@ from app.core.config import get_settings
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import SessionFactory, create_session_factory
 from app.infrastructure.review.runner import ReviewRunner
-from app.infrastructure.storage.local import LocalStorage
 from app.services.tasks.review_worker import ReviewWorker
 from tests.db import prepare_test_database
+from tests.fakes import FakeStorage
 
 
 @pytest_asyncio.fixture
@@ -50,14 +50,17 @@ async def session(session_factory: SessionFactory) -> AsyncIterator:
 
 
 @pytest_asyncio.fixture
-async def app(session_factory: SessionFactory, tmp_path) -> FastAPI:
-    """测试用 app：不跑 lifespan（worker 不自动启动），手动装配 app.state。"""
+async def app(session_factory: SessionFactory) -> FastAPI:
+    """测试用 app：不跑 lifespan（worker 不自动启动），手动装配 app.state。
+
+    存储一律注入 FakeStorage（内存替身）：不访问网络、不触碰真实 COS。
+    """
     settings = get_settings()
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(api_router, prefix="/api/v1")
 
-    storage = LocalStorage(tmp_path / "storage")
+    storage = FakeStorage()
     runner = ReviewRunner()
     app.state.storage = storage
     app.state.review_runner = runner
@@ -86,5 +89,5 @@ async def worker(app: FastAPI) -> ReviewWorker:
 
 
 @pytest_asyncio.fixture
-async def storage(app: FastAPI) -> LocalStorage:
+async def storage(app: FastAPI) -> FakeStorage:
     return app.state.storage

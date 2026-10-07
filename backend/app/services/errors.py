@@ -76,6 +76,18 @@ class FileTooLargeError(DomainError):
     code = "file_too_large"
 
 
+class UploadNotFoundError(DomainError):
+    """暂存对象不存在 / 已过期（生命周期清理后确认）。"""
+
+    code = "upload_not_found"
+
+
+class InvalidUploadKeyError(DomainError):
+    """object_key 格式非法。"""
+
+    code = "invalid_upload_key"
+
+
 class InvalidActionError(DomainError):
     """当前状态下不允许的操作，如修改自己的角色。"""
 

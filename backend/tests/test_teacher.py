@@ -3,10 +3,8 @@
 from datetime import UTC, datetime, timedelta
 
 from app.infrastructure.db.models.submission import Submission
-from tests.factories import minimal_docx_bytes
-from tests.helpers import auth_headers, make_user
+from tests.helpers import auth_headers, make_user, upload_docx
 
-DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 BASE = datetime(2026, 10, 7, 8, 0, 0, tzinfo=UTC)
 
 
@@ -165,7 +163,7 @@ async def test_student_submission_list(client, session):
     assert r2.status_code == 404
 
 
-async def test_teacher_can_view_and_download_owned_student(client, session, worker):
+async def test_teacher_can_view_and_download_owned_student(client, session, worker, storage):
     teacher = await make_user(session, "t5003", role="teacher", name="陈老师")
     student = await make_user(session, "2207100010", name="孙同学")
     student.teacher_id = teacher.id
@@ -173,12 +171,7 @@ async def test_teacher_can_view_and_download_owned_student(client, session, work
     await session.commit()
 
     h_student = await auth_headers(client, "2207100010")
-    r = await client.post(
-        "/api/v1/submissions",
-        files={"file": ("学生论文.docx", minimal_docx_bytes(), DOCX_MIME)},
-        headers=h_student,
-    )
-    submission_id = r.json()["id"]
+    submission_id = await upload_docx(client, storage, h_student, filename="学生论文.docx")
     assert await worker.process_next() is True
 
     h_teacher = await auth_headers(client, "t5003")
@@ -188,10 +181,10 @@ async def test_teacher_can_view_and_download_owned_student(client, session, work
 
     for suffix in ("original", "marked"):
         r = await client.get(f"/api/v1/submissions/{submission_id}/{suffix}", headers=h_teacher)
-        assert r.status_code == 200, (suffix, r.text)
+        assert r.status_code == 307, (suffix, r.text)
 
 
-async def test_other_teacher_cannot_touch_students_submission(client, session, worker):
+async def test_other_teacher_cannot_touch_students_submission(client, session, worker, storage):
     teacher1 = await make_user(session, "t5004", role="teacher")
     _teacher2 = await make_user(session, "t5005", role="teacher")
     student = await make_user(session, "2207100011", name="周同学")
@@ -200,12 +193,7 @@ async def test_other_teacher_cannot_touch_students_submission(client, session, w
     await session.commit()
 
     h_student = await auth_headers(client, "2207100011")
-    r = await client.post(
-        "/api/v1/submissions",
-        files={"file": ("论文.docx", minimal_docx_bytes(), DOCX_MIME)},
-        headers=h_student,
-    )
-    submission_id = r.json()["id"]
+    submission_id = await upload_docx(client, storage, h_student, filename="论文.docx")
 
     h_other = await auth_headers(client, "t5005")
     r = await client.get(f"/api/v1/submissions/{submission_id}", headers=h_other)

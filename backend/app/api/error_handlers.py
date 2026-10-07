@@ -18,9 +18,11 @@ from app.services.errors import (
     ForbiddenError,
     InvalidActionError,
     InvalidCredentialsError,
+    InvalidUploadKeyError,
     NotFoundError,
     OldPasswordIncorrectError,
     UnsupportedFileTypeError,
+    UploadNotFoundError,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,8 @@ _STATUS_BY_ERROR: dict[type, int] = {
     OldPasswordIncorrectError: status.HTTP_400_BAD_REQUEST,
     UnsupportedFileTypeError: status.HTTP_400_BAD_REQUEST,
     EmptyFileError: status.HTTP_400_BAD_REQUEST,
+    UploadNotFoundError: status.HTTP_400_BAD_REQUEST,
+    InvalidUploadKeyError: status.HTTP_400_BAD_REQUEST,
     ForbiddenError: status.HTTP_403_FORBIDDEN,
     NotFoundError: status.HTTP_404_NOT_FOUND,
     FileTooLargeError: status.HTTP_413_CONTENT_TOO_LARGE,

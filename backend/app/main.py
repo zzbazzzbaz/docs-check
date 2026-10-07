@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.review.runner import ReviewRunner
-from app.infrastructure.storage.local import LocalStorage
+from app.infrastructure.storage.cos import CosStorage
 from app.services.tasks.review_worker import ReviewWorker
 
 
@@ -28,7 +28,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     session_factory = create_session_factory(engine)
     app.state.session_factory = session_factory
 
-    storage = LocalStorage(settings.storage_dir)
+    storage = CosStorage(
+        region=settings.cos_region,
+        secret_id=settings.cos_secret_id,
+        secret_key=settings.cos_secret_key,
+        bucket=settings.cos_bucket,
+        presign_expire_seconds=settings.presign_expire_seconds,
+    )
     app.state.storage = storage
     runner = ReviewRunner()
     app.state.review_runner = runner

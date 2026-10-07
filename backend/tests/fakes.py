@@ -21,6 +21,7 @@ class FakeStorage(Storage):
     def __init__(self) -> None:
         self.objects: dict[str, bytes] = {}
         self.upload_keys: list[str] = []  # 已签发的预签名上传（测试断言用）
+        self.fail_adopt = False  # 置 True 模拟转正失败（copy 后异常）
 
     # ── 测试辅助 ───────────────────────────────────────────────
 
@@ -32,6 +33,11 @@ class FakeStorage(Storage):
         """测试断言 / 预置产物用：直接写 storage_dir 下的对象。"""
         self.objects[_key(storage_dir, name)] = data
 
+    def keys_under(self, storage_dir: str) -> list[str]:
+        """该提交目录下的现存对象 key（断言清理效果用）。"""
+        prefix = f"{storage_dir}/"
+        return sorted(key for key in self.objects if key.startswith(prefix))
+
     # ── Storage 协议 ───────────────────────────────────────────
 
     def staged_size(self, key: str) -> int | None:
@@ -42,6 +48,8 @@ class FakeStorage(Storage):
         if key not in self.objects:
             raise FileNotFoundError(key)
         self.objects[_key(storage_dir, "original")] = self.objects.pop(key)
+        if self.fail_adopt:
+            raise RuntimeError("adopt failed")
 
     def remove_staged(self, key: str) -> None:
         self.objects.pop(key, None)

@@ -8,6 +8,26 @@ from app.infrastructure.db.models.submission import Submission
 SubmissionStatus = Literal["pending", "processing", "success", "failed"]
 
 
+class UploadUrlRequest(BaseModel):
+    """三段式 ①：签发预签名 PUT 的请求。"""
+
+    filename: str
+    size: int
+
+
+class UploadUrlResponse(BaseModel):
+    object_key: str
+    upload_url: str
+    expires_in: int
+
+
+class SubmissionCreate(BaseModel):
+    """三段式 ③：确认上传（客户端已直传完成）。"""
+
+    object_key: str
+    filename: str
+
+
 class Counts(BaseModel):
     fail: int = 0
     undetermined: int = 0

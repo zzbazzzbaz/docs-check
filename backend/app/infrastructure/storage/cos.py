@@ -28,9 +28,7 @@ class CosStorage(Storage):
         bucket: str,
         presign_expire_seconds: int,
     ) -> None:
-        config = CosConfig(
-            Region=region, SecretId=secret_id, SecretKey=secret_key, Scheme="https"
-        )
+        config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key, Scheme="https")
         self._client = CosS3Client(config)
         self._region = region
         self._bucket = bucket

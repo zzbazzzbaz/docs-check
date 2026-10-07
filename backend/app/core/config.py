@@ -1,5 +1,4 @@
 from functools import lru_cache
-from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,12 +18,18 @@ class Settings(BaseSettings):
     db_pool_timeout: int
     db_pool_recycle: int
 
-    storage_dir: Path
     review_concurrency: int = Field(ge=1, le=32)
     upload_max_bytes: int = Field(ge=1)
     task_poll_interval_seconds: float = Field(gt=0)
     task_max_attempts: int = Field(ge=1)
     task_stale_seconds: int = Field(ge=60)
+
+    # 对象存储（腾讯云 COS）：唯一文件层，无本地后端；开发环境同样直连 COS
+    cos_region: str
+    cos_secret_id: str
+    cos_secret_key: str
+    cos_bucket: str
+    presign_expire_seconds: int = Field(ge=1)
 
     @field_validator("jwt_secret")
     @classmethod

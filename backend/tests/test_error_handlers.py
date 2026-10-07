@@ -9,10 +9,12 @@ from app.services.errors import (
     FileTooLargeError,
     ForbiddenError,
     InvalidActionError,
+    InvalidUploadKeyError,
     NotFoundError,
     OldPasswordIncorrectError,
     PasswordRequiredChangeError,
     UnsupportedFileTypeError,
+    UploadNotFoundError,
 )
 
 PASSWORD = "secret123"
@@ -71,6 +73,18 @@ async def test_new_domain_errors_map_to_status_and_code():
         ),
         ("empty-file", EmptyFileError("请选择文件"), 400, "empty_file"),
         ("too-large", FileTooLargeError("文件超过 50MB 限制"), 413, "file_too_large"),
+        (
+            "upload-not-found",
+            UploadNotFoundError("上传文件不存在或已过期，请重新上传"),
+            400,
+            "upload_not_found",
+        ),
+        (
+            "invalid-upload-key",
+            InvalidUploadKeyError("上传标识无效，请重新提交"),
+            400,
+            "invalid_upload_key",
+        ),
     ]
 
     app = FastAPI()

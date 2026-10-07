@@ -1,12 +1,10 @@
-"""学生端提交接口：上传入队 / 列表 / 详情 / 下载。
+"""学生端提交接口：上传三段式（签发 / 确认）/ 列表 / 详情 / 下载（307 预签名）。
 
 详情与下载共用归属鉴权：本人（学生）或名下教师（见 submissions_service.ensure_can_view）。
 """
 
-from typing import Annotated
-
-from fastapi import APIRouter, File, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, status
+from fastapi.responses import RedirectResponse
 
 from app.api.dependencies import (
     CurrentReadyUserDep,
@@ -17,19 +15,36 @@ from app.api.dependencies import (
 )
 from app.api.schemas.common import Page
 from app.api.schemas.submissions import (
+    SubmissionCreate,
     SubmissionDetail,
     SubmissionListItem,
+    UploadUrlRequest,
+    UploadUrlResponse,
     submission_detail,
     submission_list_item,
 )
-from app.api.uploads import read_capped
 from app.core.config import get_settings
 from app.services.pagination import normalize
 from app.services.submissions import submissions_service
 
 router = APIRouter()
 
-_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+@router.post("/upload-url", response_model=UploadUrlResponse)
+async def create_upload_url(
+    payload: UploadUrlRequest, *, storage: StorageDep, me: CurrentStudentDep
+) -> UploadUrlResponse:
+    """三段式 ①：签发预签名 PUT（字节不经过本服务）。"""
+    settings = get_settings()
+    object_key, upload_url = await submissions_service.prepare_upload(
+        filename=payload.filename,
+        size=payload.size,
+        storage=storage,
+        max_bytes=settings.upload_max_bytes,
+    )
+    return UploadUrlResponse(
+        object_key=object_key, upload_url=upload_url, expires_in=settings.presign_expire_seconds
+    )
 
 
 @router.get("", response_model=Page[SubmissionListItem])
@@ -50,19 +65,15 @@ async def list_my_submissions(
 
 @router.post("", response_model=SubmissionDetail, status_code=status.HTTP_202_ACCEPTED)
 async def create_submission(
-    file: Annotated[UploadFile, File()],
-    *,
-    session: SessionDep,
-    storage: StorageDep,
-    me: CurrentStudentDep,
+    payload: SubmissionCreate, *, session: SessionDep, storage: StorageDep, me: CurrentStudentDep
 ) -> SubmissionDetail:
+    """三段式 ③：确认直传结果（HEAD 兜底校验）并入队审核。"""
     settings = get_settings()
-    data = await read_capped(file, settings.upload_max_bytes)
     submission = await submissions_service.create(
         session,
         student=me,
-        filename=file.filename,
-        data=data,
+        object_key=payload.object_key,
+        filename=payload.filename,
         storage=storage,
         max_bytes=settings.upload_max_bytes,
     )
@@ -86,18 +97,18 @@ async def get_submission(
 @router.get("/{submission_id}/original")
 async def download_original(
     submission_id: int, session: SessionDep, storage: StorageDep, me: CurrentReadyUserDep
-) -> FileResponse:
-    path, name = await submissions_service.resolve_download(
+) -> RedirectResponse:
+    url = await submissions_service.resolve_download(
         session, viewer=me, submission_id=submission_id, kind="original", storage=storage
     )
-    return FileResponse(path, media_type=_DOCX_MIME, filename=name)
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @router.get("/{submission_id}/marked")
 async def download_marked(
     submission_id: int, session: SessionDep, storage: StorageDep, me: CurrentReadyUserDep
-) -> FileResponse:
-    path, name = await submissions_service.resolve_download(
+) -> RedirectResponse:
+    url = await submissions_service.resolve_download(
         session, viewer=me, submission_id=submission_id, kind="marked", storage=storage
     )
-    return FileResponse(path, media_type=_DOCX_MIME, filename=name)
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)

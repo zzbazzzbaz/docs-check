@@ -9,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.config import get_settings
 from app.core.security import decode_subject
 from app.infrastructure.db.models.user import User
-from app.infrastructure.storage.local import LocalStorage
+from app.infrastructure.storage.base import Storage
 from app.services.errors import AccountDisabledError, ForbiddenError, PasswordRequiredChangeError
 from app.services.pagination import DEFAULT_LIMIT
 from app.services.users import users_service
@@ -23,8 +23,8 @@ async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
         yield session
 
 
-def get_storage(request: Request) -> LocalStorage:
-    storage: LocalStorage = request.app.state.storage
+def get_storage(request: Request) -> Storage:
+    storage: Storage = request.app.state.storage
     return storage
 
 
@@ -88,7 +88,7 @@ def pagination_params(
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
-StorageDep = Annotated[LocalStorage, Depends(get_storage)]
+StorageDep = Annotated[Storage, Depends(get_storage)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 CurrentReadyUserDep = Annotated[User, Depends(get_ready_user)]
 CurrentStudentDep = Annotated[User, Depends(get_current_student)]
