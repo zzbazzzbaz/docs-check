@@ -21,6 +21,18 @@ uv run thesis-check --version
 uv run thesis-check 论文.docx -o out/
 ```
 
+## 嵌入到 Web 服务
+
+```python
+from thesischeck.pipeline import review_bytes
+
+payload = review_bytes(uploaded_bytes)  # 字节进、内存出，不写磁盘
+payload.report.to_json()                # 问题清单（同 issues.json 的形状）
+payload.marked_docx                     # 标注版 docx 字节（供下载）
+```
+
+部署态（安装后的包没有 `.git`）用环境变量 `THESISCHECK_RULESET_VERSION` 注入规则集版本。
+
 ## 分层
 
 只能自上而下依赖，由 [`.importlinter`](./.importlinter) 强制：

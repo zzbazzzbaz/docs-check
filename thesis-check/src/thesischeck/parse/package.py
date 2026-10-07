@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import io
 import posixpath
 import re
 import zipfile
@@ -127,9 +128,9 @@ def check_entries(entries: Sequence[zipfile.ZipInfo]) -> None:
 
 
 class Package:
-    """一个已打开并校验过的 .docx。用 `with Package.open(path) as pkg:`。"""
+    """一个已打开并校验过的 .docx。文件用 `with Package.open(path) as pkg:`，内存字节用 `open_bytes`。"""
 
-    def __init__(self, path: Path, archive: zipfile.ZipFile) -> None:
+    def __init__(self, path: Path | None, archive: zipfile.ZipFile) -> None:
         self.path = path
         self._zip = archive
         self._names = frozenset(archive.namelist())
@@ -153,6 +154,28 @@ class Package:
         except zipfile.BadZipFile as exc:
             raise BadDocument(f"不是有效的 .docx（不是 zip 包）：{exc}") from exc
 
+        return cls._checked(target, archive)
+
+    @classmethod
+    def open_bytes(cls, data: bytes) -> Self:
+        """从内存字节打开 .docx（Web 上传场景）；校验与 `open` 一致，不落盘。"""
+        if len(data) > MAX_FILE_BYTES:
+            raise BadDocument(
+                f"文件过大（{len(data) / 1048576:.1f} MB），上限 {MAX_FILE_BYTES // 1048576} MB"
+            )
+        if data[:8].startswith(_OLE_MAGIC):
+            raise BadDocument("这是老式的 .doc 文件，请用 WPS 另存为 .docx 后再上传")
+
+        try:
+            archive = zipfile.ZipFile(io.BytesIO(data))
+        except zipfile.BadZipFile as exc:
+            raise BadDocument(f"不是有效的 .docx（不是 zip 包）：{exc}") from exc
+
+        return cls._checked(None, archive)
+
+    @classmethod
+    def _checked(cls, path: Path | None, archive: zipfile.ZipFile) -> Self:
+        """zip 打开后的公共校验（中央目录 / 宏 / 必需部件）；失败时先关句柄再抛。"""
         try:
             check_entries(archive.infolist())
             names = set(archive.namelist())
@@ -164,7 +187,7 @@ class Package:
             archive.close()
             raise
 
-        return cls(target, archive)
+        return cls(path, archive)
 
     def close(self) -> None:
         self._zip.close()

@@ -14,7 +14,7 @@ from tests.fixtures.synth import ea
 from thesischeck import cli
 from thesischeck.parse.document import parse_document
 from thesischeck.parse.package import PART_COMMENTS, Package
-from thesischeck.pipeline import review
+from thesischeck.pipeline import review, review_bytes
 
 
 def _run(tmp_path: Path, data: bytes) -> tuple[Path, dict[str, Any]]:
@@ -45,6 +45,19 @@ def test_review_reports_deviation_with_values_and_basis(tmp_path: Path) -> None:
     assert entry["expect"] == "黑体"
     assert entry["where"]["module"] == "中文摘要"
     assert payload["rules"]["ABS-C-02"]["text"], "规则文案应随 rules 表给出"
+
+
+def test_review_bytes_returns_report_and_marked_docx() -> None:
+    """Web 场景：字节进、内存产物出（不落盘）；报告与标注版内容与 `review` 同源。"""
+    payload = review_bytes(ea("中文摘要标题", "仿宋").apply(BASE))
+
+    problems = payload.report.to_json()["problems"]
+    assert any(entry["rule"] == "ABS-C-02" for entry in problems)
+
+    with Package.open_bytes(payload.marked_docx) as pkg:
+        comments = pkg.read(PART_COMMENTS)
+    assert comments is not None
+    assert b"ABS-C-02" in comments
 
 
 def test_cli_runs_review_and_writes_products(tmp_path: Path) -> None:

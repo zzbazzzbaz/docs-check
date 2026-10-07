@@ -71,6 +71,41 @@ def test_missing_part_returns_none(tmp_path: Path) -> None:
         assert doc.xml(pkg.PART_STYLES) is None
 
 
+# ── 内存打开（Web 上传）─────────────────────────────────────────
+
+
+def test_open_bytes_reads_same_as_open() -> None:
+    """`open_bytes` 与 `open` 读同一份数据；内存打开没有文件路径。"""
+    with pkg.Package.open_bytes(make_docx()) as doc:
+        assert doc.path is None
+        assert doc.read(pkg.PART_DOCUMENT) == MIN_DOC
+        assert doc.has(pkg.PART_CONTENT_TYPES)
+        root = doc.xml(pkg.PART_DOCUMENT)
+        assert root is not None
+        assert root.tag.endswith("document")
+
+
+def test_open_bytes_rejects_non_zip() -> None:
+    with pytest.raises(BadDocument, match="zip"):
+        pkg.Package.open_bytes(b"this is not a zip at all")
+
+
+def test_open_bytes_rejects_old_doc() -> None:
+    with pytest.raises(BadDocument, match=r"\.doc"):
+        pkg.Package.open_bytes(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 64)
+
+
+def test_open_bytes_rejects_oversized(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pkg, "MAX_FILE_BYTES", 64)
+    with pytest.raises(BadDocument, match="过大"):
+        pkg.Package.open_bytes(make_docx() + b"\x00" * 200)
+
+
+def test_open_bytes_rejects_macro_document() -> None:
+    with pytest.raises(BadDocument, match="宏"):
+        pkg.Package.open_bytes(make_docx({pkg.MACRO_PART: b"\x00" * 16}))
+
+
 # ── 关系部件（rels）─────────────────────────────────────────────
 
 RELS = b"""<?xml version="1.0"?>
