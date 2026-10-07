@@ -6,31 +6,25 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """配置来源：`.env`（本地唯一来源，缺必填 key 启动即报错 fail-fast）。
-
-    无默认值 = 必填项；有默认值 = 代码内缺省值，同样可被 `.env` 覆盖。
-    """
+    """配置来源：`.env`（唯一来源）；所有字段必填，缺 key 启动即报错（fail-fast）。"""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str
     jwt_secret: str = Field(min_length=32)
-    access_token_expire_minutes: int = 60
-    cors_origins: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-    ]
+    access_token_expire_minutes: int
+    cors_origins: list[str]
     db_pool_size: int
     db_max_overflow: int
     db_pool_timeout: int
     db_pool_recycle: int
 
-    storage_dir: Path = Path("storage")
-    review_concurrency: int = Field(default=4, ge=1, le=32)
-    upload_max_bytes: int = Field(default=50 * 1024 * 1024, ge=1)
-    task_poll_interval_seconds: float = Field(default=1.0, gt=0)
-    task_max_attempts: int = Field(default=3, ge=1)
-    task_stale_seconds: int = Field(default=600, ge=60)
+    storage_dir: Path
+    review_concurrency: int = Field(ge=1, le=32)
+    upload_max_bytes: int = Field(ge=1)
+    task_poll_interval_seconds: float = Field(gt=0)
+    task_max_attempts: int = Field(ge=1)
+    task_stale_seconds: int = Field(ge=60)
 
     @field_validator("jwt_secret")
     @classmethod

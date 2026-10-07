@@ -9,7 +9,7 @@ class User(TimestampMixin, table=True):
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True, min_length=3, max_length=32)
     password_hash: str = Field(nullable=False)
-    # 枚举：student（学生，学号登录）/ teacher（教师，工号登录）/ admin（管理员）
+    # 枚举：student（学生）/ teacher（教师）/ admin（管理员）
     role: str = Field(default="student", max_length=16)
     name: str = Field(default="", max_length=64)
     major: str | None = Field(default=None, max_length=64)

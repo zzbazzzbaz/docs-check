@@ -3,6 +3,7 @@
 ## 命令
 
 - 安装：`uv sync`
+- 配置：所有字段必填、无代码内默认值，统一维护在 `.env`（新环境复制 `.env.example`）；改配置须同步 `.env` 与 `.env.example`
 - 初始化数据库/迁移：`uv run alembic upgrade head`；改模型后 `uv run alembic revision --autogenerate -m "描述"` 生成迁移（手校 FK/索引/默认值）
 - 创建管理员：`uv run python -m scripts.create_admin <username> [password] [name]`
 - 开发种子数据（幂等，仅开发工具）：`uv run python -m scripts.dev_seed`
