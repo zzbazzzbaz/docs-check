@@ -4,15 +4,20 @@ from fastapi import APIRouter, Query
 
 from app.api.dependencies import CurrentTeacherDep, PageParamsDep, SessionDep
 from app.api.schemas.common import Page
-from app.api.schemas.students import StudentDetail, StudentListItem
+from app.api.schemas.students import (
+    StudentDetail,
+    StudentListItem,
+    TeacherStatsResponse,
+)
 from app.api.schemas.submissions import (
+    Counts,
     SubmissionListItem,
     submission_counts,
     submission_list_item,
 )
 from app.services.pagination import normalize
 from app.services.students import students_service
-from app.services.students.students_service import StudentRow
+from app.services.students.students_service import StudentRow, TeacherStats
 
 router = APIRouter()
 
@@ -48,6 +53,41 @@ async def list_students(
         items=[_student_item(row) for row in rows],
         offset=offset,
         limit=limit,
+    )
+
+
+@router.get("/stats", response_model=TeacherStatsResponse)
+async def get_stats(session: SessionDep, me: CurrentTeacherDep) -> TeacherStatsResponse:
+    stats = await students_service.get_stats(session, teacher=me)
+    return _stats_response(stats)
+
+
+def _stats_response(stats: TeacherStats) -> TeacherStatsResponse:
+    return TeacherStatsResponse.model_validate(
+        {
+            "student_count": stats.student_count,
+            "submitted_count": stats.submitted_count,
+            "series": [
+                {
+                    "student_id": series.student_id,
+                    "username": series.username,
+                    "name": series.name,
+                    "points": [
+                        {
+                            "created_at": point.created_at,
+                            "counts": Counts(
+                                fail=point.fail_count,
+                                undetermined=point.undetermined_count,
+                                not_run=point.not_run_count,
+                                unrecognised=point.unrecognised_count,
+                            ),
+                        }
+                        for point in series.points
+                    ],
+                }
+                for series in stats.series
+            ],
+        }
     )
 
 

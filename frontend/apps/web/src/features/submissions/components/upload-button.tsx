@@ -18,6 +18,7 @@ export function UploadButton() {
     onSuccess: () => {
       toast.success("已提交，正在审核");
       void queryClient.invalidateQueries({ queryKey: ["submissions"] });
+      void queryClient.invalidateQueries({ queryKey: ["submissions-trend"] });
     },
   });
 

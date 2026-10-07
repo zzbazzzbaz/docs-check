@@ -23,6 +23,39 @@ class StudentRow:
     latest_success: Submission | None
 
 
+@dataclass(frozen=True, slots=True)
+class StatsPoint:
+    """趋势点：一次成功提交的四态计数。"""
+
+    created_at: datetime
+    fail_count: int
+    undetermined_count: int
+    not_run_count: int
+    unrecognised_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class StatsSeries:
+    """单个学生的趋势序列（仅成功提交，时间正序，最多 50 点）。"""
+
+    student_id: int
+    username: str
+    name: str
+    points: list[StatsPoint]
+
+
+@dataclass(frozen=True, slots=True)
+class TeacherStats:
+    """教师概览：名下启用学生数 / 提交过的学生数 / 趋势序列。"""
+
+    student_count: int
+    submitted_count: int
+    series: list[StatsSeries]
+
+
+POINTS_LIMIT = 50
+
+
 async def list_students(
     session: AsyncSession, *, teacher: User, q: str | None, offset: int, limit: int
 ) -> tuple[int, list[StudentRow]]:
@@ -92,6 +125,78 @@ async def _latest_success_map(
         )
     ).all()
     return {row.student_id: row for row in rows}
+
+
+async def get_stats(session: AsyncSession, *, teacher: User) -> TeacherStats:
+    """名下启用学生概览：提交过（任意状态）计数 + 每生最近 50 次成功提交序列。"""
+    students = (
+        await session.exec(
+            select(User)
+            .where(User.role == "student", User.teacher_id == teacher.id, User.is_active)
+            .order_by(col(User.username))
+        )
+    ).all()
+    student_ids = [student.id for student in students if student.id is not None]
+    if not student_ids:
+        return TeacherStats(student_count=0, submitted_count=0, series=[])
+
+    submitted_count = (
+        await session.exec(
+            select(func.count(func.distinct(Submission.student_id))).where(
+                col(Submission.student_id).in_(student_ids)
+            )
+        )
+    ).one()
+
+    # 每生只取最近 POINTS_LIMIT 条成功提交：窗口函数先取 id，再按 id 取实体（库内截断）
+    ranked = (
+        select(
+            Submission.id,
+            func.row_number()
+            .over(
+                partition_by=col(Submission.student_id),
+                order_by=(col(Submission.created_at).desc(), col(Submission.id).desc()),
+            )
+            .label("rn"),
+        )
+        .where(col(Submission.student_id).in_(student_ids), Submission.status == "success")
+        .subquery()
+    )
+    keep_ids = (await session.exec(select(ranked.c.id).where(ranked.c.rn <= POINTS_LIMIT))).all()
+    submissions = (
+        await session.exec(
+            select(Submission)
+            .where(col(Submission.id).in_(keep_ids))
+            .order_by(col(Submission.student_id), col(Submission.created_at), col(Submission.id))
+        )
+    ).all()
+
+    points_by_student: dict[int, list[StatsPoint]] = {}
+    for submission in submissions:
+        points_by_student.setdefault(submission.student_id, []).append(
+            StatsPoint(
+                created_at=submission.created_at,
+                fail_count=submission.fail_count,
+                undetermined_count=submission.undetermined_count,
+                not_run_count=submission.not_run_count,
+                unrecognised_count=submission.unrecognised_count,
+            )
+        )
+
+    series: list[StatsSeries] = []
+    for student in students:
+        student_id = student.id
+        if student_id is None or student_id not in points_by_student:
+            continue
+        series.append(
+            StatsSeries(
+                student_id=student_id,
+                username=student.username,
+                name=student.name,
+                points=points_by_student[student_id],
+            )
+        )
+    return TeacherStats(student_count=len(students), submitted_count=submitted_count, series=series)
 
 
 async def get_student(session: AsyncSession, *, teacher: User, student_id: int) -> User:

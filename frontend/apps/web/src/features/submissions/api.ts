@@ -15,6 +15,18 @@ export const submissionsQueryOptions = (offset: number, limit: number) =>
         : false,
   });
 
+/** 学生端趋势/提交次数数据源（上限 100 条；只用于顶部统计区，列表分页另走 submissionsQueryOptions）。 */
+export const submissionTrendQueryOptions = () =>
+  queryOptions({
+    queryKey: ["submissions-trend"],
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/submissions", { params: { query: { offset: 0, limit: 100 } } })),
+    refetchInterval: (query) =>
+      (query.state.data?.items ?? []).some((item) => !isTerminal(item.status))
+        ? POLL_INTERVAL_MS
+        : false,
+  });
+
 export const submissionQueryOptions = (submissionId: number) =>
   queryOptions({
     queryKey: ["submission", submissionId],

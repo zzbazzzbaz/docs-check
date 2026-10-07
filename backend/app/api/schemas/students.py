@@ -20,3 +20,21 @@ class StudentDetail(BaseModel):
     username: str
     name: str
     major: str | None = None
+
+
+class TeacherStatsPoint(BaseModel):
+    created_at: datetime
+    counts: Counts
+
+
+class TeacherStatsSeries(BaseModel):
+    student_id: int
+    username: str
+    name: str
+    points: list[TeacherStatsPoint]
+
+
+class TeacherStatsResponse(BaseModel):
+    student_count: int
+    submitted_count: int
+    series: list[TeacherStatsSeries]

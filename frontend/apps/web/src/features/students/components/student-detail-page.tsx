@@ -14,9 +14,15 @@ import { useState } from "react";
 
 import { PaginationFooter } from "@/components/pagination-footer";
 import { meQueryOptions } from "@/features/auth/api";
+import { ProblemTrendChart } from "@/features/submissions/components/problem-trend-chart";
 import { SubmissionsTable } from "@/features/submissions/components/submissions-table";
+import { buildTrendPoints } from "@/features/submissions/lib/trend";
 import { toErrorMessage } from "@/lib/api";
-import { studentQueryOptions, studentSubmissionsQueryOptions } from "../api";
+import {
+  studentQueryOptions,
+  studentSubmissionsQueryOptions,
+  studentTrendQueryOptions,
+} from "../api";
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +41,7 @@ export function StudentDetailPage({ studentId }: { studentId: number }) {
 
   const student = useQuery(studentQueryOptions(studentId));
   const submissions = useQuery(studentSubmissionsQueryOptions(studentId, offset, PAGE_SIZE));
+  const trend = useQuery(studentTrendQueryOptions(studentId));
 
   const backLink = (
     <Button asChild variant="ghost" size="sm">
@@ -65,6 +72,7 @@ export function StudentDetailPage({ studentId }: { studentId: number }) {
 
   const items = submissions.data?.items ?? [];
   const total = submissions.data?.total ?? 0;
+  const trendPoints = buildTrendPoints(trend.data?.items ?? [], trend.data?.total ?? 0);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -85,6 +93,12 @@ export function StudentDetailPage({ studentId }: { studentId: number }) {
           <Field label="指导教师" value={me.name || me.username} />
         </CardContent>
       </Card>
+
+      <ProblemTrendChart
+        points={trendPoints}
+        loading={trend.isLoading}
+        error={trend.isError ? trend.error : undefined}
+      />
 
       <div className="space-y-4">
         <h2 className="font-semibold">提交记录</h2>

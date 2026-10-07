@@ -15,6 +15,18 @@ test("教师看到名下学生并显示空态字段", async ({ page, request }) 
 
   await expect(page).toHaveURL(`${WEB_BASE}/students`);
   await expect(page.getByRole("heading", { name: "我的学生" })).toBeVisible();
+
+  // 统计概览：卡片数值 + 趋势图空态（该生暂无成功提交）
+  const statsCards = page.locator("[data-slot=card]");
+  await expect(
+    statsCards.filter({ hasText: "名下学生数" }).getByText("1", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    statsCards.filter({ hasText: "提交过的学生数" }).getByText("0", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("学生历史趋势（总问题）")).toBeVisible();
+  await expect(page.getByText("名下学生暂无成功审核记录")).toBeVisible();
+
   const row = page.getByRole("row", { name: new RegExp(student.username) });
   await expect(row).toBeVisible();
   await expect(row.getByText("计算机科学与技术")).toBeVisible();
