@@ -1,11 +1,8 @@
-"""任务 worker：领取、重试上限、启动恢复、stale 重置。"""
+"""审核 worker：领取、重试上限、启动恢复、stale 重置（submissions 单表状态机）。"""
 
 from datetime import UTC, datetime, timedelta
 
-from sqlmodel import select
-
 from app.core.config import get_settings
-from app.infrastructure.db.models.review_task import ReviewTask
 from app.infrastructure.db.models.submission import Submission
 from app.infrastructure.review.runner import ReviewRunner
 from app.services.tasks.review_worker import GENERIC_FAILED_MESSAGE, ReviewWorker
@@ -30,13 +27,6 @@ def _make_worker(session_factory, storage, runner, **settings_overrides) -> Revi
     )
 
 
-async def _fresh_task(session, submission_id: int) -> ReviewTask:
-    session.expire_all()
-    return (
-        await session.exec(select(ReviewTask).where(ReviewTask.submission_id == submission_id))
-    ).one()
-
-
 async def _fresh_submission(session, submission_id: int) -> Submission:
     session.expire_all()
     submission = await session.get(Submission, submission_id)
@@ -54,7 +44,7 @@ async def _upload(client, headers) -> int:
     return r.json()["id"]
 
 
-async def test_process_next_processes_each_task_once(client, session, worker):
+async def test_process_next_processes_each_submission_once(client, session, worker):
     await make_user(session, "many")
     headers = await auth_headers(client, "many")
     await _upload(client, headers)
@@ -73,23 +63,23 @@ async def test_infra_error_retries_then_fails(client, session, session_factory, 
     runner = _FailingRunner(RuntimeError("boom"))
     worker = _make_worker(session_factory, storage, runner, task_poll_interval_seconds=0.01)
 
-    # 前两次异常 → 回 pending（attempts 递增、error 记录、提交回 pending）
+    # 前两次异常 → 回 pending（attempts 递增、task_error 记录、started_at 清空）
     for attempt in (1, 2):
         assert await worker.process_next() is True
-        task = await _fresh_task(session, submission_id)
-        assert task.status == "pending", attempt
-        assert task.attempts == attempt
-        assert task.error == "RuntimeError: boom"
-        assert (await _fresh_submission(session, submission_id)).status == "pending"
+        submission = await _fresh_submission(session, submission_id)
+        assert submission.status == "pending", attempt
+        assert submission.attempts == attempt
+        assert submission.task_error == "RuntimeError: boom"
+        assert submission.started_at is None
 
-    # 第三次达上限 → 任务 finished、提交 failed + 通用原因、文件清理
+    # 第三次达上限 → failed + 通用原因、task_error 保留、finished_at 落库、文件清理
     assert await worker.process_next() is True
-    task = await _fresh_task(session, submission_id)
-    assert task.status == "finished"
-    assert task.attempts == 3
     submission = await _fresh_submission(session, submission_id)
     assert submission.status == "failed"
+    assert submission.attempts == 3
     assert submission.error_message == GENERIC_FAILED_MESSAGE
+    assert submission.task_error == "RuntimeError: boom"
+    assert submission.finished_at is not None
     assert not storage.submission_dir(submission_id).exists()
 
 
@@ -98,69 +88,58 @@ async def test_recover_stuck_resets_processing(session, session_factory, storage
     user_id = user.id
     assert user_id is not None
     submission = Submission(
-        student_id=user_id, original_filename="a.docx", status="processing", storage_dir="s/1"
-    )
-    session.add(submission)
-    await session.flush()
-    submission_id = submission.id
-    assert submission_id is not None
-    task = ReviewTask(
-        submission_id=submission_id,
+        student_id=user_id,
+        original_filename="a.docx",
         status="processing",
         attempts=1,
         started_at=datetime.now(UTC),
+        storage_dir="s/1",
     )
-    session.add(task)
+    session.add(submission)
     await session.commit()
+    submission_id = submission.id
+    assert submission_id is not None
 
     worker = _make_worker(session_factory, storage, ReviewRunner())
     assert await worker.recover_stuck() == 1
 
-    assert (await _fresh_task(session, submission_id)).status == "pending"
-    assert (await _fresh_submission(session, submission_id)).status == "pending"
+    submission = await _fresh_submission(session, submission_id)
+    assert submission.status == "pending"
+    assert submission.started_at is None
 
 
-async def test_reset_stale_only_touches_old_processing_tasks(session, session_factory, storage):
+async def test_reset_stale_only_touches_old_processing(session, session_factory, storage):
     user = await make_user(session, "stale")
     user_id = user.id
     assert user_id is not None
     settings = get_settings()
 
-    fresh_submission = Submission(
-        student_id=user_id, original_filename="fresh.docx", status="processing", storage_dir="s/1"
+    fresh = Submission(
+        student_id=user_id,
+        original_filename="fresh.docx",
+        status="processing",
+        attempts=1,
+        started_at=datetime.now(UTC),
+        storage_dir="s/1",
     )
-    old_submission = Submission(
-        student_id=user_id, original_filename="old.docx", status="processing", storage_dir="s/2"
+    old = Submission(
+        student_id=user_id,
+        original_filename="old.docx",
+        status="processing",
+        attempts=1,
+        started_at=datetime.now(UTC) - timedelta(seconds=settings.task_stale_seconds + 60),
+        storage_dir="s/2",
     )
-    session.add(fresh_submission)
-    session.add(old_submission)
-    await session.flush()
-    fresh_id = fresh_submission.id
-    old_id = old_submission.id
+    session.add(fresh)
+    session.add(old)
+    await session.commit()
+    fresh_id = fresh.id
+    old_id = old.id
     assert fresh_id is not None
     assert old_id is not None
-    session.add(
-        ReviewTask(
-            submission_id=fresh_id,
-            status="processing",
-            attempts=1,
-            started_at=datetime.now(UTC),
-        )
-    )
-    session.add(
-        ReviewTask(
-            submission_id=old_id,
-            status="processing",
-            attempts=1,
-            started_at=datetime.now(UTC) - timedelta(seconds=settings.task_stale_seconds + 60),
-        )
-    )
-    await session.commit()
 
     worker = _make_worker(session_factory, storage, ReviewRunner())
     assert await worker.reset_stale() == 1
 
-    assert (await _fresh_task(session, old_id)).status == "pending"
     assert (await _fresh_submission(session, old_id)).status == "pending"
-    assert (await _fresh_task(session, fresh_id)).status == "processing"
     assert (await _fresh_submission(session, fresh_id)).status == "processing"

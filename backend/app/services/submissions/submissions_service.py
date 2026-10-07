@@ -7,7 +7,6 @@ from typing import Literal
 from sqlmodel import and_, col, func, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.infrastructure.db.models.review_task import ReviewTask
 from app.infrastructure.db.models.submission import Submission
 from app.infrastructure.db.models.user import User
 from app.infrastructure.storage.local import LocalStorage
@@ -61,7 +60,6 @@ async def create(
         storage.remove(submission.id)
         raise
     submission.storage_dir = storage_dir
-    session.add(ReviewTask(submission_id=submission.id, status="pending"))
     await session.commit()
     await session.refresh(submission)
     return submission

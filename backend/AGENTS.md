@@ -27,7 +27,7 @@ core → infrastructure → services → api
 
 - 三角色：`student` / `teacher` / `admin`；无自助注册（旧 register/角色接口已删），管理员由脚本创建，学生/教师由管理端创建。
 - 强制改密门禁：`CurrentUserDep`（宽，仅 `/users/me*` 可用）/ `CurrentReadyUserDep`（严，其余业务接口；未改密 403 `password_required_change`）。
-- 提交是**异步**的：上传接口校验后只入队（202 `pending`），`review_tasks` 表 + 进程内 worker（单实例）领取执行；状态 `pending → processing → success / failed`，前端轮询详情。
+- 提交是**异步**的：上传接口校验后只入队（202 `pending`），`submissions` 单表状态机（status/attempts/started_at）+ 进程内 worker（单实例）领取执行；状态 `pending → processing → success / failed`，前端轮询详情。
 - worker 领取用 `FOR UPDATE SKIP LOCKED`；坏文档不重试（直接 failed + 清理文件），基础设施异常最多 `TASK_MAX_ATTEMPTS` 次；启动恢复 `processing→pending`，运行期 stale 兜底。
 - 下载鉴权：学生本人 / 名下且启用的教师；管理员不可见提交内容。
 - 测试**不启动**后台 worker（测试 app 不跑 lifespan），构造 `ReviewWorker` 后手动 `await worker.process_next()` 驱动（确定性）；测试 docx 样本用 `tests/factories.py` 手工拼字节，不提交二进制语料。

@@ -11,7 +11,7 @@ class User(TimestampMixin, table=True):
     password_hash: str = Field(nullable=False)
     # 枚举：student（学生）/ teacher（教师）/ admin（管理员）
     role: str = Field(default="student", max_length=16)
-    name: str = Field(default="", max_length=64)
+    name: str = Field(max_length=64)
     major: str | None = Field(default=None, max_length=64)
     teacher_id: int | None = Field(default=None, foreign_key="users.id", index=True)
     must_change_password: bool = Field(default=True)
