@@ -1,14 +1,14 @@
-"""兼容 dump：把解析结果渲染成 `test2` 快照的形状，**只调试 / 等价性关卡用**。
+"""兼容 dump：把解析结果渲染成对账工程（`调研/test2`）快照的形状，**只调试 / 等价性关卡用**。
 
-四套与 `test2/docxfmt/own*.py` 一一对应：`own`（段落与字符）、`ownpages`（分节 / 页眉页脚 /
+四套与 `调研/test2/docxfmt/own*.py` 一一对应：`own`（段落与字符）、`ownpages`（分节 / 页眉页脚 /
 页面设置）、`ownborders`（表格边框）、`owntextbox`（文本框），外加 `ownindex`（整篇索引，
-对应 `test2/docxfmt/index.py`）。字段名、单位、`None` 的用法
-逐一对齐，方便直接和 `test2/snapshots/*.json.gz` 比对。
+对应 `调研/test2/docxfmt/index.py`）。字段名、单位、`None` 的用法
+逐一对齐，方便直接和 `调研/test2/snapshots/*.json.gz` 比对。
 
 产品模型与对账口径有意不同，这里按需从节点保留的 lxml 引用回溯原始值，只为让关卡可逐字段
 比对，不进入生产链路：
 
-- 缩进在模型里已归一到**字符**，而 test2 快照用的缩进是**缇值 / 20（pt）**；
+- 缩进在模型里已归一到**字符**，而 `调研/test2` 快照用的缩进是**缇值 / 20（pt）**；
 - 模型只收**真实域**，快照里还带 WPS 口径的合成域（EMBED / HYPERLINK / SHAPE）；
 - 缩进、显式属性、公式编号、VML 图形计数（`w:pict`）在模型里没有对应字段。
 """
@@ -555,7 +555,7 @@ def dump_textbox(pkg: Package, doc: Document) -> dict[str, object]:
 
 # ── ownindex：整篇索引的参考形状 ────────────────────────────────
 #
-# 与 `test2/docxfmt/index.py` 的 `DocIndex.dump()` 逐字段对齐。索引这一块没有 WPS 裁判，
+# 与 `调研/test2/docxfmt/index.py` 的 `DocIndex.dump()` 逐字段对齐。索引这一块没有 WPS 裁判，
 # 对账的是"解析器提供了参考实现所需的全部事实"——所以**照搬参考算法**（含它宽松的引用
 # 正则与 `toc 1/2/3` 口径），产品索引 `thesischeck.index` 是另一条更严格的收集路径。
 

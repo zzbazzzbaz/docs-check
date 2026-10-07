@@ -1,6 +1,6 @@
 """分节、页眉页脚继承、页面设置、分页标记。
 
-口径对 `test2/docxfmt/own_pages.py`（40 篇语料逐字段 100%）；样张在内存里拼最小 docx。
+口径对 `调研/test2/docxfmt/own_pages.py`（40 篇语料逐字段 100%）；样张在内存里拼最小 docx。
 """
 
 from __future__ import annotations

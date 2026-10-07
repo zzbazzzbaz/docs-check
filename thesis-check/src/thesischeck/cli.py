@@ -1,7 +1,7 @@
 """命令行入口。
 
 生产链路接 `pipeline.review()`；`--compat-dump` 是**只用于调试 / 等价性关卡**的旁路，
-把解析结果渲染成 `test2` 快照的形状，不进入生产链路。
+把解析结果渲染成对账工程（`调研/test2`）快照的形状，不进入生产链路。
 """
 
 import argparse
@@ -25,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
         "--compat-dump",
         choices=SUITES,
         metavar="SUITE",
-        help="调试用：按 test2 快照形状输出解析结果（own / ownpages / ownborders / owntextbox / ownindex）",
+        help="调试用：按对账工程（调研/test2）快照形状输出解析结果（own / ownpages / ownborders / owntextbox / ownindex）",
     )
     parser.add_argument(
         "--unknown-elements",

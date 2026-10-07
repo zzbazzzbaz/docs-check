@@ -489,7 +489,7 @@ class Resolver:
         return layers
 
     def raw_ppr(self, ppr: etree._Element | None) -> dict[str, _Entry]:
-        """段落级联的原始结果（含未归一的缩进缇值），供兼容 dump 对齐 test2 的单位。"""
+        """段落级联的原始结果（含未归一的缩进缇值），供兼容 dump 对齐 `调研/test2` 的单位。"""
         return _cascade_ppr(self._ppr_layers(ppr))
 
     def para(

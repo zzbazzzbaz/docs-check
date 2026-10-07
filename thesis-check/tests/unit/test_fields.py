@@ -1,6 +1,6 @@
 """域采集：真实域的代码、跨度、嵌套，以及填进 `Para.field_codes` 的起始域代码。
 
-口径对 `test2/docxfmt/own.py` 的 `OwnDoc.fields`（40 篇语料逐段 100%）；
+口径对 `调研/test2/docxfmt/own.py` 的 `OwnDoc.fields`（40 篇语料逐段 100%）；
 样张在内存里拼最小 docx，不读语料。
 """
 

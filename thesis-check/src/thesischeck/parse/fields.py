@@ -1,6 +1,6 @@
 """域采集：把正文故事区的**真实域**拼出来，并给出每个域跨到哪几段。
 
-口径照搬 `test2/docxfmt/own.py` 的 `OwnDoc.fields`：`w:fldChar` 的 begin/end 配成对
+口径照搬 `调研/test2/docxfmt/own.py` 的 `OwnDoc.fields`：`w:fldChar` 的 begin/end 配成对
 （代码取该域第一段 `w:instrText` 的首个词大写），`w:fldSimple` 记成单段域；域可以跨段、
 可以嵌套。文本框与 `mc:Fallback` 里的不算。
 
