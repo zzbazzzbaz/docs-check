@@ -12,7 +12,7 @@ class Submission(TimestampMixin, table=True):
     id: int | None = Field(default=None, primary_key=True)
     student_id: int = Field(foreign_key="users.id", index=True, nullable=False)
     original_filename: str = Field(max_length=255, nullable=False)
-    # pending → processing → success / failed（前端轮询依据）
+    # 枚举：pending（排队中）/ processing（审核中）/ success（成功）/ failed（失败，终态）
     status: str = Field(default="pending", max_length=16, nullable=False)
     error_message: str | None = Field(default=None)
     fail_count: int = Field(default=0, nullable=False)

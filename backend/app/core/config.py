@@ -6,7 +6,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """必填项唯一来源是 `.env`（缺 key 启动即报错 fail-fast）；带默认值的是代码内静态配置。"""
+    """配置来源：`.env`（本地唯一来源，缺必填 key 启动即报错 fail-fast）。
+
+    无默认值 = 必填项；有默认值 = 代码内缺省值，同样可被 `.env` 覆盖。
+    """
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -12,7 +12,7 @@ class ReviewTask(TimestampMixin, table=True):
     submission_id: int = Field(
         foreign_key="submissions.id", unique=True, index=True, nullable=False
     )
-    # pending / processing / finished（队列状态，与 submissions.status 解耦）
+    # 枚举：pending（待领取）/ processing（处理中）/ finished（已结束，终态）
     status: str = Field(default="pending", max_length=16, nullable=False)
     attempts: int = Field(default=0, nullable=False)
     error: str | None = Field(default=None)
