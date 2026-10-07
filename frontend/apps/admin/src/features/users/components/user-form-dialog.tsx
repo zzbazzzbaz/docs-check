@@ -17,14 +17,6 @@ import {
   FormMessage,
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/ui/components/select";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,10 +24,10 @@ import { z } from "zod";
 import {
   type AdminUserItem,
   type AdminUserRole,
-  teacherOptionsQueryOptions,
   useCreateUserMutation,
   useUpdateUserMutation,
 } from "../api";
+import { NONE_TEACHER, TeacherCombobox } from "./teacher-combobox";
 
 const formSchema = z.object({
   username: z.string().min(3, "账号至少 3 位").max(32, "账号最多 32 位"),
@@ -45,9 +37,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-/** Select 的「未分配」哨兵值（后端用 teacher_id: null 表示）。 */
-const NONE_TEACHER = "none";
 
 interface UserFormDialogProps {
   open: boolean;
@@ -61,10 +50,6 @@ export function UserFormDialog({ open, onOpenChange, role, user }: UserFormDialo
   const isEdit = user !== null;
   const createUser = useCreateUserMutation();
   const updateUser = useUpdateUserMutation();
-  const teachers = useQuery({
-    ...teacherOptionsQueryOptions(""),
-    enabled: open && role === "student",
-  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -180,21 +165,11 @@ export function UserFormDialog({ open, onOpenChange, role, user }: UserFormDialo
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>指导教师（可空）</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="未分配" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={NONE_TEACHER}>未分配</SelectItem>
-                          {(teachers.data ?? []).map((teacher) => (
-                            <SelectItem key={teacher.id} value={String(teacher.id)}>
-                              {teacher.name}（{teacher.username}）
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <TeacherCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        selectedLabel={user?.teacher?.name}
+                      />
                       <FormMessage />
                     </FormItem>
                   )}

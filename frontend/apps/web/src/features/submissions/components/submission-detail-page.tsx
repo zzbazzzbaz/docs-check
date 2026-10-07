@@ -97,12 +97,6 @@ export function SubmissionDetailPage({ submissionId }: { submissionId: number })
               <span className="text-muted-foreground">提交时间：</span>
               {formatDateTime(data.created_at)}
             </div>
-            {success && data.ruleset_version && (
-              <div>
-                <span className="text-muted-foreground">规则集版本：</span>
-                {data.ruleset_version}
-              </div>
-            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
