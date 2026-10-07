@@ -17,6 +17,7 @@ import { Route as AuthChangePasswordRouteImport } from './routes/_auth/change-pa
 import { Route as AuthProfileRouteImport } from './routes/_auth/profile'
 import { Route as AuthSubmissionsSubmissionIdRouteImport } from './routes/_auth/submissions/$submissionId'
 import { Route as AuthTeacherStudentsIndexRouteImport } from './routes/_auth/_teacher/students/index'
+import { Route as AuthTeacherStudentsStudentIdRouteImport } from './routes/_auth/_teacher/students/$studentId'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
@@ -58,6 +59,12 @@ const AuthTeacherStudentsIndexRoute =
     path: '/students/',
     getParentRoute: () => AuthTeacherRouteRoute,
   } as any)
+const AuthTeacherStudentsStudentIdRoute =
+  AuthTeacherStudentsStudentIdRouteImport.update({
+    id: '/students/$studentId',
+    path: '/students/$studentId',
+    getParentRoute: () => AuthTeacherRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/change-password': typeof AuthChangePasswordRoute
   '/profile': typeof AuthProfileRoute
   '/submissions/$submissionId': typeof AuthSubmissionsSubmissionIdRoute
+  '/students/$studentId': typeof AuthTeacherStudentsStudentIdRoute
   '/students/': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
   '/change-password': typeof AuthChangePasswordRoute
   '/profile': typeof AuthProfileRoute
   '/submissions/$submissionId': typeof AuthSubmissionsSubmissionIdRoute
+  '/students/$studentId': typeof AuthTeacherStudentsStudentIdRoute
   '/students': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRoutesById {
@@ -84,6 +93,7 @@ export interface FileRoutesById {
   '/_auth/profile': typeof AuthProfileRoute
   '/_auth/': typeof AuthIndexRoute
   '/_auth/submissions/$submissionId': typeof AuthSubmissionsSubmissionIdRoute
+  '/_auth/_teacher/students/$studentId': typeof AuthTeacherStudentsStudentIdRoute
   '/_auth/_teacher/students/': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/profile'
     | '/submissions/$submissionId'
+    | '/students/$studentId'
     | '/students/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -102,6 +113,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/profile'
     | '/submissions/$submissionId'
+    | '/students/$studentId'
     | '/students'
   id:
     | '__root__'
@@ -112,6 +124,7 @@ export interface FileRouteTypes {
     | '/_auth/profile'
     | '/_auth/'
     | '/_auth/submissions/$submissionId'
+    | '/_auth/_teacher/students/$studentId'
     | '/_auth/_teacher/students/'
   fileRoutesById: FileRoutesById
 }
@@ -178,14 +191,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthTeacherStudentsIndexRouteImport
       parentRoute: typeof AuthTeacherRouteRoute
     }
+    '/_auth/_teacher/students/$studentId': {
+      id: '/_auth/_teacher/students/$studentId'
+      path: '/students/$studentId'
+      fullPath: '/students/$studentId'
+      preLoaderRoute: typeof AuthTeacherStudentsStudentIdRouteImport
+      parentRoute: typeof AuthTeacherRouteRoute
+    }
   }
 }
 
 interface AuthTeacherRouteRouteChildren {
+  AuthTeacherStudentsStudentIdRoute: typeof AuthTeacherStudentsStudentIdRoute
   AuthTeacherStudentsIndexRoute: typeof AuthTeacherStudentsIndexRoute
 }
 
 const AuthTeacherRouteRouteChildren: AuthTeacherRouteRouteChildren = {
+  AuthTeacherStudentsStudentIdRoute: AuthTeacherStudentsStudentIdRoute,
   AuthTeacherStudentsIndexRoute: AuthTeacherStudentsIndexRoute,
 }
 
