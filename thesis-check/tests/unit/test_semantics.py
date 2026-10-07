@@ -4,7 +4,7 @@
 - **识别器是超集**：`附录a` / `附录一` / `第 一 章` / `第1章` 都要先认下来，写错由规则报。
 - **反恒真**：把 `附录A` 的级别改成 3、把大写字母改成小写，**仍然被识别**。
 
-样张在内存里拼最小 docx；真实语料统计标 `real_corpus`，无语料时跳过。
+样张在内存里拼最小 docx；真实语料统计用仓内 `tests/docx`，缺失时跳过。
 """
 
 from __future__ import annotations
@@ -392,11 +392,11 @@ def _corpus_docs() -> list[Path]:
     if env and Path(env).is_dir():
         return sorted(Path(env).glob("*.docx"))
     repo = Path(__file__).resolve().parents[2]
-    fallback = repo.parent / "调研" / "test2" / "corpus"
+    fallback = repo / "tests" / "docx"
     return sorted(fallback.glob("*.docx")) if fallback.is_dir() else []
 
 
-@pytest.mark.skipif(not _corpus_docs(), reason="需要真实语料（THESIS_CORPUS_DIR 或 调研/test2/corpus）")
+@pytest.mark.skipif(not _corpus_docs(), reason="需要真实语料（THESIS_CORPUS_DIR 或 tests/docx）")
 def test_real_corpus_scopes_and_roles() -> None:
     per_scope: Counter[Scope] = Counter()
     unknowns: Counter[Scope] = Counter()

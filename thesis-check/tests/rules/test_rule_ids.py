@@ -1,7 +1,9 @@
 """规则号双向一致性（需求 `NFR-4.2`）。
 
-`docs/规则/*.md` 的「规则一览」表是规则号的**权威来源**；代码里的规则号必须与它
-**双向相等**（多了少了都失败）。本测试解析表格抽出文档侧集合，与 `REGISTRY` 比对。
+规则号的**权威来源**是 `docs/规则/*.md` 的「规则一览」表；本测试比对的是随测试携带的
+副本 `tests/规则/`（保证 thesis-check 自包含）——**改规则文档时必须同步这份副本**，
+否则测试会在双向断言上失败。代码里的规则号必须与它**双向相等**（多了少了都失败）。
+本测试解析表格抽出文档侧集合，与 `REGISTRY` 比对。
 
 一处例外，显式登记而不是静默跳过：`EXCLUDED` 是本期**不做**的 6 条（1 条渲染通道 +
 5 条著录格式骨架）。批 2 的 7 条已在第 10 阶段注册，不再排除。
@@ -22,7 +24,7 @@ ALL_IN_SCOPE_RULES_REGISTERED = True
 # 本期不做（1 条渲染通道 + 5 条著录格式骨架），文档里有、代码里不应有
 EXCLUDED = frozenset({"TXT-50", "REF-16", "REF-17", "REF-18", "REF-19", "REF-20"})
 
-_DOCS = Path(__file__).resolve().parents[3] / "docs" / "规则"
+_DOCS = Path(__file__).resolve().parents[1] / "规则"
 _ID = re.compile(r"^\|\s*((?:ABS-C|ABS-E|COV|TOC|TXT|REF|ACK|APP|GLB)-\d{2})\s*\|", re.MULTILINE)
 
 
