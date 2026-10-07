@@ -32,3 +32,12 @@
 - 表单用 RHF + Zod，校验规则写在组件顶部
 - `src/routeTree.gen.ts` 由插件生成，提交进仓库（保证没有 dev server 时也能 typecheck）
 - UI 文案使用中文
+
+## 业务要点（10.7 Web 层）
+
+- 三角色：`apps/web` 学生 + 教师（`_teacher` pathless 守卫；`_auth` 强制改密门禁），`apps/admin` 管理员；**无自助注册**，学生/教师由管理端创建（初始密码 `123456` 且强制首改），管理员由后端脚本创建。
+- 提交是**异步**的：上传返回 202 后列表/详情每 2s 轮询（仅存在非终态时）；详情只给统计 + 下载，不渲染问题清单。下载走 `api` 实例 `parseAs: "blob"`（带 token），文件名解析 `Content-Disposition` 的 `filename*`。
+- 状态徽章/四项计数标签/模块顺序见 `apps/web/src/features/submissions/lib/status.ts`（与后端 `by_scope` 键名、引擎 `_SCOPE_ORDER` 对齐）。
+- 错误码 → 中文文案与后端 `DomainError.code` 一一对应；新增错误码先补 `messages.ts`。
+- 本地端口冲突：后端默认 `:8000`；可用 `VITE_PROXY_TARGET`（Vite 代理目标）与 `E2E_API_BASE_URL`（e2e 直连后端）指到其他端口。
+- E2E 前置：后端运行 + 管理员账号（默认 `admin/admin123`，可用 `E2E_ADMIN_USERNAME` / `E2E_ADMIN_PASSWORD` 覆盖）；测试数据全部经管理接口运行时创建。
