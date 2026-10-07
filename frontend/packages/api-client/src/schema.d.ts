@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/submissions/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Upload Url
+         * @description 三段式 ①：签发预签名 PUT（字节不经过本服务）。
+         */
+        post: operations["create_upload_url_api_v1_submissions_upload_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -65,7 +85,10 @@ export interface paths {
         /** List My Submissions */
         get: operations["list_my_submissions_api_v1_submissions_get"];
         put?: never;
-        /** Create Submission */
+        /**
+         * Create Submission
+         * @description 三段式 ③：确认直传结果（HEAD 兜底校验）并入队审核。
+         */
         post: operations["create_submission_api_v1_submissions_post"];
         delete?: never;
         options?: never;
@@ -387,11 +410,6 @@ export interface components {
             /** Teacher Id */
             teacher_id?: number | null;
         };
-        /** Body_create_submission_api_v1_submissions_post */
-        Body_create_submission_api_v1_submissions_post: {
-            /** File */
-            file: string;
-        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Old Password */
@@ -518,6 +536,16 @@ export interface components {
             latest_submitted_at?: string | null;
             latest_counts?: components["schemas"]["Counts"] | null;
         };
+        /**
+         * SubmissionCreate
+         * @description 三段式 ③：确认上传（客户端已直传完成）。
+         */
+        SubmissionCreate: {
+            /** Object Key */
+            object_key: string;
+            /** Filename */
+            filename: string;
+        };
         /** SubmissionDetail */
         SubmissionDetail: {
             /** Id */
@@ -618,6 +646,25 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /**
+         * UploadUrlRequest
+         * @description 三段式 ①：签发预签名 PUT 的请求。
+         */
+        UploadUrlRequest: {
+            /** Filename */
+            filename: string;
+            /** Size */
+            size: number;
+        };
+        /** UploadUrlResponse */
+        UploadUrlResponse: {
+            /** Object Key */
+            object_key: string;
+            /** Upload Url */
+            upload_url: string;
+            /** Expires In */
+            expires_in: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -725,6 +772,39 @@ export interface operations {
             };
         };
     };
+    create_upload_url_api_v1_submissions_upload_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadUrlResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_my_submissions_api_v1_submissions_get: {
         parameters: {
             query?: {
@@ -766,7 +846,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_create_submission_api_v1_submissions_post"];
+                "application/json": components["schemas"]["SubmissionCreate"];
             };
         };
         responses: {

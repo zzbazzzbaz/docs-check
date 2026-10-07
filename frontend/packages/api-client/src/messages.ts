@@ -21,6 +21,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   unsupported_file_type: "仅支持 .docx 文件",
   empty_file: "请选择文件",
   file_too_large: "文件超过 50MB 限制",
+  upload_not_found: "上传文件不存在或已过期，请重新上传",
+  invalid_upload_key: "上传标识无效，请重新提交",
   internal_error: "服务器开小差了，请稍后重试",
 };
 

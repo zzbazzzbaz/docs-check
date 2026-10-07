@@ -42,13 +42,41 @@ export const submissionQueryOptions = (submissionId: number) =>
     },
   });
 
-export function uploadSubmission(file: File) {
-  const formData = new FormData();
-  formData.append("file", file);
+/** 签发预签名上传 URL（三段式 ①）。 */
+function signUpload(file: File) {
+  return unwrap(
+    api.POST("/api/v1/submissions/upload-url", {
+      body: { filename: file.name, size: file.size },
+    }),
+  );
+}
+
+/** 直传 COS（三段式 ②）；网络异常也转成可展示的 ApiError。 */
+async function putToCos(url: string, file: File): Promise<Response> {
+  try {
+    return await fetch(url, { method: "PUT", body: file });
+  } catch {
+    throw new ApiError(0, "网络异常，文件上传失败，请重试");
+  }
+}
+
+/**
+ * 上传三段式：签发预签名 PUT → 直传 COS（字节不经过后端）→ 确认入队。
+ * 直传 401 / 403（预签名过期）时重新签发并重试一次；其余失败抛中文提示。
+ */
+export async function uploadSubmission(file: File) {
+  let signed = await signUpload(file);
+  let response = await putToCos(signed.upload_url, file);
+  if (!response.ok && (response.status === 401 || response.status === 403)) {
+    signed = await signUpload(file);
+    response = await putToCos(signed.upload_url, file);
+  }
+  if (!response.ok) {
+    throw new ApiError(response.status, "文件上传失败，请重试");
+  }
   return unwrap(
     api.POST("/api/v1/submissions", {
-      // openapi-fetch 默认 bodySerializer 对 FormData 原样透传，浏览器自动带 multipart boundary
-      body: formData as unknown as { file: string },
+      body: { object_key: signed.object_key, filename: file.name },
     }),
   );
 }
