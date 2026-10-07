@@ -9,6 +9,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.config import get_settings
 from app.core.security import decode_subject
 from app.infrastructure.db.models.user import User
+from app.infrastructure.storage.local import LocalStorage
+from app.services.errors import AccountDisabledError, ForbiddenError, PasswordRequiredChangeError
 from app.services.pagination import DEFAULT_LIMIT
 from app.services.users import users_service
 
@@ -21,10 +23,16 @@ async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
         yield session
 
 
+def get_storage(request: Request) -> LocalStorage:
+    storage: LocalStorage = request.app.state.storage
+    return storage
+
+
 async def get_current_user(
     session: AsyncSession = Depends(get_session),
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> User:
+    """宽依赖：仅 token 有效 + 账号启用；用于 /users/me、/users/me/password。"""
     settings = get_settings()
     if credentials is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "缺少访问令牌")
@@ -42,12 +50,33 @@ async def get_current_user(
     user = await users_service.get_by_id(session, user_id)
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "登录状态无效")
+    if not user.is_active:
+        raise AccountDisabledError("账号已被禁用，请联系管理员")
     return user
 
 
-async def get_current_admin(me: User = Depends(get_current_user)) -> User:
+async def get_ready_user(me: User = Depends(get_current_user)) -> User:
+    """严依赖：必须先修改初始密码，否则拒绝业务接口。"""
+    if me.must_change_password:
+        raise PasswordRequiredChangeError("请先修改初始密码")
+    return me
+
+
+async def get_current_student(me: User = Depends(get_ready_user)) -> User:
+    if me.role != "student":
+        raise ForbiddenError("需要学生权限")
+    return me
+
+
+async def get_current_teacher(me: User = Depends(get_ready_user)) -> User:
+    if me.role != "teacher":
+        raise ForbiddenError("需要教师权限")
+    return me
+
+
+async def get_current_admin(me: User = Depends(get_ready_user)) -> User:
     if me.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "需要管理员权限")
+        raise ForbiddenError("需要管理员权限")
     return me
 
 
@@ -59,6 +88,10 @@ def pagination_params(
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+StorageDep = Annotated[LocalStorage, Depends(get_storage)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+CurrentReadyUserDep = Annotated[User, Depends(get_ready_user)]
+CurrentStudentDep = Annotated[User, Depends(get_current_student)]
+CurrentTeacherDep = Annotated[User, Depends(get_current_teacher)]
 CurrentAdminDep = Annotated[User, Depends(get_current_admin)]
 PageParamsDep = Annotated[tuple[int, int], Depends(pagination_params)]

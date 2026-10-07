@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,13 @@ class Settings(BaseSettings):
     db_max_overflow: int
     db_pool_timeout: int
     db_pool_recycle: int
+
+    storage_dir: Path = Path("storage")
+    review_concurrency: int = Field(default=4, ge=1, le=32)
+    upload_max_bytes: int = Field(default=50 * 1024 * 1024, ge=1)
+    task_poll_interval_seconds: float = Field(default=1.0, gt=0)
+    task_max_attempts: int = Field(default=3, ge=1)
+    task_stale_seconds: int = Field(default=600, ge=60)
 
     @field_validator("jwt_secret")
     @classmethod

@@ -34,6 +34,48 @@ class NotFoundError(DomainError):
     code = "not_found"
 
 
+class ForbiddenError(DomainError):
+    """越权访问资源。"""
+
+    code = "forbidden"
+
+
+class AccountDisabledError(ForbiddenError):
+    """账号已被禁用（登录或使用中）。"""
+
+    code = "account_disabled"
+
+
+class PasswordRequiredChangeError(ForbiddenError):
+    """未修改初始密码，禁止访问业务接口。"""
+
+    code = "password_required_change"
+
+
+class OldPasswordIncorrectError(DomainError):
+    """修改密码时旧密码校验失败。"""
+
+    code = "old_password_incorrect"
+
+
+class UnsupportedFileTypeError(DomainError):
+    """上传文件类型不支持（仅 .docx）。"""
+
+    code = "unsupported_file_type"
+
+
+class EmptyFileError(DomainError):
+    """上传空文件。"""
+
+    code = "empty_file"
+
+
+class FileTooLargeError(DomainError):
+    """上传文件超过大小上限。"""
+
+    code = "file_too_large"
+
+
 class InvalidActionError(DomainError):
     """当前状态下不允许的操作，如修改自己的角色。"""
 

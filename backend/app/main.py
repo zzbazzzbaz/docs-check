@@ -9,6 +9,9 @@ from app.api.routes import api_router
 from app.core.config import get_settings
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
+from app.infrastructure.review.runner import ReviewRunner
+from app.infrastructure.storage.local import LocalStorage
+from app.services.tasks.review_worker import ReviewWorker
 
 
 @asynccontextmanager
@@ -22,8 +25,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         pool_recycle=settings.db_pool_recycle,
     )
     app.state.engine = engine
-    app.state.session_factory = create_session_factory(engine)
+    session_factory = create_session_factory(engine)
+    app.state.session_factory = session_factory
+
+    storage = LocalStorage(settings.storage_dir)
+    app.state.storage = storage
+    runner = ReviewRunner()
+    app.state.review_runner = runner
+    worker = ReviewWorker(
+        session_factory=session_factory, runner=runner, storage=storage, settings=settings
+    )
+    app.state.review_worker = worker
+    await worker.start()
+
     yield
+
+    await worker.stop()
     await engine.dispose()
 
 

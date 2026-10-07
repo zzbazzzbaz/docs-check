@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -9,12 +11,15 @@ from app.api.error_handlers import register_error_handlers
 from app.api.routes import api_router
 from app.core.config import get_settings
 from app.infrastructure.db.engine import create_engine
-from app.infrastructure.db.session import create_session_factory
+from app.infrastructure.db.session import SessionFactory, create_session_factory
+from app.infrastructure.review.runner import ReviewRunner
+from app.infrastructure.storage.local import LocalStorage
+from app.services.tasks.review_worker import ReviewWorker
 from tests.db import prepare_test_database
 
 
 @pytest_asyncio.fixture
-async def session():
+async def session_factory() -> AsyncIterator[SessionFactory]:
     """测试读 `.env`（唯一来源），连 DATABASE_URL 派生的 `<db>_test` 库。
 
     自动建库 + 每次重建表，不污染开发库；禁止在测试里硬编码环境变量。
@@ -32,22 +37,54 @@ async def session():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
-    factory = create_session_factory(engine)
-    async with factory() as s:
-        yield s
-    await engine.dispose()
+    try:
+        yield create_session_factory(engine)
+    finally:
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture
-async def client(session):
+async def session(session_factory: SessionFactory) -> AsyncIterator:
+    async with session_factory() as s:
+        yield s
+
+
+@pytest_asyncio.fixture
+async def app(session_factory: SessionFactory, tmp_path) -> FastAPI:
+    """测试用 app：不跑 lifespan（worker 不自动启动），手动装配 app.state。"""
+    settings = get_settings()
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(api_router, prefix="/api/v1")
 
-    async def override_session():
-        yield session
+    storage = LocalStorage(tmp_path / "storage")
+    runner = ReviewRunner()
+    app.state.storage = storage
+    app.state.review_runner = runner
+    app.state.review_worker = ReviewWorker(
+        session_factory=session_factory, runner=runner, storage=storage, settings=settings
+    )
+
+    async def override_session() -> AsyncIterator:
+        async with session_factory() as s:
+            yield s
 
     app.dependency_overrides[get_session] = override_session
+    return app
+
+
+@pytest_asyncio.fixture
+async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+
+
+@pytest_asyncio.fixture
+async def worker(app: FastAPI) -> ReviewWorker:
+    return app.state.review_worker
+
+
+@pytest_asyncio.fixture
+async def storage(app: FastAPI) -> LocalStorage:
+    return app.state.storage

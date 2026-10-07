@@ -2,7 +2,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import Settings
 from app.core.security import create_access_token, verify_password
-from app.services.errors import InvalidCredentialsError
+from app.services.errors import AccountDisabledError, InvalidCredentialsError
 from app.services.users import users_service
 
 
@@ -12,6 +12,8 @@ async def login(session: AsyncSession, *, username: str, password: str, settings
         raise InvalidCredentialsError("invalid username or password")
     if not verify_password(password, user.password_hash):
         raise InvalidCredentialsError("invalid username or password")
+    if not user.is_active:
+        raise AccountDisabledError("account is disabled")
     return create_access_token(
         subject=str(user.id),
         secret=settings.jwt_secret,

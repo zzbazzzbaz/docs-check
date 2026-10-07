@@ -13,18 +13,29 @@ from app.api.schemas.common import ErrorBody
 from app.services.errors import (
     AlreadyExistsError,
     DomainError,
+    EmptyFileError,
+    FileTooLargeError,
+    ForbiddenError,
     InvalidActionError,
     InvalidCredentialsError,
     NotFoundError,
+    OldPasswordIncorrectError,
+    UnsupportedFileTypeError,
 )
 
 logger = logging.getLogger(__name__)
 
-# 只登记 DomainError 子类；按 MRO 查找，未登记的子类走 500 兜底
+# 只登记 DomainError 子类；按 MRO 查找（继承类如 AccountDisabledError → ForbiddenError），
+# 未登记的子类走 500 兜底
 _STATUS_BY_ERROR: dict[type, int] = {
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
     InvalidActionError: status.HTTP_400_BAD_REQUEST,
+    OldPasswordIncorrectError: status.HTTP_400_BAD_REQUEST,
+    UnsupportedFileTypeError: status.HTTP_400_BAD_REQUEST,
+    EmptyFileError: status.HTTP_400_BAD_REQUEST,
+    ForbiddenError: status.HTTP_403_FORBIDDEN,
     NotFoundError: status.HTTP_404_NOT_FOUND,
+    FileTooLargeError: status.HTTP_413_CONTENT_TOO_LARGE,
     AlreadyExistsError: status.HTTP_409_CONFLICT,
 }
 

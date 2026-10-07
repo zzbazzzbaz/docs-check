@@ -1,19 +1,25 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
-
-UserRole = Literal["user", "admin"]
+from pydantic import BaseModel, Field
 
 
-class UserResponse(BaseModel):
+class TeacherBrief(BaseModel):
+    id: int
+    name: str
+
+
+class MeResponse(BaseModel):
     id: int
     username: str
-    role: UserRole
+    name: str
+    role: Literal["student", "teacher", "admin"]
+    major: str | None = None
+    teacher: TeacherBrief | None = None
+    must_change_password: bool
     created_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class RoleUpdateRequest(BaseModel):
-    role: UserRole
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
