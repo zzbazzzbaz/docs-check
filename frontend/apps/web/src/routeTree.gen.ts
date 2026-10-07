@@ -15,6 +15,7 @@ import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthTeacherRouteRouteImport } from './routes/_auth/_teacher/route'
 import { Route as AuthChangePasswordRouteImport } from './routes/_auth/change-password'
 import { Route as AuthProfileRouteImport } from './routes/_auth/profile'
+import { Route as AuthSubmissionsSubmissionIdRouteImport } from './routes/_auth/submissions/$submissionId'
 import { Route as AuthTeacherStudentsIndexRouteImport } from './routes/_auth/_teacher/students/index'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
@@ -45,6 +46,12 @@ const AuthProfileRoute = AuthProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthSubmissionsSubmissionIdRoute =
+  AuthSubmissionsSubmissionIdRouteImport.update({
+    id: '/submissions/$submissionId',
+    path: '/submissions/$submissionId',
+    getParentRoute: () => AuthRouteRoute,
+  } as any)
 const AuthTeacherStudentsIndexRoute =
   AuthTeacherStudentsIndexRouteImport.update({
     id: '/students/',
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/change-password': typeof AuthChangePasswordRoute
   '/profile': typeof AuthProfileRoute
+  '/submissions/$submissionId': typeof AuthSubmissionsSubmissionIdRoute
   '/students/': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -64,6 +72,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthIndexRoute
   '/change-password': typeof AuthChangePasswordRoute
   '/profile': typeof AuthProfileRoute
+  '/submissions/$submissionId': typeof AuthSubmissionsSubmissionIdRoute
   '/students': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRoutesById {
@@ -74,13 +83,26 @@ export interface FileRoutesById {
   '/_auth/change-password': typeof AuthChangePasswordRoute
   '/_auth/profile': typeof AuthProfileRoute
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/submissions/$submissionId': typeof AuthSubmissionsSubmissionIdRoute
   '/_auth/_teacher/students/': typeof AuthTeacherStudentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/change-password' | '/profile' | '/students/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/change-password'
+    | '/profile'
+    | '/submissions/$submissionId'
+    | '/students/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/change-password' | '/profile' | '/students'
+  to:
+    | '/login'
+    | '/'
+    | '/change-password'
+    | '/profile'
+    | '/submissions/$submissionId'
+    | '/students'
   id:
     | '__root__'
     | '/_auth'
@@ -89,6 +111,7 @@ export interface FileRouteTypes {
     | '/_auth/change-password'
     | '/_auth/profile'
     | '/_auth/'
+    | '/_auth/submissions/$submissionId'
     | '/_auth/_teacher/students/'
   fileRoutesById: FileRoutesById
 }
@@ -141,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProfileRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/submissions/$submissionId': {
+      id: '/_auth/submissions/$submissionId'
+      path: '/submissions/$submissionId'
+      fullPath: '/submissions/$submissionId'
+      preLoaderRoute: typeof AuthSubmissionsSubmissionIdRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/_teacher/students/': {
       id: '/_auth/_teacher/students/'
       path: '/students'
@@ -167,6 +197,7 @@ interface AuthRouteRouteChildren {
   AuthChangePasswordRoute: typeof AuthChangePasswordRoute
   AuthProfileRoute: typeof AuthProfileRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  AuthSubmissionsSubmissionIdRoute: typeof AuthSubmissionsSubmissionIdRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
@@ -174,6 +205,7 @@ const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthChangePasswordRoute: AuthChangePasswordRoute,
   AuthProfileRoute: AuthProfileRoute,
   AuthIndexRoute: AuthIndexRoute,
+  AuthSubmissionsSubmissionIdRoute: AuthSubmissionsSubmissionIdRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(

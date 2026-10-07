@@ -16,7 +16,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      "/api": "http://localhost:8000",
+      // 本机端口冲突时可用 VITE_PROXY_TARGET 指向其他后端端口
+      "/api": process.env.VITE_PROXY_TARGET ?? "http://localhost:8000",
     },
   },
 });
