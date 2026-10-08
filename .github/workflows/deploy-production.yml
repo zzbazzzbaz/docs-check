@@ -1,0 +1,180 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontends
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build -w apps/admin
+          npm run build -w apps/web
+          mkdir -p ../artifacts
+          tar -czf ../artifacts/web-dist.tar.gz -C apps/web/dist .
+          tar -czf ../artifacts/admin-dist.tar.gz -C apps/admin/dist .
+
+      - name: Register server host key
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+        run: |
+          install -d -m 700 ~/.ssh
+          ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload deployment config and frontend artifacts
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          source: "deploy/docker-compose.yml,deploy/Caddyfile,artifacts/web-dist.tar.gz,artifacts/admin-dist.tar.gz"
+          target: /opt/docx-check/.staging
+          strip_components: 1
+
+      - name: Validate and activate configs
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          script: |
+            set -eu
+            cd /opt/docx-check
+            test -f .env || { echo "缺少 /opt/docx-check/.env（首次部署需手工创建）" >&2; exit 1; }
+            stamp=$(date -u +%Y%m%dT%H%M%SZ)
+            cp -a docker-compose.yml "docker-compose.yml.bak-$stamp"
+            cp -f .staging/docker-compose.yml docker-compose.yml
+            if ! docker compose --env-file .env config --quiet; then
+              echo "Compose 配置校验失败，回滚部署配置" >&2
+              mv -f "docker-compose.yml.bak-$stamp" docker-compose.yml
+              exit 1
+            fi
+            sudo cp -a /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak-$stamp"
+            sudo install -m 644 .staging/Caddyfile /etc/caddy/Caddyfile
+            sudo caddy validate --config /etc/caddy/Caddyfile
+
+      - name: Deploy frontends
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          script: |
+            set -eu
+            cd /opt/docx-check
+            mkdir -p web admin
+            find web -mindepth 1 -delete
+            find admin -mindepth 1 -delete
+            tar -xzf .staging/web-dist.tar.gz -C web
+            tar -xzf .staging/admin-dist.tar.gz -C admin
+            chmod -R a+rX web admin
+
+      - name: Pull images and start database
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          envs: IMAGE_TAG
+          script: |
+            set -eu
+            cd /opt/docx-check
+            docker compose pull backend
+            docker compose up -d postgres
+            for attempt in $(seq 1 24); do
+              if docker compose exec -T postgres sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' </dev/null >/dev/null 2>&1; then
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "PostgreSQL did not become ready" >&2
+            exit 1
+
+      - name: Backup database and run migrations
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          envs: IMAGE_TAG
+          script: |
+            set -eu
+            cd /opt/docx-check
+            initialized=$(docker compose exec -T postgres sh -c \
+              'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT to_regclass('"'"'public.alembic_version'"'"') IS NOT NULL"' \
+              </dev/null | tr -d '[:space:]')
+            if [ "$initialized" = "t" ]; then
+              mkdir -p backups
+              backup="backups/docx_check-$(date -u +%Y%m%dT%H%M%SZ).dump"
+              docker compose exec -T postgres sh -c \
+                'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' </dev/null > "$backup"
+            fi
+            docker compose run --rm --no-deps -T backend uv run alembic upgrade head </dev/null
+
+      - name: Deploy backend and reload Caddy
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          envs: IMAGE_TAG
+          script: |
+            set -eu
+            cd /opt/docx-check
+            docker compose up -d backend
+            sudo systemctl reload caddy
+
+      - name: Clean staging
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          script: |
+            set -eu
+            rm -rf /opt/docx-check/.staging
+
+      - name: Verify health
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          script: |
+            set -eu
+            cd /opt/docx-check
+            for attempt in $(seq 1 24); do
+              if curl --fail --silent --show-error https://docx-check.prod.chatgqt.top/health >/dev/null \
+                && curl --fail --silent --output /dev/null https://docx-check.prod.chatgqt.top/ \
+                && curl --fail --silent --output /dev/null https://admin.docx-check.prod.chatgqt.top/; then
+                docker compose ps
+                exit 0
+              fi
+              sleep 5
+            done
+            docker compose logs --tail 100 backend
+            exit 1

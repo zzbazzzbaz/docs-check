@@ -1,0 +1,62 @@
+# docx-check 生产 Caddy 配置（系统级 Caddy）
+#
+# 部署位置：/etc/caddy/Caddyfile
+# 校验：sudo caddy validate --config /etc/caddy/Caddyfile
+# 生效：sudo systemctl reload caddy
+#
+# 说明：
+# - 后端容器发布在 127.0.0.1:18001（见 /opt/docx-check/docker-compose.yml）
+# - 前端为静态文件：/opt/docx-check/web、/opt/docx-check/admin（CI 解压，见 deploy-production.yml）
+# - www.speedee.cn 为原 nginx 站点迁移（静态 + 反代 127.0.0.1:8046；原配置备份见服务器 ~/backups/）
+
+docx-check.prod.chatgqt.top {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:18001
+	}
+
+	handle /health {
+		reverse_proxy 127.0.0.1:18001
+	}
+
+	handle {
+		root * /opt/docx-check/web
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+admin.docx-check.prod.chatgqt.top {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:18001
+	}
+
+	handle {
+		root * /opt/docx-check/admin
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+www.speedee.cn {
+	encode zstd gzip
+
+	# 原 nginx：location /api/ { proxy_pass http://127.0.0.1:8046/; } → 剥掉 /api 前缀
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:8046
+	}
+
+	# 原 nginx：location /image/ { proxy_pass http://127.0.0.1:8046/image/; } → 保留完整路径
+	handle /image/* {
+		reverse_proxy 127.0.0.1:8046
+	}
+
+	handle {
+		root * /opt/hosting/front/hosting-admin
+		try_files {path} /index.html
+		file_server
+	}
+}

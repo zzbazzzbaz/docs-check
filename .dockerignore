@@ -1,0 +1,28 @@
+# 构建上下文 = 仓库根目录（backend/Dockerfile 需要 backend/ + thesis-check/ 的相对布局）
+.git
+.gitignore
+.dockerignore
+.github
+.agents
+.vscode
+
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+**/.ruff_cache
+**/.ty_cache
+**/.pytest_cache
+**/.import_linter_cache
+**/.grimp_cache
+
+# 与镜像无关的目录
+frontend
+docs
+调研
+deploy
+
+# 本地运行数据 / 产物
+backend/storage
+thesis-check/out
+thesis-check/dist
