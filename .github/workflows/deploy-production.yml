@@ -93,6 +93,20 @@ jobs:
             tar -xzf .staging/admin-dist.tar.gz -C admin
             chmod -R a+rX web admin
 
+      - name: Log in to private registry (server)
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          REGISTRY_USERNAME: ${{ secrets.PRIVATE_REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD }}
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          password: ${{ secrets.PRODUCTION_PASSWORD }}
+          envs: REGISTRY_USERNAME,REGISTRY_PASSWORD
+          script: |
+            set -eu
+            printf '%s' "$REGISTRY_PASSWORD" | docker login docker.gqt.plus -u "$REGISTRY_USERNAME" --password-stdin
+
       - name: Pull images and start database
         uses: appleboy/ssh-action@v1.2.5
         with:
