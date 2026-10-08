@@ -51,11 +51,11 @@ jobs:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USER }}
           password: ${{ secrets.PRODUCTION_PASSWORD }}
-          source: "deploy/docker-compose.yml,deploy/Caddyfile,artifacts/web-dist.tar.gz,artifacts/admin-dist.tar.gz"
+          source: "deploy/docker-compose.yml,artifacts/web-dist.tar.gz,artifacts/admin-dist.tar.gz"
           target: /opt/docx-check/.staging
           strip_components: 1
 
-      - name: Validate and activate configs
+      - name: Validate and activate compose config
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
@@ -73,9 +73,6 @@ jobs:
               mv -f "docker-compose.yml.bak-$stamp" docker-compose.yml
               exit 1
             fi
-            sudo cp -a /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak-$stamp"
-            sudo install -m 644 .staging/Caddyfile /etc/caddy/Caddyfile
-            sudo caddy validate --config /etc/caddy/Caddyfile
 
       - name: Deploy frontends
         uses: appleboy/ssh-action@v1.2.5
@@ -149,7 +146,7 @@ jobs:
             fi
             docker compose run --rm --no-deps -T backend uv run alembic upgrade head </dev/null
 
-      - name: Deploy backend and reload Caddy
+      - name: Deploy backend
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
@@ -160,7 +157,6 @@ jobs:
             set -eu
             cd /opt/docx-check
             docker compose up -d backend
-            sudo systemctl reload caddy
 
       - name: Clean staging
         uses: appleboy/ssh-action@v1.2.5

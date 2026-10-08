@@ -12,16 +12,15 @@
                         └── www.speedee.cn                     静态 /opt/hosting + 反代 127.0.0.1:8046（原 nginx 站点迁移）
 ```
 
-- 镜像：`docker.gqt.plus/docx-check/docx-check-api`（zot，CI 推送；服务器匿名可拉取）
+- 镜像：`docker.gqt.plus/docx-check/docx-check-api`（zot，CI 推送；部署工作流自动登录拉取）
 - 前端不在容器内：CI 构建 dist → 解压到 `/opt/docx-check/{web,admin}`，系统 Caddy 直接托管
-- Caddy 为系统服务（非容器）：配置 `/etc/caddy/Caddyfile`，自动 HTTPS（Let's Encrypt）
+- Caddy 为系统服务（非容器），自动 HTTPS（Let's Encrypt）；`/etc/caddy/Caddyfile` 为**服务器人工管理，CI 不同步**
 
 ## 目录内容
 
 ```text
 deploy/
 ├── docker-compose.yml   # 生产 Compose（backend + postgres:17.11；CI 同步到服务器）
-├── Caddyfile            # 系统 Caddy 配置（CI 同步到 /etc/caddy/Caddyfile）
 ├── .env.example         # 环境变量模板（提交；实际 .env 只在服务器）
 └── AGENTS.md
 ```
@@ -29,7 +28,7 @@ deploy/
 ## 部署方式
 
 - `images.yml`：push main → 构建 backend 镜像并推送 zot + GHCR（tag = sha 与 latest）
-- `deploy-production.yml`：手动触发（workflow_dispatch）→ 构建前端 → 上传配置/产物 → 激活配置（带备份回滚）→ 服务器登录 zot → 拉镜像 → 数据库备份 + 迁移 → 起 backend → 刷新 Caddy → 健康检查
+- `deploy-production.yml`：手动触发（workflow_dispatch）→ 构建前端 → 上传 compose/产物 → 激活 compose 配置（带备份回滚）→ 服务器登录 zot → 拉镜像 → 数据库备份 + 迁移 → 起 backend → 健康检查
 - 首次部署前置（一次性，手工）：
   1. 服务器安装 Caddy、备份并停用 nginx
   2. `/opt/docx-check/.env`（按 `.env.example` 生成，600 权限）
@@ -50,4 +49,5 @@ sudo caddy validate --config /etc/caddy/Caddyfile
 ## 注意
 
 - `.env` 含密钥，永不提交；修改后端配置需同步 `backend/.env.example`
+- 系统 Caddy 配置 `/etc/caddy/Caddyfile` 由服务器人工维护（CI 不再同步）；修改后先 `sudo caddy validate --config /etc/caddy/Caddyfile` 再 `sudo systemctl reload caddy`
 - 备份：nginx 原配置在 `~/backups/`；数据库 dump 在 `/opt/docx-check/backups/`
