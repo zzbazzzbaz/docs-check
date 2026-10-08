@@ -42,9 +42,17 @@ def test_jwt_secret_must_be_long_enough():
         _settings(jwt_secret="short")
 
 
-def test_jwt_secret_rejects_placeholder():
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "change-me-in-production-min-32-bytes!!",
+        # 大小写 / 下划线变体也要拦（否则占位值可绕过校验）
+        "CHANGE_ME_openssl_rand_hex_32_padding_00",
+    ],
+)
+def test_jwt_secret_rejects_placeholder(placeholder: str):
     with pytest.raises(ValidationError):
-        _settings(jwt_secret="change-me-in-production-min-32-bytes!!")
+        _settings(jwt_secret=placeholder)
 
 
 def test_valid_settings_pass():

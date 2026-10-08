@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     @field_validator("jwt_secret")
     @classmethod
     def _reject_placeholder_secret(cls, value: str) -> str:
-        if "change-me" in value:
+        if "change-me" in value.lower().replace("_", "-"):
             raise ValueError("JWT_SECRET 还是占位值，请换成随机密钥（openssl rand -hex 32）")
         return value
 
